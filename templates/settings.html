@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}系统设置 — 3D耗材库存管理系统{% endblock %}
+
+{% block content %}
+<header class="content-header">
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">系统设置</h2>
+</header>
+<div class="content-body">
+    <!-- 基本设置 -->
+    <div class="settings-card">
+        <h3><i class="fas fa-sliders-h"></i> 基本设置</h3>
+        <div class="form-group">
+            <label>库存预警阈值 (克)</label>
+            <input type="number" class="form-control" id="thresholdInput" min="50" step="10" value="200">
+        </div>
+        <div class="form-group">
+            <label>默认初始重量 (克)</label>
+            <input type="number" class="form-control" id="defaultWeightInput" min="100" step="50" value="1000">
+        </div>
+        <div style="display:flex;gap:1rem;margin-top:1.2rem;">
+            <button class="btn btn-primary" id="saveSettingsBtn"><i class="fas fa-save"></i> 保存设置</button>
+            <button class="btn btn-cancel" id="resetSettingsBtn"><i class="fas fa-undo"></i> 恢复默认</button>
+        </div>
+        <div id="settingsMsg" style="margin-top:0.8rem;display:none;"></div>
+    </div>
+
+    <!-- 背景设置 -->
+    <div class="settings-card">
+        <h3><i class="fas fa-image"></i> 背景设置</h3>
+        <p style="color:var(--text-secondary);margin-bottom:1rem;">上传并设置系统背景图片（支持 jpg、jpeg、png、webp 格式）</p>
+
+        <div class="form-group">
+            <label>上传新背景</label>
+            <input type="file" id="backgroundFile" accept=".jpg,.jpeg,.png,.webp" style="color:var(--text-primary);">
+            <button class="btn btn-primary" id="uploadBgBtn" style="margin-top:0.5rem;"><i class="fas fa-upload"></i> 上传</button>
+        </div>
+
+        <div id="bgUploadMsg" style="margin-top:0.5rem;display:none;"></div>
+
+        <div style="margin-top:1.5rem;">
+            <h4 style="color:var(--text-primary);margin-bottom:1rem;">已上传的背景</h4>
+            <div class="bg-thumbnails" id="bgThumbnails">
+                <div class="bg-placeholder">未上传任何背景图片</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 开发者模式 - 数据迁移 -->
+    <div class="settings-card" style="border: 1px solid rgba(247, 37, 133, 0.3);">
+        <h3><i class="fas fa-tools"></i> 开发者模式 — 数据迁移</h3>
+        <p style="color:var(--text-muted);margin-bottom:1.2rem;font-size:0.9rem;">
+            从旧版系统的 filament_inventory.db、materials.txt、manufacturers.txt 文件导入数据。同名耗材/类型/品牌会自动跳过。
+        </p>
+
+        <!-- 迁移数据库 -->
+        <div style="margin-bottom:1.5rem;padding:1rem;background:rgba(255,255,255,0.03);border-radius:8px;">
+            <h4 style="color:var(--text-primary);margin-bottom:0.5rem;">
+                <i class="fas fa-database"></i> 迁移旧数据库
+            </h4>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.8rem;">
+                上传旧版 filament_inventory.db，将导入耗材、使用记录和设置数据
+            </p>
+            <div style="display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;">
+                <input type="file" id="migrateDbFile" accept=".db" style="color:var(--text-primary);">
+                <button class="btn btn-primary" id="migrateDbBtn"><i class="fas fa-upload"></i> 导入数据库</button>
+            </div>
+            <div id="migrateDbMsg" style="margin-top:0.5rem;display:none;font-size:0.9rem;"></div>
+        </div>
+
+        <!-- 迁移材料类型 -->
+        <div style="margin-bottom:1.5rem;padding:1rem;background:rgba(255,255,255,0.03);border-radius:8px;">
+            <h4 style="color:var(--text-primary);margin-bottom:0.5rem;">
+                <i class="fas fa-layer-group"></i> 迁移材料类型
+            </h4>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.8rem;">
+                上传旧版 materials.txt，每行一个材料类型名称
+            </p>
+            <div style="display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;">
+                <input type="file" id="migrateMaterialsFile" accept=".txt" style="color:var(--text-primary);">
+                <button class="btn btn-primary" id="migrateMaterialsBtn"><i class="fas fa-upload"></i> 导入材料</button>
+            </div>
+            <div id="migrateMaterialsMsg" style="margin-top:0.5rem;display:none;font-size:0.9rem;"></div>
+        </div>
+
+        <!-- 迁移品牌 -->
+        <div style="margin-bottom:0;padding:1rem;background:rgba(255,255,255,0.03);border-radius:8px;">
+            <h4 style="color:var(--text-primary);margin-bottom:0.5rem;">
+                <i class="fas fa-tag"></i> 迁移品牌
+            </h4>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.8rem;">
+                上传旧版 manufacturers.txt，每行一个品牌名称
+            </p>
+            <div style="display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;">
+                <input type="file" id="migrateManufacturersFile" accept=".txt" style="color:var(--text-primary);">
+                <button class="btn btn-primary" id="migrateManufacturersBtn"><i class="fas fa-upload"></i> 导入品牌</button>
+            </div>
+            <div id="migrateManufacturersMsg" style="margin-top:0.5rem;display:none;font-size:0.9rem;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="/static/js/settings.js"></script>
+{% endblock %}

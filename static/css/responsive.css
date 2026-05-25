@@ -1,0 +1,138 @@
+/* ================================================================
+   Responsive Styles — 3D Consumables Inventory Management System
+   ================================================================ */
+
+@media (max-width: 1200px) {
+    .manufacturers-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 992px) {
+    .favorites-grid { grid-template-columns: repeat(6, 1fr); }
+    .manufacturers-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+    :root { --sidebar-width: 0px; }
+
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+    }
+    .sidebar.open { transform: translateX(0); }
+
+    .main-content { margin-left: 0; }
+
+    .content-header { padding: 0.8rem; }
+
+    .mobile-hidden { display: none !important; }
+    .mobile-only { display: block; }
+
+    .content-body { padding: 0.8rem; }
+
+    .dashboard-grid { grid-template-columns: 1fr; gap: 0.8rem; }
+
+    .card { padding: 1rem; }
+    .stat-value { font-size: 1.6rem; }
+
+    .action-bar { flex-direction: column; gap: 0.6rem; }
+    .btn { width: 100%; justify-content: center; margin-bottom: 0.2rem; }
+    .search-box { width: 100%; max-width: 100%; }
+    .batch-actions { flex-direction: column; gap: 0.5rem; }
+    .batch-actions .btn { width: 100%; }
+
+    .table-container { max-height: 430px; border-radius: 10px; }
+
+    th, td { padding: 0.4rem; font-size: 0.8rem; }
+    table { min-width: unset; width: 100%; }
+
+    .modal-content { width: 95%; max-height: 85vh; }
+
+    .grid-2 { grid-template-columns: 1fr; gap: 0.8rem; }
+
+    .manufacturers-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+    .manufacturer-name { font-size: 1.1rem; }
+    .stat-value-large { font-size: 1.5rem; }
+
+    .sub-tab { padding: 0.6rem 0.8rem; font-size: 0.85rem; }
+
+    .color-grid { grid-template-columns: repeat(10, 1fr); }
+
+    .form-control { font-size: 16px !important; }
+
+    .btn-withdraw { height: 24px !important; width: 24px !important; min-width: 24px !important; }
+    .btn-withdraw i { font-size: 12px !important; }
+
+    .mgmt-header { flex-direction: column; align-items: stretch; }
+}
+
+@media (max-width: 576px) {
+    .favorites-grid { grid-template-columns: repeat(3, 1fr); }
+    .manufacturers-grid { grid-template-columns: repeat(1, 1fr); }
+}
+
+@media (max-width: 480px) {
+    .card-title { font-size: 1rem; }
+    .card-icon { width: 36px; height: 36px; font-size: 1.1rem; }
+    .stat-value { font-size: 1.4rem; }
+    .stat-label { font-size: 0.8rem; }
+
+    .table-container { max-height: 430px; }
+
+    .sub-tab { padding: 0.5rem 0.7rem; font-size: 0.8rem; }
+
+    .modal-header { padding: 1rem; }
+    .modal-title { font-size: 0.8rem !important; }
+    .close-modal { font-size: 1.3rem; }
+    .modal-body { padding: 0.7rem !important; }
+
+    .form-group label { font-size: 0.6rem !important; margin-bottom: 0.2rem; }
+    .form-control { font-size: 0.7rem !important; padding: 0.5rem !important; }
+    .form-group { margin-bottom: 0.7rem; }
+    .grid-2 { gap: 0.4rem !important; }
+
+    .color-grid { grid-template-columns: repeat(8, 1fr); }
+    .color-preview { width: 30px !important; height: 30px !important; }
+
+    .favorites-grid { grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+    .filament-spool { width: 50px; height: 50px; }
+    .filament-manufacturer { font-size: 0.75rem; }
+    .filament-material { font-size: 0.7rem; }
+    .filament-weight { font-size: 0.7rem; }
+    .usage-hint { font-size: 0.65rem; }
+
+    .dashboard-grid#statsGrid { display: flex; flex-wrap: wrap; gap: 5px; }
+    .dashboard-grid#statsGrid .card { flex: 1 1 calc(20% - 10px); min-width: calc(20% - 10px); padding: 0.5rem; }
+    .dashboard-grid#statsGrid .card-header { flex-direction: column; margin-bottom: 0.5rem; }
+    .dashboard-grid#statsGrid .card-title { font-size: 0.7rem; text-align: center; margin-bottom: 0.3rem; }
+    .dashboard-grid#statsGrid .card-icon { width: 25px; height: 25px; font-size: 0.9rem; margin: 0 auto; }
+    .dashboard-grid#statsGrid .stat-value { font-size: 0.7rem; text-align: center; margin-bottom: 0.2rem; }
+    .dashboard-grid#statsGrid .stat-label { font-size: 0.6rem; text-align: center; }
+
+    .manufacturers-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+    .manufacturer-name { font-size: 0.8rem !important; }
+    .stat-value-large { font-size: 0.7rem !important; }
+    .stat-label-large { font-size: 0.6rem !important; }
+    .stat-card { padding: 0.4rem !important; }
+    .value-card { padding: 0.4rem !important; margin-top: 0.3rem !important; }
+
+    .detail-grid { grid-template-columns: 1fr 1fr; gap: 0.2rem !important; }
+    .detail-item { margin-bottom: 0.3rem; }
+    .detail-label { font-size: 0.6rem !important; }
+    .detail-value { padding: 0.4rem; min-height: 28px; font-size: 0.7rem !important; }
+    .detail-color-preview { width: 20px !important; height: 20px !important; }
+    .detail-progress { height: 6px; margin-top: 0.3rem; }
+    .detail-status { padding: 0.2rem 0.5rem; font-size: 0.7rem !important; }
+
+    .modal-buttons { margin-top: 0.8rem; gap: 0.5rem; }
+    .modal-buttons .btn { padding: 0.5rem; font-size: 0.8rem; }
+
+    .action-bar { flex-direction: row; flex-wrap: wrap; gap: 5px; }
+    .action-buttons { display: flex; gap: 5px; width: 100%; }
+    .action-buttons .btn { flex: 1 1 calc(33.333% - 10px); min-width: 0; font-size: 10px; padding: 0.5rem 0.2rem; }
+    .batch-actions { flex-direction: row; flex-wrap: wrap; gap: 5px; }
+    .batch-actions .btn { flex: 1 1 calc(25% - 10px); min-width: 0; font-size: 10px; padding: 0.4rem 0.1rem; }
+
+    .chart-container { height: 180px; }
+
+    .bg-thumbnails { grid-template-columns: repeat(2, 1fr); }
+}

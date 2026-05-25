@@ -1,0 +1,409 @@
+{% extends "base.html" %}
+{% block title %}耗材面板 — 3D耗材库存管理系统{% endblock %}
+
+{% block content %}
+<header class="content-header">
+    <div class="sub-nav" id="subNav">
+        <div class="sub-tab active" data-panel="dashboard">库存总览</div>
+        <div class="sub-tab" data-panel="management">耗材管理</div>
+        <div class="sub-tab" data-panel="usage">使用记录</div>
+        <div class="sub-tab" data-panel="reports">统计报表</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div class="info-bar" id="accessInfo" style="display:none;">
+            <i class="fas fa-network-wired"></i>
+            <span>局域网: <span id="localAddress">http://localhost:9055/</span></span>
+        </div>
+        <button class="btn btn-outline" id="refreshBtn">
+            <i class="fas fa-sync-alt"></i> 显示所有耗材
+        </button>
+    </div>
+</header>
+
+<div class="content-body">
+    <!-- 库存总览面板 -->
+    <div class="panel active" id="dashboardPanel">
+        <div class="dashboard-grid" id="statsGrid">
+            <div class="card">
+                <div class="card-header"><div class="card-title">总耗材数量</div><div class="card-icon icon-primary"><i class="fas fa-boxes"></i></div></div>
+                <div class="stat-value">0</div><div class="stat-label">卷</div>
+            </div>
+            <div class="card">
+                <div class="card-header"><div class="card-title">耗材类型</div><div class="card-icon icon-primary"><i class="fas fa-layer-group"></i></div></div>
+                <div class="stat-value">0</div><div class="stat-label">种材料类型</div>
+            </div>
+            <div class="card">
+                <div class="card-header"><div class="card-title">库存预警</div><div class="card-icon icon-warning"><i class="fas fa-exclamation-triangle"></i></div></div>
+                <div class="stat-value">0</div><div class="stat-label">卷耗材需要补充</div>
+            </div>
+            <div class="card">
+                <div class="card-header"><div class="card-title">常用耗材</div><div class="card-icon icon-primary"><i class="fas fa-star"></i></div></div>
+                <div class="stat-value">0</div><div class="stat-label">标记为常用</div>
+            </div>
+            <div class="card">
+                <div class="card-header"><div class="card-title">库存总价值</div><div class="card-icon icon-primary"><i class="fas fa-yen-sign"></i></div></div>
+                <div class="stat-value">¥0</div><div class="stat-label">所有耗材总价值</div>
+            </div>
+        </div>
+
+        <div class="alert alert-warning" id="lowStockAlert" style="display:flex;">
+            <i class="fas fa-exclamation-circle"></i>
+            <div id="lowStockMessage"></div>
+        </div>
+
+        <div class="card" style="margin-top:1rem;">
+            <div class="card-header">
+                <div class="card-title">常用耗材</div>
+                <div class="usage-hint">单击减少对应克数，长按修改对应耗材</div>
+            </div>
+            <div class="favorites-container">
+                <div class="favorites-grid" id="favoriteFilamentsGrid"></div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:1rem;margin-bottom:1rem;">
+            <div class="card-header"><div class="card-title">厂商耗材统计</div></div>
+            <div class="manufacturers-grid" id="manufacturerGrid"></div>
+        </div>
+    </div>
+
+    <!-- 耗材管理面板 -->
+    <div class="panel" id="managementPanel">
+        <div class="action-bar">
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="addFilamentBtn"><i class="fas fa-plus"></i> 添加耗材</button>
+                <button class="btn btn-outline" id="batchAddBtn"><i class="fas fa-copy"></i> 批量添加</button>
+                <button class="btn btn-outline" id="importBtn"><i class="fas fa-file-import"></i> 导入数据</button>
+                <button class="btn btn-outline" id="exportBtn"><i class="fas fa-file-export"></i> 导出数据</button>
+            </div>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="搜索耗材...">
+            </div>
+            <div>
+                <select class="form-control" id="statusFilter" style="width:100%;">
+                    <option value="all">所有状态</option>
+                    <option value="opened">使用中</option>
+                    <option value="unopened">未开封</option>
+                    <option value="used_up">已用完</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAll" class="select-all"></th>
+                        <th class="hide-on-mobile sortable" data-sort="name">耗材名称</th>
+                        <th class="material-cell sortable" data-sort="material">类型</th>
+                        <th class="sortable" data-sort="color">颜色</th>
+                        <th class="manufacturer-cell sortable" data-sort="manufacturer">厂商</th>
+                        <th class="sortable" data-sort="weight">重量</th>
+                        <th class="hide-on-mobile sortable" data-sort="location">位置</th>
+                        <th class="sortable" data-sort="status">状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="filamentTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="batch-actions">
+            <button class="btn btn-outline" id="batchFavoriteBtn"><i class="fas fa-star"></i> 标记为常用</button>
+            <button class="btn btn-outline" id="batchMarkOpenedBtn"><i class="fas fa-box-open"></i> 设为使用中</button>
+            <button class="btn btn-outline" id="batchMarkUnopenedBtn"><i class="fas fa-box"></i> 设为未开封</button>
+            <button class="btn btn-danger" id="batchDeleteBtn"><i class="fas fa-trash"></i> 批量删除</button>
+        </div>
+    </div>
+
+    <!-- 使用记录面板 -->
+    <div class="panel" id="usagePanel">
+        <div class="card">
+            <div class="card-header"><div class="card-title">耗材使用记录</div></div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>日期时间</th><th>耗材名称</th><th>使用重量(g)</th>
+                            <th>使用金额(¥)</th><th>备注</th><th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usageTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card" style="margin-top:1rem;">
+            <div class="card-header"><div class="card-title">使用汇总</div></div>
+            <div id="usageSummary"></div>
+        </div>
+        <div class="card" style="margin-top:1rem;">
+            <div class="card-header"><div class="card-title">每日使用统计</div></div>
+            <div class="chart-container"><canvas id="dailyUsageChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- 统计报表面板 -->
+    <div class="panel" id="reportsPanel">
+        <div class="dashboard-grid">
+            <div class="card">
+                <div class="card-header"><div class="card-title">耗材类型分布</div></div>
+                <div class="chart-container"><canvas id="materialChartReports"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><div class="card-title">库存状态分析</div></div>
+                <div class="chart-container"><canvas id="statusChartReports"></canvas></div>
+            </div>
+        </div>
+        <div class="card" style="margin-top:1rem;">
+            <div class="card-header"><div class="card-title">月度耗材使用量</div></div>
+            <div class="chart-container"><canvas id="usageChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加/编辑耗材模态框 -->
+<div class="modal" id="addModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title" id="modalTitle">添加新耗材</div>
+            <div class="close-modal">&times;</div>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>耗材名称 *</label>
+                <input type="text" class="form-control" id="filamentName" placeholder="例如: PLA高级白" required>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>材料类型 *</label>
+                    <select class="form-control" id="materialType"></select>
+                </div>
+                <div class="form-group">
+                    <label>生产厂商</label>
+                    <select class="form-control" id="manufacturer"></select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>颜色 *</label>
+                <div class="color-grid" id="presetColors"></div>
+                <div class="custom-color-container">
+                    <span class="custom-color-label">自定义:</span>
+                    <input type="color" class="form-control" id="colorPicker" value="#4361ee" style="flex:1;min-height:40px;">
+                    <div class="color-preview" id="colorPreview" style="width:40px;height:40px;"></div>
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>存储位置</label>
+                    <input type="text" class="form-control" id="location" placeholder="例如: A区-3层">
+                </div>
+                <div class="form-group">
+                    <label>开封状态</label>
+                    <select class="form-control" id="isOpened">
+                        <option value="0" selected>未开封</option>
+                        <option value="1">已开封</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>初始重量 (g) *</label>
+                    <input type="number" class="form-control" id="initialWeight" min="1" step="1" required>
+                </div>
+                <div class="form-group">
+                    <label>当前重量 (g) *</label>
+                    <input type="number" class="form-control" id="currentWeight" min="0" step="1" required>
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>购买日期</label>
+                    <input type="date" class="form-control" id="purchaseDate">
+                </div>
+                <div class="form-group">
+                    <label>购买价格 (¥)</label>
+                    <input type="number" class="form-control" id="purchasePrice" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>购买渠道</label>
+                <select class="form-control" id="purchaseChannel">
+                    <option value="">请选择</option>
+                    <option value="京东">京东</option><option value="淘宝">淘宝</option>
+                    <option value="拼多多">拼多多</option><option value="小程序">小程序</option>
+                    <option value="咸鱼">咸鱼</option><option value="其他">其他</option>
+                </select>
+            </div>
+            <div class="form-group" id="openedAtGroup" style="display:none;">
+                <label>开封日期</label>
+                <input type="date" class="form-control" id="openedAt">
+            </div>
+            <div class="form-group">
+                <label><input type="checkbox" id="isFavorite"> 标记为常用耗材</label>
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1.2rem;">
+                <button class="btn btn-primary" id="saveFilamentBtn" style="flex:1;"><i class="fas fa-save"></i> 保存耗材</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 批量添加模态框 -->
+<div class="modal" id="batchAddModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">批量添加耗材</div>
+            <div class="close-modal">&times;</div>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>材料类型 *</label>
+                <select class="form-control" id="batchMaterialType"></select>
+            </div>
+            <div class="form-group">
+                <label>颜色 *</label>
+                <div class="color-grid" id="batchPresetColors"></div>
+                <div class="custom-color-container">
+                    <span class="custom-color-label">自定义:</span>
+                    <input type="color" class="form-control" id="batchColorPicker" value="#4361ee" style="flex:1;min-height:40px;">
+                    <div class="color-preview" id="batchColorPreview" style="width:40px;height:40px;"></div>
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>生产厂商</label>
+                    <select class="form-control" id="batchManufacturer"></select>
+                </div>
+                <div class="form-group">
+                    <label>存储位置</label>
+                    <input type="text" class="form-control" id="batchLocation" placeholder="例如: A区-3层">
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>初始重量 (g) *</label>
+                    <input type="number" class="form-control" id="batchInitialWeight" min="1" step="1" required>
+                </div>
+                <div class="form-group">
+                    <label>数量 *</label>
+                    <input type="number" class="form-control" id="batchQuantity" value="1" min="1" step="1" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>名称前缀 *</label>
+                <input type="text" class="form-control" id="batchNamePrefix" placeholder="例如: PLA高级白" required>
+                <small>名称将自动添加序号，如: PLA高级白 #1</small>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>购买日期</label>
+                    <input type="date" class="form-control" id="batchPurchaseDate">
+                </div>
+                <div class="form-group">
+                    <label>购买价格 (¥)</label>
+                    <input type="number" class="form-control" id="batchPurchasePrice" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>购买渠道</label>
+                <select class="form-control" id="batchPurchaseChannel">
+                    <option value="">请选择</option>
+                    <option value="京东">京东</option><option value="淘宝">淘宝</option>
+                    <option value="拼多多">拼多多</option><option value="小程序">小程序</option>
+                    <option value="咸鱼">咸鱼</option><option value="其他">其他</option>
+                </select>
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1.2rem;">
+                <button class="btn btn-primary" id="saveBatchBtn" style="flex:1;"><i class="fas fa-save"></i> 批量添加</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 导入模态框 -->
+<div class="modal" id="importModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">导入耗材数据</div>
+            <div class="close-modal">&times;</div>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>选择CSV文件</label>
+                <input type="file" id="csvFile" accept=".csv">
+                <small>请使用导出的CSV格式文件</small>
+            </div>
+            <div class="import-options">
+                <label><input type="checkbox" id="updateExisting" checked> 更新已存在的记录</label>
+                <label><input type="checkbox" id="skipDuplicates" checked> 跳过重复记录</label>
+            </div>
+            <div id="importResults" style="display:none;margin-top:1rem;background:rgba(255,255,255,0.05);padding:1rem;border-radius:8px;">
+                <h4>导入结果详情:</h4>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                    <div><strong>新增记录:</strong> <span id="importAdded">0</span></div>
+                    <div><strong>更新记录:</strong> <span id="importUpdated">0</span></div>
+                    <div><strong>跳过记录:</strong> <span id="importSkipped">0</span></div>
+                    <div><strong>总处理:</strong> <span id="importTotal">0</span></div>
+                </div>
+                <div id="importErrorLog" style="margin-top:1rem;color:#dc3545;display:none;"></div>
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1.2rem;">
+                <button class="btn btn-primary" id="confirmImportBtn" style="flex:1;"><i class="fas fa-upload"></i> 开始导入</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 使用耗材模态框 -->
+<div class="modal" id="useModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">使用耗材</div>
+            <div class="close-modal">&times;</div>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label id="useFilamentName">PLA高级白</label>
+                <input type="number" class="form-control" id="usedWeight" placeholder="输入使用重量 (克)" min="1" step="1" required>
+                <small>当前剩余重量: <span id="currentWeightDisplay">850</span>g</small>
+            </div>
+            <div class="form-group">
+                <label>备注信息</label>
+                <input type="text" class="form-control" id="useNote" placeholder="输入备注（例如：打印了什么模型）">
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1.2rem;">
+                <button class="btn btn-primary" id="confirmUseBtn" style="flex:1;"><i class="fas fa-check"></i> 确认使用</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 耗材详情模态框 -->
+<div class="modal" id="detailModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">耗材详情</div>
+            <div class="close-modal">&times;</div>
+        </div>
+        <div class="modal-body">
+            <div class="detail-grid">
+                <div class="detail-item"><div class="detail-label">耗材名称</div><div class="detail-value" id="detailName">-</div></div>
+                <div class="detail-item"><div class="detail-label">材料类型</div><div class="detail-value" id="detailMaterial">-</div></div>
+                <div class="detail-item"><div class="detail-label">颜色</div><div class="detail-value detail-color"><div class="detail-color-preview" id="detailColorPreview" style="background-color:#f0f0f0;"></div><span id="detailColor">-</span></div></div>
+                <div class="detail-item"><div class="detail-label">厂商</div><div class="detail-value" id="detailManufacturer">-</div></div>
+                <div class="detail-item"><div class="detail-label">当前重量</div><div class="detail-value" id="detailCurrentWeight">-</div></div>
+                <div class="detail-item"><div class="detail-label">初始重量</div><div class="detail-value" id="detailInitialWeight">-</div></div>
+                <div class="detail-item"><div class="detail-label">购买日期</div><div class="detail-value" id="detailPurchaseDate">-</div></div>
+                <div class="detail-item"><div class="detail-label">购买价格</div><div class="detail-value" id="detailPurchasePrice">-</div></div>
+                <div class="detail-item"><div class="detail-label">购买渠道</div><div class="detail-value" id="detailPurchaseChannel">-</div></div>
+                <div class="detail-item"><div class="detail-label">开封状态</div><div class="detail-value" id="detailOpenedStatus">-</div></div>
+                <div class="detail-item"><div class="detail-label">开封日期</div><div class="detail-value" id="detailOpenedDate">-</div></div>
+                <div class="detail-item"><div class="detail-label">存储位置</div><div class="detail-value" id="detailLocation">-</div></div>
+                <div class="detail-item"><div class="detail-label">使用进度</div><div class="detail-value"><div id="detailProgressText">-</div><div class="detail-progress"><div class="detail-progress-fill" id="detailProgressBar" style="width:0%"></div></div></div></div>
+                <div class="detail-item"><div class="detail-label">状态</div><div class="detail-value"><span class="detail-status status-in-use" id="detailStatus">-</span></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

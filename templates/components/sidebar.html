@@ -1,0 +1,31 @@
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <i class="fa-solid fa-cubes"></i>
+        <h2>3D耗材管理</h2>
+    </div>
+    <ul class="sidebar-nav">
+        <li>
+            <a href="/" class="{{ 'active' if active_nav == 'dashboard' or not active_nav }}">
+                <i class="fa-solid fa-cube"></i> 耗材面板
+            </a>
+        </li>
+        <li>
+            <a href="/materials" class="{{ 'active' if active_nav == 'materials' }}">
+                <i class="fa-solid fa-layer-group"></i> 类型管理
+            </a>
+        </li>
+        <li>
+            <a href="/manufacturers" class="{{ 'active' if active_nav == 'manufacturers' }}">
+                <i class="fa-solid fa-tag"></i> 品牌管理
+            </a>
+        </li>
+        <li>
+            <a href="/settings" class="{{ 'active' if active_nav == 'settings' }}">
+                <i class="fa-solid fa-cog"></i> 系统设置
+            </a>
+        </li>
+    </ul>
+    <div class="sidebar-footer">
+        <span>v0.2.1.0</span>
+    </div>
+</aside>
