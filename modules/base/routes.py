@@ -1,6 +1,6 @@
 """Base routes: pages, settings, background management, utilities."""
 import os
-import socket
+import re
 import logging
 from datetime import datetime
 from flask import current_app, render_template, jsonify, request
@@ -19,34 +19,120 @@ def _data_dir():
     return current_app.config.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "data"))
 
 
+def _get_appearance_settings(conn):
+    """Load card_opacity and card_color from system_settings with validation fallback."""
+    rows = conn.execute(
+        "SELECT key, value FROM system_settings WHERE key IN ('card_opacity', 'card_color', 'card_blur')"
+    ).fetchall()
+    sys = {r["key"]: r["value"] for r in rows}
+
+    try:
+        card_opacity = float(sys.get("card_opacity", "0.05"))
+        if not (0.0 <= card_opacity <= 1.0):
+            card_opacity = 0.05
+    except (ValueError, TypeError):
+        card_opacity = 0.05
+
+    try:
+        card_color = sys.get("card_color", "#ffffff")
+        if not re.match(r'^#[0-9a-fA-F]{6}$', card_color):
+            card_color = "#ffffff"
+    except (ValueError, TypeError):
+        card_color = "#ffffff"
+
+    try:
+        card_blur = int(sys.get("card_blur", "2"))
+        if not (0 <= card_blur <= 30):
+            card_blur = 2
+    except (ValueError, TypeError):
+        card_blur = 2
+
+    return card_opacity, card_color, card_blur
+
+
+def _bg_for_template():
+    """Helper to get background for page renders."""
+    return get_active_background(_data_dir(), current_app.static_folder)
+
+
 # ─── Page Routes ───
 
 @base_bp.route("/")
 def index():
-    static_folder = current_app.static_folder
-    bg = get_active_background(_data_dir(), static_folder)
-    return render_template("dashboard.html", active_background=bg)
+    return render_template("dashboard/overview.html",
+                           active_background=_bg_for_template(),
+                           active_nav="dashboard",
+                           active_sub="overview")
+
+
+@base_bp.route("/dashboard/overview")
+def dashboard_overview():
+    return render_template("dashboard/overview.html",
+                           active_background=_bg_for_template(),
+                           active_nav="dashboard",
+                           active_sub="overview")
+
+
+@base_bp.route("/dashboard/filaments")
+def dashboard_filaments():
+    return render_template("dashboard/filaments.html",
+                           active_background=_bg_for_template(),
+                           active_nav="dashboard",
+                           active_sub="filaments")
+
+
+@base_bp.route("/dashboard/logs")
+def dashboard_logs():
+    return render_template("dashboard/logs.html",
+                           active_background=_bg_for_template(),
+                           active_nav="dashboard",
+                           active_sub="logs")
+
+
+@base_bp.route("/dashboard/stats")
+def dashboard_stats():
+    return render_template("dashboard/stats.html",
+                           active_background=_bg_for_template(),
+                           active_nav="dashboard",
+                           active_sub="stats")
 
 
 @base_bp.route("/materials")
 def materials_page():
-    static_folder = current_app.static_folder
-    bg = get_active_background(_data_dir(), static_folder)
-    return render_template("materials.html", active_background=bg, active_nav="materials")
+    return render_template("materials.html",
+                           active_background=_bg_for_template(),
+                           active_nav="materials")
 
 
 @base_bp.route("/manufacturers")
 def manufacturers_page():
-    static_folder = current_app.static_folder
-    bg = get_active_background(_data_dir(), static_folder)
-    return render_template("manufacturers.html", active_background=bg, active_nav="manufacturers")
+    return render_template("manufacturers.html",
+                           active_background=_bg_for_template(),
+                           active_nav="manufacturers")
 
 
-@base_bp.route("/settings")
-def settings_page():
-    static_folder = current_app.static_folder
-    bg = get_active_background(_data_dir(), static_folder)
-    return render_template("settings.html", active_background=bg, active_nav="settings")
+@base_bp.route("/settings/general")
+def settings_general():
+    return render_template("settings/general.html",
+                           active_background=_bg_for_template(),
+                           active_nav="settings",
+                           active_sub="general")
+
+
+@base_bp.route("/settings/appearance")
+def settings_appearance():
+    return render_template("settings/appearance.html",
+                           active_background=_bg_for_template(),
+                           active_nav="settings",
+                           active_sub="appearance")
+
+
+@base_bp.route("/settings/advanced")
+def settings_advanced():
+    return render_template("settings/advanced.html",
+                           active_background=_bg_for_template(),
+                           active_nav="settings",
+                           active_sub="advanced")
 
 
 # ─── Settings API ───
@@ -58,7 +144,12 @@ def api_settings():
         with get_db(data_dir) as conn:
             if request.method == "GET":
                 row = conn.execute("SELECT * FROM settings WHERE id = 1").fetchone()
-                return jsonify(dict(row))
+                result = dict(row)
+                card_opacity, card_color, card_blur = _get_appearance_settings(conn)
+                result["card_opacity"] = card_opacity
+                result["card_color"] = card_color
+                result["card_blur"] = card_blur
+                return jsonify(result)
             else:
                 data = request.get_json() or {}
                 threshold = data.get("threshold", 200)
@@ -67,9 +158,45 @@ def api_settings():
                     "UPDATE settings SET threshold = ?, default_weight = ? WHERE id = 1",
                     (threshold, default_weight),
                 )
+
+                if "card_opacity" in data:
+                    try:
+                        val = float(data["card_opacity"])
+                        if 0.0 <= val <= 1.0:
+                            conn.execute(
+                                "INSERT OR REPLACE INTO system_settings (key, value) VALUES ('card_opacity', ?)",
+                                (str(val),),
+                            )
+                    except (ValueError, TypeError):
+                        pass
+
+                if "card_color" in data:
+                    color = str(data["card_color"])
+                    if re.match(r'^#[0-9a-fA-F]{6}$', color):
+                        conn.execute(
+                            "INSERT OR REPLACE INTO system_settings (key, value) VALUES ('card_color', ?)",
+                            (color,),
+                        )
+
+                if "card_blur" in data:
+                    try:
+                        val = int(data["card_blur"])
+                        if 0 <= val <= 30:
+                            conn.execute(
+                                "INSERT OR REPLACE INTO system_settings (key, value) VALUES ('card_blur', ?)",
+                                (str(val),),
+                            )
+                    except (ValueError, TypeError):
+                        pass
+
                 conn.commit()
                 row = conn.execute("SELECT * FROM settings WHERE id = 1").fetchone()
-                return jsonify({"status": "success", "settings": dict(row)})
+                result = dict(row)
+                card_opacity, card_color, card_blur = _get_appearance_settings(conn)
+                result["card_opacity"] = card_opacity
+                result["card_color"] = card_color
+                result["card_blur"] = card_blur
+                return jsonify({"status": "success", "settings": result})
     except Exception as e:
         logger.error("Settings error: %s", e)
         return jsonify({"status": "error", "error": str(e)}), 500
@@ -121,18 +248,71 @@ def api_background_set():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
-# ─── Utility ───
+# ─── Appearance API ───
 
-@base_bp.route("/api/local-ip", methods=["GET"])
-def api_local_ip():
+@base_bp.route("/api/settings/appearance", methods=["GET"])
+def api_appearance_get():
+    data_dir = _data_dir()
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-    except Exception:
-        ip = "127.0.0.1"
-    return jsonify({"ip": ip})
+        with get_db(data_dir) as conn:
+            card_opacity, card_color, card_blur = _get_appearance_settings(conn)
+            return jsonify({
+                "card_opacity": card_opacity,
+                "card_color": card_color,
+                "card_blur": card_blur,
+            })
+    except Exception as e:
+        logger.error("Appearance get error: %s", e)
+        return jsonify({"card_opacity": 0.05, "card_color": "#ffffff", "card_blur": 2})
+
+
+@base_bp.route("/api/settings/appearance", methods=["PUT"])
+def api_appearance_update():
+    data_dir = _data_dir()
+    try:
+        data = request.get_json() or {}
+        with get_db(data_dir) as conn:
+            if "card_opacity" in data:
+                try:
+                    val = float(data["card_opacity"])
+                    if 0.0 <= val <= 1.0:
+                        conn.execute(
+                            "INSERT OR REPLACE INTO system_settings (key, value) VALUES ('card_opacity', ?)",
+                            (str(val),),
+                        )
+                except (ValueError, TypeError):
+                    pass
+
+            if "card_color" in data:
+                color = str(data["card_color"])
+                if re.match(r'^#[0-9a-fA-F]{6}$', color):
+                    conn.execute(
+                        "INSERT OR REPLACE INTO system_settings (key, value) VALUES ('card_color', ?)",
+                        (color,),
+                    )
+
+            if "card_blur" in data:
+                try:
+                    val = int(data["card_blur"])
+                    if 0 <= val <= 30:
+                        conn.execute(
+                            "INSERT OR REPLACE INTO system_settings (key, value) VALUES ('card_blur', ?)",
+                            (str(val),),
+                        )
+                except (ValueError, TypeError):
+                    pass
+
+            conn.commit()
+            card_opacity, card_color, card_blur = _get_appearance_settings(conn)
+            return jsonify({
+                "status": "success",
+                "card_opacity": card_opacity,
+                "card_color": card_color,
+                "card_blur": card_blur,
+            })
+    except Exception as e:
+        logger.error("Appearance update error: %s", e)
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 
 # ─── Data Migration ───

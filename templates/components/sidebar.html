@@ -4,28 +4,100 @@
         <h2>3D耗材管理</h2>
     </div>
     <ul class="sidebar-nav">
-        <li>
-            <a href="/" class="{{ 'active' if active_nav == 'dashboard' or not active_nav }}">
+        <!-- 耗材面板 - Accordion -->
+        <li class="nav-group" data-group="dashboard">
+            <a class="nav-parent {{ 'active' if active_nav == 'dashboard' }}" data-target="dashboard">
                 <i class="fa-solid fa-cube"></i> 耗材面板
+                <i class="fa-solid fa-chevron-down accordion-arrow"></i>
             </a>
+            <ul class="nav-children {{ 'open' if active_nav == 'dashboard' }}" id="dashboardChildren">
+                <li><a href="/dashboard/overview" class="{{ 'active' if active_sub == 'overview' }}">
+                    <i class="fa-solid fa-chart-pie"></i> 库存总览
+                </a></li>
+                <li><a href="/dashboard/filaments" class="{{ 'active' if active_sub == 'filaments' }}">
+                    <i class="fa-solid fa-boxes-stacked"></i> 耗材管理
+                </a></li>
+                <li><a href="/dashboard/logs" class="{{ 'active' if active_sub == 'logs' }}">
+                    <i class="fa-solid fa-clock-rotate-left"></i> 使用记录
+                </a></li>
+                <li><a href="/dashboard/stats" class="{{ 'active' if active_sub == 'stats' }}">
+                    <i class="fa-solid fa-chart-line"></i> 统计报表
+                </a></li>
+            </ul>
         </li>
+
+        <!-- 类型管理 - Standalone -->
         <li>
             <a href="/materials" class="{{ 'active' if active_nav == 'materials' }}">
                 <i class="fa-solid fa-layer-group"></i> 类型管理
             </a>
         </li>
+
+        <!-- 品牌管理 - Standalone -->
         <li>
             <a href="/manufacturers" class="{{ 'active' if active_nav == 'manufacturers' }}">
                 <i class="fa-solid fa-tag"></i> 品牌管理
             </a>
         </li>
-        <li>
-            <a href="/settings" class="{{ 'active' if active_nav == 'settings' }}">
+
+        <!-- 系统设置 - Accordion -->
+        <li class="nav-group" data-group="settings">
+            <a class="nav-parent {{ 'active' if active_nav == 'settings' }}" data-target="settings">
                 <i class="fa-solid fa-cog"></i> 系统设置
+                <i class="fa-solid fa-chevron-down accordion-arrow"></i>
             </a>
+            <ul class="nav-children {{ 'open' if active_nav == 'settings' }}" id="settingsChildren">
+                <li><a href="/settings/general" class="{{ 'active' if active_sub == 'general' }}">
+                    <i class="fa-solid fa-sliders"></i> 常规
+                </a></li>
+                <li><a href="/settings/appearance" class="{{ 'active' if active_sub == 'appearance' }}">
+                    <i class="fa-solid fa-palette"></i> 外观
+                </a></li>
+                <li><a href="/settings/advanced" class="{{ 'active' if active_sub == 'advanced' }}">
+                    <i class="fa-solid fa-microchip"></i> 高级
+                </a></li>
+            </ul>
         </li>
     </ul>
     <div class="sidebar-footer">
-        <span>v0.2.1.0</span>
+        <span>v0.2.2.0</span>
     </div>
 </aside>
+
+<script>
+(function() {
+    const groups = document.querySelectorAll('.nav-parent');
+    groups.forEach(parent => {
+        parent.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = this.dataset.target;
+            const children = document.getElementById(target + 'Children');
+            const arrow = this.querySelector('.accordion-arrow');
+            if (children) {
+                children.classList.toggle('open');
+                this.classList.toggle('expanded');
+            }
+            localStorage.setItem('accordion_' + target, children && children.classList.contains('open') ? '1' : '0');
+        });
+    });
+
+    // Restore accordion state from localStorage
+    document.querySelectorAll('.nav-group').forEach(group => {
+        const groupName = group.dataset.group;
+        const stored = localStorage.getItem('accordion_' + groupName);
+        if (stored !== null) {
+            const children = document.getElementById(groupName + 'Children');
+            const parent = group.querySelector('.nav-parent');
+            if (children && parent) {
+                if (stored === '1') {
+                    children.classList.add('open');
+                    parent.classList.add('expanded');
+                } else {
+                    children.classList.remove('open');
+                    parent.classList.remove('expanded');
+                }
+            }
+        }
+    });
+})();
+</script>

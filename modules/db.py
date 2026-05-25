@@ -119,6 +119,9 @@ def init_db(data_dir: str):
 
         # Seed system_settings defaults
         conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('active_background', '')")
+        conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('card_opacity', '0.05')")
+        conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('card_color', '#ffffff')")
+        conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('card_blur', '2')")
 
         # Migrate materials from txt to DB
         cur = conn.execute("SELECT COUNT(*) FROM materials")

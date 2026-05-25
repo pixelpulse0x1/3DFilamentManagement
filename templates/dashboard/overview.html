@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}库存总览 — 3D耗材库存管理系统{% endblock %}
+
+{% block content %}
+<header class="content-header">
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">库存总览</h2>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-outline" id="refreshBtn">
+            <i class="fas fa-sync-alt"></i> 刷新数据
+        </button>
+    </div>
+</header>
+
+<div class="content-body">
+    <div class="dashboard-grid" id="statsGrid">
+        <div class="card">
+            <div class="card-header"><div class="card-title">总耗材数量</div><div class="card-icon icon-primary"><i class="fas fa-boxes"></i></div></div>
+            <div class="stat-value">0</div><div class="stat-label">卷</div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title">耗材类型</div><div class="card-icon icon-primary"><i class="fas fa-layer-group"></i></div></div>
+            <div class="stat-value">0</div><div class="stat-label">种材料类型</div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title">库存预警</div><div class="card-icon icon-warning"><i class="fas fa-exclamation-triangle"></i></div></div>
+            <div class="stat-value">0</div><div class="stat-label">卷耗材需要补充</div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title">常用耗材</div><div class="card-icon icon-primary"><i class="fas fa-star"></i></div></div>
+            <div class="stat-value">0</div><div class="stat-label">标记为常用</div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title">库存总价值</div><div class="card-icon icon-primary"><i class="fas fa-yen-sign"></i></div></div>
+            <div class="stat-value">¥0</div><div class="stat-label">所有耗材总价值</div>
+        </div>
+    </div>
+
+    <div class="alert alert-warning" id="lowStockAlert" style="display:flex;">
+        <i class="fas fa-exclamation-circle"></i>
+        <div id="lowStockMessage"></div>
+    </div>
+
+    <div class="card" style="margin-top:1rem;">
+        <div class="card-header">
+            <div class="card-title">常用耗材</div>
+            <div class="usage-hint">单击减少对应克数，长按修改对应耗材</div>
+        </div>
+        <div class="favorites-container">
+            <div class="favorites-grid" id="favoriteFilamentsGrid"></div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top:1rem;margin-bottom:1rem;">
+        <div class="card-header"><div class="card-title">厂商耗材统计</div></div>
+        <div class="manufacturers-grid" id="manufacturerGrid"></div>
+    </div>
+</div>
+{% endblock %}

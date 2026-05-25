@@ -33,13 +33,13 @@ document.addEventListener('DOMContentLoaded', function () {
     loadMaterialOptions();
     loadManufacturerOptions();
 
-    const accessInfo = document.getElementById('accessInfo');
-    if (accessInfo) {
-        accessInfo.style.display = 'flex';
-        fetch('/api/local-ip')
-            .then(r => r.json())
-            .then(d => { document.getElementById('localAddress').textContent = 'http://' + d.ip + ':9055/'; })
-            .catch(() => { document.getElementById('localAddress').textContent = 'http://localhost:9055/'; });
+    // Handle search query param from manufacturer card click
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchParam = urlParams.get('search');
+    if (searchParam) {
+        currentSearchTerm = decodeURIComponent(searchParam);
+        const si = document.getElementById('searchInput');
+        if (si) si.value = currentSearchTerm;
     }
 
     bindEvents();
@@ -72,7 +72,30 @@ function getStatusText(filament) {
 function loadSettings() {
     fetch('/api/settings')
         .then(r => r.json())
-        .then(data => { settings = data; });
+        .then(data => {
+            settings = data;
+            applyAppearance(data.card_opacity, data.card_color, data.card_blur);
+        });
+}
+
+function applyAppearance(opacity, color, blur) {
+    if (opacity !== undefined && opacity !== null) {
+        const alpha = parseFloat(opacity);
+        if (!isNaN(alpha) && alpha >= 0 && alpha <= 1) {
+            const hex = (color && /^#[0-9a-fA-F]{6}$/.test(color)) ? color : '#ffffff';
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            document.documentElement.style.setProperty('--ha-card-bg', `rgba(${r}, ${g}, ${b}, ${alpha})`);
+            document.documentElement.style.setProperty('--ha-card-color', alpha > 0.5 ? '#333333' : '#e0e0e0');
+        }
+    }
+    if (blur !== undefined && blur !== null) {
+        const px = parseInt(blur);
+        if (!isNaN(px) && px >= 0 && px <= 30) {
+            document.documentElement.style.setProperty('--ha-card-blur', px + 'px');
+        }
+    }
 }
 
 // Load data
@@ -205,22 +228,6 @@ function bindEvents() {
         const sf = document.getElementById('statusFilter'); if (sf) sf.value = 'all';
         document.querySelectorAll('th.sortable').forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
         loadData(); loadUsageRecords();
-    });
-
-    // Sub-nav tabs
-    document.querySelectorAll('.sub-tab').forEach(tab => {
-        tab.addEventListener('click', function () {
-            document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
-            this.classList.add('active');
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            const panelId = this.dataset.panel + 'Panel';
-            const panel = document.getElementById(panelId);
-            if (panel) { panel.classList.add('active'); }
-            if (this.dataset.panel === 'reports' || this.dataset.panel === 'usage') {
-                loadData();
-                if (this.dataset.panel === 'usage') loadUsageRecords();
-            }
-        });
     });
 
     // Buttons
@@ -417,18 +424,8 @@ function renderManufacturerStats(stats) {
     });
     document.querySelectorAll('.manufacturer-card').forEach(card => {
         card.addEventListener('click', function () {
-            const mfr = this.dataset.manufacturer;
-            currentSearchTerm = mfr;
-            const si = document.getElementById('searchInput'); if (si) si.value = mfr;
-            currentStatusFilter = 'all';
-            const sf = document.getElementById('statusFilter'); if (sf) sf.value = 'all';
-            renderFilamentTable(applyFilters(filaments));
-            document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
-            const mgmtTab = document.querySelector('.sub-tab[data-panel="management"]');
-            if (mgmtTab) mgmtTab.classList.add('active');
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            const mp = document.getElementById('managementPanel'); if (mp) mp.classList.add('active');
-            window.scrollTo(0, 0);
+            const mfr = encodeURIComponent(this.dataset.manufacturer);
+            window.location.href = '/dashboard/filaments?search=' + mfr;
         });
     });
 }

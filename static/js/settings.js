@@ -1,33 +1,49 @@
-// Settings Management JS
+// Settings Management JS — supports general, appearance, and advanced pages
 document.addEventListener('DOMContentLoaded', function () {
-    loadSettings();
-    loadBackgrounds();
+    // General page
+    if (document.getElementById('thresholdInput')) {
+        loadGeneralSettings();
+        document.getElementById('saveSettingsBtn').addEventListener('click', saveGeneralSettings);
+        document.getElementById('resetSettingsBtn').addEventListener('click', resetGeneralSettings);
+    }
 
-    document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
-    document.getElementById('resetSettingsBtn').addEventListener('click', resetSettings);
-    document.getElementById('uploadBgBtn').addEventListener('click', uploadBackground);
+    // Appearance page
+    if (document.getElementById('cardOpacitySlider')) {
+        loadAppearanceSettings();
+        document.getElementById('cardOpacitySlider').addEventListener('input', onOpacityChange);
+        document.getElementById('cardColorPicker').addEventListener('input', onColorChange);
+        document.getElementById('cardBlurSlider').addEventListener('input', onBlurChange);
+        document.getElementById('saveAppearanceBtn').addEventListener('click', saveAppearanceSettings);
+        document.getElementById('resetAppearanceBtn').addEventListener('click', resetAppearanceSettings);
+        document.getElementById('uploadBgBtn').addEventListener('click', uploadBackground);
+        loadBackgrounds();
+    }
 
-    // Migration bindings
-    document.getElementById('migrateDbBtn').addEventListener('click', migrateDb);
-    document.getElementById('migrateMaterialsBtn').addEventListener('click', migrateMaterials);
-    document.getElementById('migrateManufacturersBtn').addEventListener('click', migrateManufacturers);
+    // Advanced page
+    if (document.getElementById('migrateDbBtn')) {
+        document.getElementById('migrateDbBtn').addEventListener('click', migrateDb);
+        document.getElementById('migrateMaterialsBtn').addEventListener('click', migrateMaterials);
+        document.getElementById('migrateManufacturersBtn').addEventListener('click', migrateManufacturers);
+    }
 });
 
-function loadSettings() {
+// ─── General Settings ───
+
+function loadGeneralSettings() {
     fetch('/api/settings')
         .then(r => r.json())
         .then(data => {
             document.getElementById('thresholdInput').value = data.threshold;
             document.getElementById('defaultWeightInput').value = data.default_weight;
         })
-        .catch(err => { showSettingsMsg('加载设置失败: ' + err.message, 'error'); });
+        .catch(err => { showMsg('settingsMsg', '加载设置失败: ' + err.message, 'error'); });
 }
 
-function saveSettings() {
+function saveGeneralSettings() {
     const threshold = parseFloat(document.getElementById('thresholdInput').value);
     const defaultWeight = parseFloat(document.getElementById('defaultWeightInput').value);
     if (!threshold || threshold <= 0 || !defaultWeight || defaultWeight <= 0) {
-        showSettingsMsg('请输入有效的设置值', 'error'); return;
+        showMsg('settingsMsg', '请输入有效的设置值', 'error'); return;
     }
     fetch('/api/settings', {
         method: 'PUT',
@@ -36,31 +52,120 @@ function saveSettings() {
     })
         .then(r => r.json())
         .then(d => {
-            if (d.status === 'success') showSettingsMsg('设置保存成功', 'success');
-            else showSettingsMsg('保存失败: ' + (d.error || '未知错误'), 'error');
+            if (d.status === 'success') showMsg('settingsMsg', '设置保存成功', 'success');
+            else showMsg('settingsMsg', '保存失败: ' + (d.error || '未知错误'), 'error');
         })
-        .catch(err => { showSettingsMsg('保存失败: ' + err.message, 'error'); });
+        .catch(err => { showMsg('settingsMsg', '保存失败: ' + err.message, 'error'); });
 }
 
-function resetSettings() {
+function resetGeneralSettings() {
     if (!confirm('确定要恢复默认设置吗？')) return;
     document.getElementById('thresholdInput').value = 200;
     document.getElementById('defaultWeightInput').value = 1000;
-    showSettingsMsg('已恢复默认值，请点击保存', 'success');
+    showMsg('settingsMsg', '已恢复默认值，请点击保存', 'success');
 }
 
-function showSettingsMsg(msg, type) {
-    const el = document.getElementById('settingsMsg');
-    el.textContent = msg; el.style.display = 'block';
-    el.style.color = type === 'error' ? '#f72585' : '#4cc9f0';
-    setTimeout(() => { el.style.display = 'none'; }, 3000);
+// ─── Appearance Settings ───
+
+function loadAppearanceSettings() {
+    fetch('/api/settings')
+        .then(r => r.json())
+        .then(data => {
+            const opacity = data.card_opacity !== undefined ? data.card_opacity : 0.05;
+            const color = data.card_color || '#ffffff';
+            const blur = data.card_blur !== undefined ? data.card_blur : 2;
+            document.getElementById('cardOpacitySlider').value = Math.round(opacity * 100);
+            document.getElementById('opacityValue').textContent = Math.round(opacity * 100) + '%';
+            document.getElementById('cardColorPicker').value = color;
+            document.getElementById('cardColorHex').textContent = color;
+            document.getElementById('cardBlurSlider').value = blur;
+            document.getElementById('blurValue').textContent = blur + 'px';
+            applyAppearancePreview(opacity, color, blur);
+        })
+        .catch(err => { showMsg('appearanceMsg', '加载外观设置失败: ' + err.message, 'error'); });
 }
+
+function onOpacityChange() {
+    const pct = parseInt(this.value);
+    document.getElementById('opacityValue').textContent = pct + '%';
+    const opacity = pct / 100;
+    const color = document.getElementById('cardColorPicker').value;
+    const blur = parseInt(document.getElementById('cardBlurSlider').value);
+    applyAppearancePreview(opacity, color, blur);
+}
+
+function onColorChange() {
+    const color = this.value;
+    document.getElementById('cardColorHex').textContent = color;
+    const pct = parseInt(document.getElementById('cardOpacitySlider').value);
+    const opacity = pct / 100;
+    const blur = parseInt(document.getElementById('cardBlurSlider').value);
+    applyAppearancePreview(opacity, color, blur);
+}
+
+function onBlurChange() {
+    const blur = parseInt(this.value);
+    document.getElementById('blurValue').textContent = blur + 'px';
+    const pct = parseInt(document.getElementById('cardOpacitySlider').value);
+    const opacity = pct / 100;
+    const color = document.getElementById('cardColorPicker').value;
+    applyAppearancePreview(opacity, color, blur);
+}
+
+function applyAppearancePreview(opacity, color, blur) {
+    const hex = /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#ffffff';
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    document.documentElement.style.setProperty('--ha-card-bg', `rgba(${r}, ${g}, ${b}, ${opacity})`);
+    document.documentElement.style.setProperty('--ha-card-color', opacity > 0.5 ? '#333333' : '#e0e0e0');
+    if (blur !== undefined && blur !== null) {
+        document.documentElement.style.setProperty('--ha-card-blur', blur + 'px');
+    }
+}
+
+function saveAppearanceSettings() {
+    const opacity = parseInt(document.getElementById('cardOpacitySlider').value) / 100;
+    const color = document.getElementById('cardColorPicker').value;
+    const blur = parseInt(document.getElementById('cardBlurSlider').value);
+
+    fetch('/api/settings/appearance', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card_opacity: opacity, card_color: color, card_blur: blur })
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') {
+                showMsg('appearanceMsg', '外观设置保存成功', 'success');
+                applyAppearancePreview(d.card_opacity, d.card_color, d.card_blur);
+            } else {
+                showMsg('appearanceMsg', '保存失败: ' + (d.error || '未知错误'), 'error');
+            }
+        })
+        .catch(err => { showMsg('appearanceMsg', '保存失败: ' + err.message, 'error'); });
+}
+
+function resetAppearanceSettings() {
+    if (!confirm('确定要恢复默认外观设置吗？')) return;
+    document.getElementById('cardOpacitySlider').value = 5;
+    document.getElementById('opacityValue').textContent = '5%';
+    document.getElementById('cardColorPicker').value = '#ffffff';
+    document.getElementById('cardColorHex').textContent = '#ffffff';
+    document.getElementById('cardBlurSlider').value = 2;
+    document.getElementById('blurValue').textContent = '2px';
+    applyAppearancePreview(0.05, '#ffffff', 2);
+    showMsg('appearanceMsg', '已恢复默认值，请点击保存', 'success');
+}
+
+// ─── Background Management ───
 
 function loadBackgrounds() {
     fetch('/api/settings/background')
         .then(r => r.json())
         .then(data => {
             const container = document.getElementById('bgThumbnails');
+            if (!container) return;
             container.innerHTML = '';
             if (!data.backgrounds || data.backgrounds.length === 0) {
                 container.innerHTML = '<div class="bg-placeholder">未上传任何背景图片</div>';
@@ -85,10 +190,10 @@ function loadBackgrounds() {
 
 function uploadBackground() {
     const fileInput = document.getElementById('backgroundFile');
-    if (!fileInput.files.length) { showBgMsg('请选择要上传的图片', 'error'); return; }
+    if (!fileInput.files.length) { showMsg('bgUploadMsg', '请选择要上传的图片', 'error'); return; }
     const file = fileInput.files[0];
     const ext = file.name.split('.').pop().toLowerCase();
-    if (!['jpg','jpeg','png','webp'].includes(ext)) { showBgMsg('仅支持 jpg、jpeg、png、webp 格式', 'error'); return; }
+    if (!['jpg','jpeg','png','webp'].includes(ext)) { showMsg('bgUploadMsg', '仅支持 jpg、jpeg、png、webp 格式', 'error'); return; }
     const formData = new FormData();
     formData.append('file', file);
     const btn = document.getElementById('uploadBgBtn');
@@ -96,10 +201,10 @@ function uploadBackground() {
     fetch('/api/settings/background/upload', { method: 'POST', body: formData })
         .then(r => r.json())
         .then(d => {
-            if (d.status === 'success') { showBgMsg('上传成功', 'success'); fileInput.value = ''; loadBackgrounds(); }
-            else showBgMsg(d.error || '上传失败', 'error');
+            if (d.status === 'success') { showMsg('bgUploadMsg', '上传成功', 'success'); fileInput.value = ''; loadBackgrounds(); }
+            else showMsg('bgUploadMsg', d.error || '上传失败', 'error');
         })
-        .catch(err => { showBgMsg('上传失败: ' + err.message, 'error'); })
+        .catch(err => { showMsg('bgUploadMsg', '上传失败: ' + err.message, 'error'); })
         .finally(() => { btn.innerHTML = '<i class="fas fa-upload"></i> 上传'; btn.disabled = false; });
 }
 
@@ -112,9 +217,8 @@ function setActiveBackground(filename) {
         .then(r => r.json())
         .then(d => {
             if (d.status === 'success') {
-                showBgMsg('背景已切换', 'success');
+                showMsg('bgUploadMsg', '背景已切换', 'success');
                 loadBackgrounds();
-                // Apply background to body
                 if (filename) {
                     document.body.classList.add('has-background');
                     document.body.style.backgroundImage = 'url(/static/uploads/backgrounds/' + filename + ')';
@@ -122,13 +226,16 @@ function setActiveBackground(filename) {
                     document.body.classList.remove('has-background');
                     document.body.style.backgroundImage = '';
                 }
-            } else showBgMsg(d.error || '设置失败', 'error');
+            } else showMsg('bgUploadMsg', d.error || '设置失败', 'error');
         })
-        .catch(err => { showBgMsg('设置失败: ' + err.message, 'error'); });
+        .catch(err => { showMsg('bgUploadMsg', '设置失败: ' + err.message, 'error'); });
 }
 
-function showBgMsg(msg, type) {
-    const el = document.getElementById('bgUploadMsg');
+// ─── Utilities ───
+
+function showMsg(elId, msg, type) {
+    const el = document.getElementById(elId);
+    if (!el) return;
     el.textContent = msg; el.style.display = 'block';
     el.style.color = type === 'error' ? '#f72585' : '#4cc9f0';
     setTimeout(() => { el.style.display = 'none'; }, 3000);
@@ -217,6 +324,7 @@ function migrateManufacturers() {
 
 function showMigrateMsg(elId, msg, type) {
     const el = document.getElementById(elId);
+    if (!el) return;
     el.textContent = msg; el.style.display = 'block';
     el.style.color = type === 'error' ? '#f72585' : '#4cc9f0';
 }

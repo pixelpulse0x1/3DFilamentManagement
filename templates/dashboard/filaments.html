@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}耗材管理 — 3D耗材库存管理系统{% endblock %}
+
+{% block content %}
+<header class="content-header">
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">耗材管理</h2>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-outline" id="refreshBtn">
+            <i class="fas fa-sync-alt"></i> 显示所有耗材
+        </button>
+    </div>
+</header>
+
+<div class="content-body">
+    <div class="action-bar">
+        <div class="action-buttons">
+            <button class="btn btn-primary" id="addFilamentBtn"><i class="fas fa-plus"></i> 添加耗材</button>
+            <button class="btn btn-outline" id="batchAddBtn"><i class="fas fa-copy"></i> 批量添加</button>
+            <button class="btn btn-outline" id="importBtn"><i class="fas fa-file-import"></i> 导入数据</button>
+            <button class="btn btn-outline" id="exportBtn"><i class="fas fa-file-export"></i> 导出数据</button>
+        </div>
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="搜索耗材...">
+        </div>
+        <div>
+            <select class="form-control" id="statusFilter" style="width:100%;">
+                <option value="all">所有状态</option>
+                <option value="opened">使用中</option>
+                <option value="unopened">未开封</option>
+                <option value="used_up">已用完</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll" class="select-all"></th>
+                    <th class="hide-on-mobile sortable" data-sort="name">耗材名称</th>
+                    <th class="material-cell sortable" data-sort="material">类型</th>
+                    <th class="sortable" data-sort="color">颜色</th>
+                    <th class="manufacturer-cell sortable" data-sort="manufacturer">厂商</th>
+                    <th class="sortable" data-sort="weight">重量</th>
+                    <th class="hide-on-mobile sortable" data-sort="location">位置</th>
+                    <th class="sortable" data-sort="status">状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="filamentTableBody"></tbody>
+        </table>
+    </div>
+
+    <div class="batch-actions">
+        <button class="btn btn-outline" id="batchFavoriteBtn"><i class="fas fa-star"></i> 标记为常用</button>
+        <button class="btn btn-outline" id="batchMarkOpenedBtn"><i class="fas fa-box-open"></i> 设为使用中</button>
+        <button class="btn btn-outline" id="batchMarkUnopenedBtn"><i class="fas fa-box"></i> 设为未开封</button>
+        <button class="btn btn-danger" id="batchDeleteBtn"><i class="fas fa-trash"></i> 批量删除</button>
+    </div>
+</div>
+{% endblock %}

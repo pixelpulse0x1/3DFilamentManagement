@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}使用记录 — 3D耗材库存管理系统{% endblock %}
+
+{% block content %}
+<header class="content-header">
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">使用记录</h2>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-outline" id="refreshBtn">
+            <i class="fas fa-sync-alt"></i> 刷新数据
+        </button>
+    </div>
+</header>
+
+<div class="content-body">
+    <div class="card">
+        <div class="card-header"><div class="card-title">耗材使用记录</div></div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>日期时间</th><th>耗材名称</th><th>使用重量(g)</th>
+                        <th>使用金额(¥)</th><th>备注</th><th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="usageTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card" style="margin-top:1rem;">
+        <div class="card-header"><div class="card-title">使用汇总</div></div>
+        <div id="usageSummary"></div>
+    </div>
+    <div class="card" style="margin-top:1rem;">
+        <div class="card-header"><div class="card-title">每日使用统计</div></div>
+        <div class="chart-container"><canvas id="dailyUsageChart"></canvas></div>
+    </div>
+</div>
+{% endblock %}
