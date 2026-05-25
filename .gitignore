@@ -1,0 +1,46 @@
+# ─── Python 缓存 ───
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ─── 虚拟环境 ───
+venv/
+.venv/
+env/
+.env
+
+# ─── Docker 运行时数据 ───
+data/
+
+# ─── Claude Code 缓存与规划 ───
+.claude/
+memory/
+plans/
+
+# ─── 更新说明文件 ───
+v*.md
+
+# ─── 技术白皮书 (内部文档) ───
+TECHNICAL_REFERENCE.md
+
+# ─── 调试日志 ───
+app.log
+*.log
+
+# ─── IDE 与编辑器 ───
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── 临时文件 ───
+*.tmp
+*.bak
+*.orig

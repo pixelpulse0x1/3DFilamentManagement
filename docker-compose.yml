@@ -1,0 +1,17 @@
+services:
+  3d-consumables-inventory-management-system:
+    build: .
+    image: pixelpulse01/3d-consumables-inventory-management-system:v0.2.0.0
+    container_name: 3d-consumables-inventory-management-system
+    restart: unless-stopped
+
+    environment:
+      - TZ=Asia/Shanghai
+      - SECRET_KEY=change-me-to-random-string
+      - DATA_DIR=/data
+
+    ports:
+      - "9055:3155"
+
+    volumes:
+      - /opt/docker-stacks/3D-Consumables-Inventory-Management-System:/data
