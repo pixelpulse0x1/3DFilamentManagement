@@ -16,21 +16,16 @@
         <div class="action-buttons">
             <button class="btn btn-primary" id="addFilamentBtn"><i class="fas fa-plus"></i> 添加耗材</button>
             <button class="btn btn-outline" id="batchAddBtn"><i class="fas fa-copy"></i> 批量添加</button>
-            <button class="btn btn-outline" id="importBtn"><i class="fas fa-file-import"></i> 导入数据</button>
-            <button class="btn btn-outline" id="exportBtn"><i class="fas fa-file-export"></i> 导出数据</button>
         </div>
         <div class="search-box">
             <i class="fas fa-search"></i>
             <input type="text" id="searchInput" placeholder="搜索耗材...">
         </div>
-        <div>
-            <select class="form-control" id="statusFilter" style="width:100%;">
-                <option value="all">所有状态</option>
-                <option value="opened">使用中</option>
-                <option value="unopened">未开封</option>
-                <option value="used_up">已用完</option>
-            </select>
-        </div>
+    </div>
+    <div class="filter-checkboxes" id="statusFilterCheckboxes">
+        <label class="filter-checkbox"><input type="checkbox" value="opened" checked> 使用中</label>
+        <label class="filter-checkbox"><input type="checkbox" value="unopened"> 未开封</label>
+        <label class="filter-checkbox"><input type="checkbox" value="used_up"> 已用完</label>
     </div>
 
     <div class="table-container">

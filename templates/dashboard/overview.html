@@ -5,6 +5,11 @@
 <header class="content-header">
     <h2 style="color:var(--text-primary);font-size:1.3rem;">库存总览</h2>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div class="status-radio-group" id="filterStatusGroup">
+            <label class="status-radio active"><input type="radio" name="filterStatus" value="all" checked> 全部</label>
+            <label class="status-radio"><input type="radio" name="filterStatus" value="remaining"> 剩余</label>
+            <label class="status-radio"><input type="radio" name="filterStatus" value="used"> 已使用</label>
+        </div>
         <button class="btn btn-outline" id="refreshBtn">
             <i class="fas fa-sync-alt"></i> 刷新数据
         </button>

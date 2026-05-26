@@ -1,14 +1,17 @@
 """Base routes: pages, settings, background management, utilities."""
 import os
 import re
+import io
+import zipfile
 import logging
 from datetime import datetime
-from flask import current_app, render_template, jsonify, request
+from openpyxl import Workbook
+from flask import current_app, render_template, jsonify, request, send_file, send_from_directory
 
 from modules.base import base_bp
 from modules.db import get_db
 from modules.base.bg_utils import (
-    get_active_background, list_backgrounds, upload_background, set_active_background,
+    get_active_background, list_backgrounds, upload_background, set_active_background, get_background_dir,
 )
 from modules.base.migrate_utils import migrate_from_db, migrate_from_txt
 
@@ -52,7 +55,7 @@ def _get_appearance_settings(conn):
 
 def _bg_for_template():
     """Helper to get background for page renders."""
-    return get_active_background(_data_dir(), current_app.static_folder)
+    return get_active_background(_data_dir())
 
 
 # ─── Page Routes ───
@@ -207,10 +210,9 @@ def api_settings():
 @base_bp.route("/api/settings/background", methods=["GET"])
 def api_background_get():
     data_dir = _data_dir()
-    static_folder = current_app.static_folder
     try:
-        active = get_active_background(data_dir, static_folder)
-        backgrounds = list_backgrounds(static_folder)
+        active = get_active_background(data_dir)
+        backgrounds = list_backgrounds(data_dir)
         return jsonify({
             "active": active,
             "backgrounds": backgrounds,
@@ -222,11 +224,11 @@ def api_background_get():
 
 @base_bp.route("/api/settings/background/upload", methods=["POST"])
 def api_background_upload():
-    static_folder = current_app.static_folder
+    data_dir = _data_dir()
     try:
         if "file" not in request.files:
             return jsonify({"status": "error", "error": "未选择文件"}), 400
-        ok, msg, filename = upload_background(request.files["file"], static_folder)
+        ok, msg, filename = upload_background(request.files["file"], data_dir)
         if not ok:
             return jsonify({"status": "error", "error": msg}), 400
         return jsonify({"status": "success", "message": msg, "filename": filename})
@@ -312,6 +314,117 @@ def api_appearance_update():
             })
     except Exception as e:
         logger.error("Appearance update error: %s", e)
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+# ─── Uploads File Serving ───
+
+@base_bp.route("/uploads/backgrounds/<path:filename>")
+def serve_background(filename):
+    """Serve uploaded background files from /data/uploads/backgrounds/."""
+    data_dir = _data_dir()
+    bg_dir = get_background_dir(data_dir)
+    return send_from_directory(bg_dir, filename)
+
+
+# ─── System Backup ───
+
+@base_bp.route("/api/settings/backup", methods=["GET"])
+def api_backup():
+    """Package /data directory into a zip and stream as download."""
+    data_dir = _data_dir()
+    try:
+        if not os.path.isdir(data_dir):
+            return jsonify({"status": "error", "error": "数据目录不存在"}), 500
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        zip_name = f"3d_inventory_backup_{timestamp}.zip"
+
+        memory_file = io.BytesIO()
+        with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_DEFLATED) as zf:
+            for root, dirs, files in os.walk(data_dir):
+                for filename in files:
+                    file_path = os.path.join(root, filename)
+                    arcname = os.path.relpath(file_path, data_dir)
+                    try:
+                        zf.write(file_path, arcname)
+                    except (OSError, IOError) as e:
+                        logger.warning("Skipping file during backup: %s — %s", file_path, e)
+
+        memory_file.seek(0)
+        return send_file(
+            memory_file,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=zip_name,
+        )
+    except Exception as e:
+        logger.error("Backup error: %s", e)
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+# ─── Excel Export ───
+
+@base_bp.route("/api/export/excel", methods=["GET"])
+def api_export_excel():
+    """Export all data tables as a multi-sheet .xlsx workbook."""
+    data_dir = _data_dir()
+    try:
+        wb = Workbook()
+
+        # Sheet 1: filaments
+        ws1 = wb.active
+        ws1.title = "耗材库存列表"
+        headers_f = [
+            "id", "name", "manufacturer", "material_type", "color", "location",
+            "is_opened", "initial_weight", "current_weight", "is_favorite",
+            "created_at", "purchase_date", "purchase_price", "purchase_channel", "opened_at",
+        ]
+        ws1.append(headers_f)
+        with get_db(data_dir) as conn:
+            rows = conn.execute("SELECT * FROM filaments ORDER BY id").fetchall()
+            for r in rows:
+                ws1.append([r[c] for c in headers_f])
+
+            # Sheet 2: materials
+            ws2 = wb.create_sheet("耗材类型管理")
+            ws2.append(["id", "name", "description"])
+            for r in conn.execute("SELECT * FROM materials ORDER BY id").fetchall():
+                ws2.append([r["id"], r["name"], r["description"]])
+
+            # Sheet 3: manufacturers
+            ws3 = wb.create_sheet("品牌厂商管理")
+            ws3.append(["id", "name", "website"])
+            for r in conn.execute("SELECT * FROM manufacturers ORDER BY id").fetchall():
+                ws3.append([r["id"], r["name"], r["website"]])
+
+            # Sheet 4: usage_records
+            ws4 = wb.create_sheet("耗材使用日志")
+            ws4.append(["id", "filament_id", "filament_name", "used_weight", "note", "used_at"])
+            usage_rows = conn.execute("""
+                SELECT ur.id, ur.filament_id, f.name AS filament_name,
+                       ur.used_weight, ur.note, ur.used_at
+                FROM usage_records ur
+                LEFT JOIN filaments f ON ur.filament_id = f.id
+                ORDER BY ur.id
+            """).fetchall()
+            for r in usage_rows:
+                ws4.append([r["id"], r["filament_id"], r["filament_name"],
+                           r["used_weight"], r["note"], r["used_at"]])
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return send_file(
+            output,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            as_attachment=True,
+            download_name=f"3d_inventory_export_{timestamp}.xlsx",
+        )
+    except Exception as e:
+        logger.error("Excel export error: %s", e)
         return jsonify({"status": "error", "error": str(e)}), 500
 
 

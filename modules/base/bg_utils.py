@@ -8,11 +8,12 @@ logger = logging.getLogger(__name__)
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
 
-def get_background_dir(static_folder):
-    return os.path.join(static_folder, "uploads", "backgrounds")
+def get_background_dir(data_dir):
+    """Get background upload directory under /data/uploads/backgrounds/."""
+    return os.path.join(data_dir, "uploads", "backgrounds")
 
 
-def get_active_background(data_dir, static_folder):
+def get_active_background(data_dir, static_folder=None):
     """Get the active background filename from system_settings."""
     import sqlite3
     from modules.db import get_db_path
@@ -27,7 +28,7 @@ def get_active_background(data_dir, static_folder):
         conn.close()
         filename = row["value"] if row else ""
         if filename:
-            bg_path = os.path.join(get_background_dir(static_folder), filename)
+            bg_path = os.path.join(get_background_dir(data_dir), filename)
             if not os.path.isfile(bg_path):
                 return ""
         return filename
@@ -36,9 +37,9 @@ def get_active_background(data_dir, static_folder):
         return ""
 
 
-def list_backgrounds(static_folder):
+def list_backgrounds(data_dir):
     """List all uploaded background filenames."""
-    bg_dir = get_background_dir(static_folder)
+    bg_dir = get_background_dir(data_dir)
     try:
         os.makedirs(bg_dir, exist_ok=True)
         return sorted(
@@ -51,7 +52,7 @@ def list_backgrounds(static_folder):
         return []
 
 
-def upload_background(file_storage, static_folder):
+def upload_background(file_storage, data_dir):
     """Validate and save a background image. Returns (success, message, filename)."""
     if not file_storage or not file_storage.filename:
         return False, "未选择文件", None
@@ -61,7 +62,7 @@ def upload_background(file_storage, static_folder):
         return False, "仅支持 jpg、jpeg、png、webp 格式的图片", None
 
     safe_name = f"{uuid.uuid4().hex}.{ext}"
-    bg_dir = get_background_dir(static_folder)
+    bg_dir = get_background_dir(data_dir)
     try:
         os.makedirs(bg_dir, exist_ok=True)
         file_storage.save(os.path.join(bg_dir, safe_name))

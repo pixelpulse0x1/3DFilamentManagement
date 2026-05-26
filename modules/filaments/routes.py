@@ -1,9 +1,7 @@
-"""Filament CRUD, usage records, statistics, import/export."""
+"""Filament CRUD, usage records, statistics."""
 import os
-import csv
-import io
 import logging
-from flask import current_app, jsonify, request, Response
+from flask import current_app, jsonify, request
 
 from modules.filaments import filaments_bp
 from modules.db import get_db
@@ -263,19 +261,48 @@ def api_usage_record_delete(record_id):
 @filaments_bp.route("/api/statistics", methods=["GET"])
 def api_statistics():
     data_dir = _data_dir()
+    filter_status = request.args.get("filter", "all")  # all | remaining | used
     try:
         with get_db(data_dir) as conn:
-            filaments = conn.execute("SELECT * FROM filaments").fetchall()
+            all_filaments = conn.execute("SELECT * FROM filaments").fetchall()
             settings_row = conn.execute("SELECT * FROM settings WHERE id = 1").fetchone()
             threshold = settings_row["threshold"] if settings_row else 200
 
+            # Apply status filter
+            if filter_status == "remaining":
+                filaments = [f for f in all_filaments if f["current_weight"] > 0]
+            elif filter_status == "used":
+                filaments = [f for f in all_filaments if f["current_weight"] == 0]
+            else:
+                filaments = all_filaments
+
             total_filaments = len(filaments)
-            total_value = sum(
-                (f["purchase_price"] or 0) * (f["current_weight"] / f["initial_weight"])
-                if f["initial_weight"] and f["initial_weight"] > 0 and f["purchase_price"]
-                else 0
-                for f in filaments
-            )
+
+            if filter_status == "used":
+                total_value = sum(
+                    (f["purchase_price"] or 0)
+                    for f in filaments
+                    if f["purchase_price"]
+                )
+            elif filter_status == "remaining":
+                total_value = sum(
+                    (f["purchase_price"] or 0) * (f["current_weight"] / f["initial_weight"])
+                    if f["initial_weight"] and f["initial_weight"] > 0 and f["purchase_price"]
+                    else 0
+                    for f in filaments
+                )
+            else:
+                # all = remaining value + used-up full purchase price
+                total_value = 0.0
+                for f in filaments:
+                    price = f["purchase_price"] or 0
+                    if not price:
+                        continue
+                    if f["current_weight"] > 0 and f["initial_weight"] and f["initial_weight"] > 0:
+                        total_value += price * (f["current_weight"] / f["initial_weight"])
+                    elif f["current_weight"] == 0:
+                        total_value += price
+
             favorites = sum(1 for f in filaments if f["is_favorite"])
             low_stock = sum(
                 1 for f in filaments
@@ -319,10 +346,18 @@ def api_statistics():
                 s = manufacturer_stats[mfr]
                 s["total_filaments"] += 1
                 s["total_weight"] += f["current_weight"]
-                val = 0.0
-                if f["purchase_price"] and f["initial_weight"] and f["initial_weight"] > 0:
-                    val = float(f["purchase_price"]) * (f["current_weight"] / float(f["initial_weight"]))
-                s["total_value"] += val
+                if f["purchase_price"]:
+                    if filter_status == "used":
+                        s["total_value"] += float(f["purchase_price"])
+                    elif filter_status == "remaining":
+                        if f["initial_weight"] and f["initial_weight"] > 0:
+                            s["total_value"] += float(f["purchase_price"]) * (f["current_weight"] / float(f["initial_weight"]))
+                    else:
+                        # all: remaining value + used-up full price
+                        if f["current_weight"] == 0:
+                            s["total_value"] += float(f["purchase_price"])
+                        elif f["initial_weight"] and f["initial_weight"] > 0:
+                            s["total_value"] += float(f["purchase_price"]) * (f["current_weight"] / float(f["initial_weight"]))
                 if 0 < f["current_weight"] < threshold:
                     s["low_stock_count"] += 1
                 if f["current_weight"] == 0:
@@ -358,107 +393,10 @@ def api_statistics():
                 "stock_status": stock_status,
                 "manufacturer_stats": mfr_stats_list,
                 "usage_stats": usage_stats,
+                "filter_status": filter_status,
             })
     except Exception as e:
         logger.error("Statistics error: %s", e)
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
-# ─── Export / Import ───
-
-@filaments_bp.route("/api/export", methods=["GET"])
-def api_export():
-    data_dir = _data_dir()
-    try:
-        with get_db(data_dir) as conn:
-            rows = conn.execute("SELECT * FROM filaments ORDER BY id").fetchall()
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow([
-                "id", "name", "manufacturer", "material_type", "color", "location",
-                "is_opened", "initial_weight", "current_weight", "is_favorite",
-                "created_at", "purchase_date", "purchase_price", "purchase_channel",
-                "opened_at",
-            ])
-            for r in rows:
-                writer.writerow([r[c] for c in r.keys()])
-            csv_content = output.getvalue()
-            output.close()
-            return Response(
-                csv_content,
-                mimetype="text/csv",
-                headers={"Content-Disposition": "attachment; filename=filament_inventory.csv"},
-            )
-    except Exception as e:
-        logger.error("Export error: %s", e)
-        return jsonify({"status": "error", "error": str(e)}), 500
-
-
-@filaments_bp.route("/api/import", methods=["POST"])
-def api_import():
-    data_dir = _data_dir()
-    if "file" not in request.files:
-        return jsonify({"status": "error", "error": "No file uploaded"}), 400
-    file = request.files["file"]
-    if not file.filename:
-        return jsonify({"status": "error", "error": "Empty filename"}), 400
-    try:
-        with get_db(data_dir) as conn:
-            content = file.read().decode("utf-8-sig")
-            reader = csv.DictReader(io.StringIO(content))
-            added, updated, skipped = 0, 0, 0
-            for row in reader:
-                if not row.get("name"):
-                    skipped += 1
-                    continue
-                existing = conn.execute(
-                    "SELECT id FROM filaments WHERE name = ?", (row["name"],)
-                ).fetchone()
-                if existing:
-                    conn.execute(
-                        """UPDATE filaments SET manufacturer=?, material_type=?, color=?,
-                           location=?, is_opened=?, initial_weight=?, current_weight=?,
-                           is_favorite=?, purchase_date=?, purchase_price=?,
-                           purchase_channel=?, opened_at=? WHERE id=?""",
-                        (
-                            row.get("manufacturer", ""), row.get("material_type", ""),
-                            row.get("color", ""), row.get("location", ""),
-                            int(row.get("is_opened", 0)),
-                            float(row.get("initial_weight", 1000)),
-                            float(row.get("current_weight", 1000)),
-                            int(row.get("is_favorite", 0)),
-                            row.get("purchase_date"), row.get("purchase_price", ""),
-                            row.get("purchase_channel", ""), row.get("opened_at"),
-                            existing["id"],
-                        ),
-                    )
-                    updated += 1
-                else:
-                    conn.execute(
-                        """INSERT INTO filaments
-                           (name, manufacturer, material_type, color, location,
-                            is_opened, initial_weight, current_weight, is_favorite,
-                            purchase_date, purchase_price, purchase_channel, opened_at)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (
-                            row["name"], row.get("manufacturer", ""),
-                            row.get("material_type", ""), row.get("color", ""),
-                            row.get("location", ""), int(row.get("is_opened", 0)),
-                            float(row.get("initial_weight", 1000)),
-                            float(row.get("current_weight", 1000)),
-                            int(row.get("is_favorite", 0)),
-                            row.get("purchase_date"), row.get("purchase_price", ""),
-                            row.get("purchase_channel", ""), row.get("opened_at"),
-                        ),
-                    )
-                    added += 1
-            conn.commit()
-            return jsonify({
-                "status": "success",
-                "added": added,
-                "updated": updated,
-                "skipped": skipped,
-            })
-    except Exception as e:
-        logger.error("Import error: %s", e)
-        return jsonify({"status": "error", "error": str(e)}), 500

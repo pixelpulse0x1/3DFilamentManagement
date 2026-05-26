@@ -25,6 +25,8 @@
     --ha-card-bg: rgba(255, 255, 255, 0.05);
     --ha-card-color: #333333;
     --ha-card-blur: 2px;
+    --ha-text-dark: #111111;
+    --ha-text-light: #ffffff;
 }
 
 * {
@@ -961,6 +963,68 @@ input, select, textarea { font-size: 16px; }
     cursor: pointer;
     border: 2px solid #fff;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* ─── Status Radio Group ─── */
+
+.status-radio-group {
+    display: flex;
+    background: var(--ha-card-bg);
+    backdrop-filter: blur(var(--ha-card-blur));
+    -webkit-backdrop-filter: blur(var(--ha-card-blur));
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.status-radio {
+    padding: 0.5rem 1.2rem;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--ha-card-color);
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.status-radio:last-child { border-right: none; }
+
+/* ─── Filter Checkboxes ─── */
+
+.filter-checkboxes {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--ha-card-color);
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+}
+
+.filter-checkbox:hover { background: rgba(0, 0, 0, 0.06); }
+
+.filter-checkbox input[type="checkbox"] {
+    accent-color: var(--primary);
+}
+
+.status-radio input { display: none; }
+
+.status-radio:hover { background: rgba(0, 0, 0, 0.04); }
+
+.status-radio.active {
+    background: var(--primary);
+    color: #fff;
 }
 
 /* ─── Color Picker Row ─── */

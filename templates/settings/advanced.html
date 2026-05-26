@@ -6,6 +6,22 @@
     <h2 style="color:var(--text-primary);font-size:1.3rem;">高级设置</h2>
 </header>
 <div class="content-body">
+    <!-- 一键备份 -->
+    <div class="settings-card">
+        <h3><i class="fas fa-shield-halved"></i> 系统备份</h3>
+        <p style="color:var(--text-secondary);margin-bottom:1rem;">将数据库和上传的背景图片打包为 ZIP 文件下载，包含 `/data` 目录下的所有用户数据。</p>
+        <button class="btn btn-primary" id="backupBtn"><i class="fas fa-download"></i> 一键备份系统数据</button>
+        <div id="backupMsg" style="margin-top:0.8rem;display:none;"></div>
+    </div>
+
+    <!-- 表格导出 -->
+    <div class="settings-card">
+        <h3><i class="fas fa-file-excel"></i> 表格导出</h3>
+        <p style="color:var(--text-secondary);margin-bottom:1rem;">将全部数据导出为 Excel (.xlsx) 文件，包含耗材库存列表、耗材类型管理、品牌厂商管理和耗材使用日志四个工作表。</p>
+        <button class="btn btn-primary" id="exportExcelBtn"><i class="fas fa-download"></i> 导出 Excel 表格</button>
+        <div id="exportExcelMsg" style="margin-top:0.8rem;display:none;"></div>
+    </div>
+
     <!-- 数据迁移 -->
     <div class="settings-card" style="border: 1px solid rgba(247, 37, 133, 0.3);">
         <h3><i class="fas fa-tools"></i> 数据迁移</h3>

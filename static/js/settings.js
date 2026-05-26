@@ -25,6 +25,12 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('migrateMaterialsBtn').addEventListener('click', migrateMaterials);
         document.getElementById('migrateManufacturersBtn').addEventListener('click', migrateManufacturers);
     }
+    if (document.getElementById('backupBtn')) {
+        document.getElementById('backupBtn').addEventListener('click', triggerBackup);
+    }
+    if (document.getElementById('exportExcelBtn')) {
+        document.getElementById('exportExcelBtn').addEventListener('click', triggerExcelExport);
+    }
 });
 
 // ─── General Settings ───
@@ -118,7 +124,14 @@ function applyAppearancePreview(opacity, color, blur) {
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     document.documentElement.style.setProperty('--ha-card-bg', `rgba(${r}, ${g}, ${b}, ${opacity})`);
-    document.documentElement.style.setProperty('--ha-card-color', opacity > 0.5 ? '#333333' : '#e0e0e0');
+
+    // Perceived luminance: blend card color over dark base (#101E2E ≈ 16,30,46)
+    const effR = r * opacity + 16 * (1 - opacity);
+    const effG = g * opacity + 30 * (1 - opacity);
+    const effB = b * opacity + 46 * (1 - opacity);
+    const luminance = 0.299 * effR + 0.587 * effG + 0.114 * effB;
+    document.documentElement.style.setProperty('--ha-card-color', luminance > 128 ? '#111111' : '#ffffff');
+
     if (blur !== undefined && blur !== null) {
         document.documentElement.style.setProperty('--ha-card-blur', blur + 'px');
     }
@@ -175,7 +188,7 @@ function loadBackgrounds() {
                 const isActive = filename === data.active;
                 const thumb = document.createElement('div');
                 thumb.className = 'bg-thumb' + (isActive ? ' active' : '');
-                thumb.innerHTML = '<img src="/static/uploads/backgrounds/' + filename + '" alt="' + filename + '">' +
+                thumb.innerHTML = '<img src="/uploads/backgrounds/' + filename + '" alt="' + filename + '">' +
                     '<div class="bg-thumb-overlay">' +
                     (!isActive ? '<button class="btn btn-primary set-bg-btn" data-filename="' + filename + '">设为背景</button>' : '<span style="color:#4cc9f0;font-size:0.8rem;">当前使用</span>') +
                     '</div>';
@@ -221,7 +234,7 @@ function setActiveBackground(filename) {
                 loadBackgrounds();
                 if (filename) {
                     document.body.classList.add('has-background');
-                    document.body.style.backgroundImage = 'url(/static/uploads/backgrounds/' + filename + ')';
+                    document.body.style.backgroundImage = 'url(/uploads/backgrounds/' + filename + ')';
                 } else {
                     document.body.classList.remove('has-background');
                     document.body.style.backgroundImage = '';
@@ -239,6 +252,71 @@ function showMsg(elId, msg, type) {
     el.textContent = msg; el.style.display = 'block';
     el.style.color = type === 'error' ? '#f72585' : '#4cc9f0';
     setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+// ─── System Backup ───
+
+function triggerBackup() {
+    const btn = document.getElementById('backupBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在打包...'; btn.disabled = true;
+    showMsg('backupMsg', '', 'success');
+
+    fetch('/api/settings/backup')
+        .then(r => {
+            if (!r.ok) return r.json().then(d => { throw new Error(d.error || '备份失败'); });
+            return r.blob();
+        })
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const disposition = blob.type === 'application/zip' ? 'backup' : 'data';
+            a.download = '3d_inventory_backup.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMsg('backupMsg', '备份完成，文件已开始下载', 'success');
+        })
+        .catch(err => {
+            showMsg('backupMsg', '备份失败: ' + err.message, 'error');
+        })
+        .finally(() => {
+            btn.innerHTML = '<i class="fas fa-download"></i> 一键备份系统数据';
+            btn.disabled = false;
+        });
+}
+
+// ─── Excel Export ───
+
+function triggerExcelExport() {
+    const btn = document.getElementById('exportExcelBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在生成...'; btn.disabled = true;
+    showMsg('exportExcelMsg', '', 'success');
+
+    fetch('/api/export/excel')
+        .then(r => {
+            if (!r.ok) return r.json().then(d => { throw new Error(d.error || '导出失败'); });
+            return r.blob();
+        })
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '3d_inventory_export.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMsg('exportExcelMsg', '导出完成，文件已开始下载', 'success');
+        })
+        .catch(err => {
+            showMsg('exportExcelMsg', '导出失败: ' + err.message, 'error');
+        })
+        .finally(() => {
+            btn.innerHTML = '<i class="fas fa-download"></i> 导出 Excel 表格';
+            btn.disabled = false;
+        });
 }
 
 // ─── Data Migration ───

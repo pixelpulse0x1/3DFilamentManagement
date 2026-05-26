@@ -157,40 +157,6 @@
     </div>
 </div>
 
-<!-- 导入模态框 -->
-<div class="modal" id="importModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <div class="modal-title">导入耗材数据</div>
-            <div class="close-modal">&times;</div>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label>选择CSV文件</label>
-                <input type="file" id="csvFile" accept=".csv">
-                <small>请使用导出的CSV格式文件</small>
-            </div>
-            <div class="import-options">
-                <label><input type="checkbox" id="updateExisting" checked> 更新已存在的记录</label>
-                <label><input type="checkbox" id="skipDuplicates" checked> 跳过重复记录</label>
-            </div>
-            <div id="importResults" style="display:none;margin-top:1rem;background:rgba(255,255,255,0.05);padding:1rem;border-radius:8px;">
-                <h4>导入结果详情:</h4>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
-                    <div><strong>新增记录:</strong> <span id="importAdded">0</span></div>
-                    <div><strong>更新记录:</strong> <span id="importUpdated">0</span></div>
-                    <div><strong>跳过记录:</strong> <span id="importSkipped">0</span></div>
-                    <div><strong>总处理:</strong> <span id="importTotal">0</span></div>
-                </div>
-                <div id="importErrorLog" style="margin-top:1rem;color:#dc3545;display:none;"></div>
-            </div>
-            <div style="display:flex;gap:1rem;margin-top:1.2rem;">
-                <button class="btn btn-primary" id="confirmImportBtn" style="flex:1;"><i class="fas fa-upload"></i> 开始导入</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- 使用耗材模态框 -->
 <div class="modal" id="useModal">
     <div class="modal-content">

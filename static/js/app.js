@@ -14,7 +14,7 @@ let settings = {};
 let longPressTimer = null;
 let currentSort = { field: null, direction: 'none' };
 let currentSearchTerm = '';
-let currentStatusFilter = 'all';
+let currentStatusFilters = new Set(['opened']);
 
 const presetColors = [
     '#000000','#FFFFFF','#808080','#C0C0C0','#FF0000','#0000FF','#008000','#FFFF00','#FFA500','#FFC0CB',
@@ -41,6 +41,18 @@ document.addEventListener('DOMContentLoaded', function () {
         const si = document.getElementById('searchInput');
         if (si) si.value = currentSearchTerm;
     }
+
+    // Status filter radio buttons on overview page
+    document.querySelectorAll('input[name="filterStatus"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            if (this.checked) {
+                currentFilterStatus = this.value;
+                document.querySelectorAll('.status-radio').forEach(l => l.classList.remove('active'));
+                this.parentElement.classList.add('active');
+                loadData();
+            }
+        });
+    });
 
     bindEvents();
 
@@ -87,7 +99,13 @@ function applyAppearance(opacity, color, blur) {
             const g = parseInt(hex.slice(3, 5), 16);
             const b = parseInt(hex.slice(5, 7), 16);
             document.documentElement.style.setProperty('--ha-card-bg', `rgba(${r}, ${g}, ${b}, ${alpha})`);
-            document.documentElement.style.setProperty('--ha-card-color', alpha > 0.5 ? '#333333' : '#e0e0e0');
+
+            // Perceived luminance: blend card color over dark base (#101E2E ≈ 16,30,46)
+            const effR = r * alpha + 16 * (1 - alpha);
+            const effG = g * alpha + 30 * (1 - alpha);
+            const effB = b * alpha + 46 * (1 - alpha);
+            const luminance = 0.299 * effR + 0.587 * effG + 0.114 * effB;
+            document.documentElement.style.setProperty('--ha-card-color', luminance > 128 ? '#111111' : '#ffffff');
         }
     }
     if (blur !== undefined && blur !== null) {
@@ -98,6 +116,8 @@ function applyAppearance(opacity, color, blur) {
     }
 }
 
+let currentFilterStatus = 'all';
+
 // Load data
 function loadData() {
     fetch('/api/filaments')
@@ -107,7 +127,7 @@ function loadData() {
             renderFilamentTable(applyFilters(data));
             renderFavoriteFilaments(data);
         });
-    fetch('/api/statistics')
+    fetch('/api/statistics?filter=' + currentFilterStatus)
         .then(r => r.json())
         .then(data => {
             renderStatistics(data);
@@ -179,9 +199,15 @@ function applyFilters(filamentsList) {
             (f.color && f.color.toLowerCase().includes(term))
         );
     }
-    if (currentStatusFilter === 'opened') filtered = filtered.filter(f => f.is_opened && f.current_weight > 0);
-    else if (currentStatusFilter === 'unopened') filtered = filtered.filter(f => !f.is_opened);
-    else if (currentStatusFilter === 'used_up') filtered = filtered.filter(f => f.current_weight === 0);
+    if (currentStatusFilters.size > 0 && currentStatusFilters.size < 3) {
+        filtered = filtered.filter(f => {
+            const match = [];
+            if (currentStatusFilters.has('opened')) match.push(f.is_opened && f.current_weight > 0);
+            if (currentStatusFilters.has('unopened')) match.push(!f.is_opened);
+            if (currentStatusFilters.has('used_up')) match.push(f.current_weight === 0);
+            return match.some(Boolean);
+        });
+    }
     return filtered;
 }
 
@@ -223,9 +249,8 @@ function bindEvents() {
     // Refresh
     const refreshBtn = document.getElementById('refreshBtn');
     if (refreshBtn) refreshBtn.addEventListener('click', () => {
-        currentSearchTerm = ''; currentStatusFilter = 'all'; currentSort = { field: null, direction: 'none' };
+        currentSearchTerm = ''; currentSort = { field: null, direction: 'none' };
         const si = document.getElementById('searchInput'); if (si) si.value = '';
-        const sf = document.getElementById('statusFilter'); if (sf) sf.value = 'all';
         document.querySelectorAll('th.sortable').forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
         loadData(); loadUsageRecords();
     });
@@ -233,7 +258,6 @@ function bindEvents() {
     // Buttons
     const addBtn = document.getElementById('addFilamentBtn'); if (addBtn) addBtn.addEventListener('click', openAddModal);
     const batchBtn = document.getElementById('batchAddBtn'); if (batchBtn) batchBtn.addEventListener('click', openBatchAddModal);
-    const exportBtn = document.getElementById('exportBtn'); if (exportBtn) exportBtn.addEventListener('click', exportData);
     const saveBtn = document.getElementById('saveFilamentBtn'); if (saveBtn) saveBtn.addEventListener('click', saveFilament);
     const saveBatchBtn = document.getElementById('saveBatchBtn'); if (saveBatchBtn) saveBatchBtn.addEventListener('click', saveBatch);
     const useBtn = document.getElementById('confirmUseBtn'); if (useBtn) useBtn.addEventListener('click', confirmUseFilament);
@@ -243,11 +267,18 @@ function bindEvents() {
     const batchUnopen = document.getElementById('batchMarkUnopenedBtn'); if (batchUnopen) batchUnopen.addEventListener('click', () => batchUpdateStatus(false));
     const selectAll = document.getElementById('selectAll'); if (selectAll) selectAll.addEventListener('change', toggleSelectAll);
 
-    // Search & filter
+    // Search
     const si = document.getElementById('searchInput');
     if (si) si.addEventListener('input', function () { currentSearchTerm = this.value.toLowerCase(); renderFilamentTable(applyFilters(filaments)); });
-    const sf = document.getElementById('statusFilter');
-    if (sf) sf.addEventListener('change', function () { currentStatusFilter = this.value; renderFilamentTable(applyFilters(filaments)); });
+
+    // Status filter checkboxes
+    document.querySelectorAll('#statusFilterCheckboxes input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', function () {
+            if (this.checked) currentStatusFilters.add(this.value);
+            else currentStatusFilters.delete(this.value);
+            renderFilamentTable(applyFilters(filaments));
+        });
+    });
 
     // Is opened toggle
     const io = document.getElementById('isOpened');
@@ -255,37 +286,6 @@ function bindEvents() {
 
     // Close modals
     document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', closeAllModals));
-
-    // Import
-    const impBtn = document.getElementById('importBtn');
-    if (impBtn) impBtn.addEventListener('click', () => {
-        document.getElementById('importModal').style.display = 'flex';
-        document.getElementById('importResults').style.display = 'none';
-    });
-    const confImp = document.getElementById('confirmImportBtn');
-    if (confImp) confImp.addEventListener('click', function () {
-        const fileInput = document.getElementById('csvFile');
-        if (!fileInput.files.length) { alert('请选择要导入的CSV文件'); return; }
-        const formData = new FormData(); formData.append('file', fileInput.files[0]);
-        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 导入中...'; this.disabled = true;
-        fetch('/api/import', { method: 'POST', body: formData })
-            .then(r => r.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    document.getElementById('importResults').style.display = 'block';
-                    document.getElementById('importAdded').textContent = data.added;
-                    document.getElementById('importUpdated').textContent = data.updated;
-                    document.getElementById('importSkipped').textContent = data.skipped;
-                    document.getElementById('importTotal').textContent = data.added + data.updated + data.skipped;
-                    setTimeout(() => { document.getElementById('importModal').style.display = 'none'; loadData(); }, 3000);
-                } else {
-                    const errEl = document.getElementById('importErrorLog');
-                    errEl.style.display = 'block'; errEl.textContent = '错误: ' + (data.error || '未知错误');
-                }
-            })
-            .catch(err => { console.error(err); alert('导入失败: ' + err.message); })
-            .finally(() => { this.innerHTML = '<i class="fas fa-upload"></i> 开始导入'; this.disabled = false; });
-    });
 
     // Sort headers
     document.querySelectorAll('th.sortable').forEach(th => {
@@ -552,19 +552,40 @@ function renderStatistics(data) {
     const container = document.getElementById('statsGrid');
     if (!container) return;
     container.innerHTML = '';
-    [{ title:'总耗材数量', icon:'fas fa-boxes', value:data.total_filaments, label:'卷', cls:'icon-primary' },
-     { title:'耗材类型', icon:'fas fa-layer-group', value:data.material_types, label:'种材料类型', cls:'icon-primary' },
-     { title:'库存预警', icon:'fas fa-exclamation-triangle', value:data.low_stock, label:'卷', cls:'icon-warning' },
-     { title:'常用耗材', icon:'fas fa-star', value:data.favorites, label:'标记为常用', cls:'icon-primary' },
-     { title:'库存总价值', icon:'fas fa-yen-sign', value:'¥'+data.total_value.toFixed(2), label:'耗材总价值', cls:'icon-primary' }
-    ].forEach(c => {
+    const fs = data.filter_status || 'all';
+
+    const metrics = [];
+    if (fs === 'used') {
+        metrics.push(
+            { title:'已使用耗材数量', icon:'fas fa-boxes', value:data.total_filaments, label:'卷', cls:'icon-primary' },
+            { title:'已使用价值', icon:'fas fa-yen-sign', value:'¥'+data.total_value.toFixed(2), label:'已消耗资金', cls:'icon-primary' }
+        );
+    } else if (fs === 'remaining') {
+        metrics.push(
+            { title:'剩余耗材数量', icon:'fas fa-boxes', value:data.total_filaments, label:'卷', cls:'icon-primary' },
+            { title:'剩余价值', icon:'fas fa-yen-sign', value:'¥'+data.total_value.toFixed(2), label:'净剩余资产', cls:'icon-primary' }
+        );
+    } else {
+        metrics.push(
+            { title:'总耗材数量', icon:'fas fa-boxes', value:data.total_filaments, label:'卷', cls:'icon-primary' },
+            { title:'库存总价值', icon:'fas fa-yen-sign', value:'¥'+data.total_value.toFixed(2), label:'耗材总价值', cls:'icon-primary' }
+        );
+    }
+
+    metrics.push(
+        { title:'耗材类型', icon:'fas fa-layer-group', value:data.material_types, label:'种材料类型', cls:'icon-primary' },
+        { title:'库存预警', icon:'fas fa-exclamation-triangle', value:data.low_stock, label:'卷', cls:'icon-warning' },
+        { title:'常用耗材', icon:'fas fa-star', value:data.favorites, label:'标记为常用', cls:'icon-primary' }
+    );
+
+    metrics.forEach(c => {
         const card = document.createElement('div'); card.className = 'card';
         card.innerHTML = '<div class="card-header"><div class="card-title">'+c.title+'</div><div class="card-icon '+c.cls+'"><i class="'+c.icon+'"></i></div></div><div class="stat-value">'+c.value+'</div><div class="stat-label">'+c.label+'</div>';
         container.appendChild(card);
     });
     const alertEl = document.getElementById('lowStockAlert');
     if (alertEl) {
-        if (data.low_stock > 0) {
+        if (data.low_stock > 0 && fs !== 'used') {
             document.getElementById('lowStockMessage').innerHTML = '有 <strong>'+data.low_stock+'卷耗材</strong> 库存低于'+data.threshold+'克，请及时补充！';
             alertEl.style.display = 'flex';
         } else { alertEl.style.display = 'none'; }
@@ -724,7 +745,7 @@ function openDetailModal(filamentId) {
 }
 
 function closeAllModals() {
-    ['addModal','batchAddModal','useModal','detailModal','importModal'].forEach(id => {
+    ['addModal','batchAddModal','useModal','detailModal'].forEach(id => {
         const el = document.getElementById(id); if (el) el.style.display = 'none';
     });
 }
@@ -816,9 +837,3 @@ function deleteFilament(id) {
     fetch('/api/filaments/'+id, { method:'DELETE' }).then(r=>r.json()).then(d=>{if(d.status==='success')loadData();});
 }
 
-function exportData() {
-    fetch('/api/export').then(r=>{if(r.ok)return r.blob();throw new Error('导出失败');}).then(blob=>{
-        const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='filament_inventory.csv';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
-    }).catch(err=>{alert('导出失败: '+err.message);});
-}

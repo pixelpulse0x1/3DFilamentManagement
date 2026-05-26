@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="/static/css/responsive.css">
     {% block extra_head %}{% endblock %}
 </head>
-<body class="{{ 'has-background' if active_background }}" style="{{ 'background-image: url(/static/uploads/backgrounds/' + active_background + ')' if active_background }}">
+<body class="{{ 'has-background' if active_background }}" style="{{ 'background-image: url(/uploads/backgrounds/' + active_background + ')' if active_background }}">
     <div class="app-layout">
         {% include 'components/sidebar.html' %}
         <main class="main-content">
