@@ -1,7 +1,7 @@
 services:
   3d-consumables-inventory-management-system:
     build: .
-    image: pixelpulse01/3d-consumables-inventory-management-system:v0.2.3.0
+    image: pixelpulse01/3d-consumables-inventory-management-system:v0.2.4.0
     container_name: 3d-consumables-inventory-management-system
     restart: unless-stopped
 

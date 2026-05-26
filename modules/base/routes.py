@@ -138,6 +138,13 @@ def settings_advanced():
                            active_sub="advanced")
 
 
+@base_bp.route("/devices")
+def devices_page():
+    return render_template("device_management.html",
+                           active_background=_bg_for_template(),
+                           active_nav="devices")
+
+
 # ─── Settings API ───
 
 @base_bp.route("/api/settings", methods=["GET", "PUT"])
@@ -411,6 +418,28 @@ def api_export_excel():
             for r in usage_rows:
                 ws4.append([r["id"], r["filament_id"], r["filament_name"],
                            r["used_weight"], r["note"], r["used_at"]])
+
+            # Sheet 5: printers
+            ws5 = wb.create_sheet("打印机设备集群")
+            ws5.append(["id", "name", "model", "created_at"])
+            for r in conn.execute("SELECT * FROM printers ORDER BY id").fetchall():
+                ws5.append([r["id"], r["name"], r["model"], r["created_at"]])
+
+            # Sheet 6: printer_slots
+            ws6 = wb.create_sheet("仓位挂载实时快照")
+            ws6.append(["id", "printer_id", "printer_name", "slot_name",
+                       "current_filament_id", "filament_name", "filament_status"])
+            slot_rows = conn.execute("""
+                SELECT ps.id, ps.printer_id, p.name AS printer_name, ps.slot_name,
+                       ps.current_filament_id, f.name AS filament_name, f.status AS filament_status
+                FROM printer_slots ps
+                JOIN printers p ON ps.printer_id = p.id
+                LEFT JOIN filaments f ON ps.current_filament_id = f.id
+                ORDER BY ps.printer_id, ps.id
+            """).fetchall()
+            for r in slot_rows:
+                ws6.append([r["id"], r["printer_id"], r["printer_name"], r["slot_name"],
+                           r["current_filament_id"], r["filament_name"], r["filament_status"]])
 
         output = io.BytesIO()
         wb.save(output)

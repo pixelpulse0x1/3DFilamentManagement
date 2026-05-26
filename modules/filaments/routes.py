@@ -22,6 +22,7 @@ def _filament_to_dict(row):
         "color": row["color"],
         "location": row["location"],
         "is_opened": bool(row["is_opened"]),
+        "status": row["status"] if "status" in row.keys() else ("闲置" if row["is_opened"] else "全新"),
         "initial_weight": row["initial_weight"],
         "current_weight": row["current_weight"],
         "is_favorite": bool(row["is_favorite"]),
@@ -45,22 +46,27 @@ def api_filaments():
                 return jsonify([_filament_to_dict(r) for r in rows])
             else:
                 data = request.get_json()
+                # Determine initial status from legacy is_opened or new status field
+                status = data.get("status", "全新")
+                if "is_opened" in data and "status" not in data:
+                    status = "闲置" if data.get("is_opened") else "全新"
                 cursor = conn.execute(
                     """INSERT INTO filaments
                        (name, manufacturer, material_type, color, location, is_opened,
                         initial_weight, current_weight, is_favorite, purchase_date,
-                        purchase_price, purchase_channel, opened_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        purchase_price, purchase_channel, opened_at, status)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         data["name"], data.get("manufacturer", ""),
                         data["material_type"], data["color"],
                         data.get("location", ""),
-                        1 if data.get("is_opened") else 0,
+                        1 if data.get("is_opened") or status in ("闲置", "上机", "用尽") else 0,
                         data.get("initial_weight", 1000.0),
                         data.get("current_weight", data.get("initial_weight", 1000.0)),
                         1 if data.get("is_favorite") else 0,
                         data.get("purchase_date"), data.get("purchase_price"),
                         data.get("purchase_channel"), data.get("opened_at"),
+                        status,
                     ),
                 )
                 conn.commit()
@@ -81,6 +87,7 @@ def api_filament_single(filament_id):
                     "name", "manufacturer", "material_type", "color", "location",
                     "is_opened", "initial_weight", "current_weight", "is_favorite",
                     "purchase_date", "purchase_price", "purchase_channel", "opened_at",
+                    "status",
                 ]
                 updates = {k: v for k, v in data.items() if k in allowed}
                 if "is_opened" in updates:
@@ -96,6 +103,16 @@ def api_filament_single(filament_id):
                     conn.commit()
                 return jsonify({"status": "success"})
             else:
+                filament = conn.execute(
+                    "SELECT * FROM filaments WHERE id = ?", (filament_id,)
+                ).fetchone()
+                if not filament:
+                    return jsonify({"status": "error", "error": "耗材不存在"}), 404
+                if filament["status"] == "上机":
+                    return jsonify({
+                        "status": "error",
+                        "error": "该耗材正处于上机状态，请先下机后再执行删除",
+                    }), 400
                 conn.execute("DELETE FROM usage_records WHERE filament_id = ?", (filament_id,))
                 conn.execute("DELETE FROM filaments WHERE id = ?", (filament_id,))
                 conn.commit()
@@ -116,18 +133,19 @@ def api_filaments_batch():
                     """INSERT INTO filaments
                        (name, manufacturer, material_type, color, location, is_opened,
                         initial_weight, current_weight, is_favorite, purchase_date,
-                        purchase_price, purchase_channel)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        purchase_price, purchase_channel, status)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         data["name"], data.get("manufacturer", ""),
                         data["material_type"], data["color"],
                         data.get("location", ""),
-                        1 if data.get("is_opened") else 0,
+                        0,
                         data.get("initial_weight", 1000.0),
                         data.get("current_weight", data.get("initial_weight", 1000.0)),
                         1 if data.get("is_favorite") else 0,
                         data.get("purchase_date"), data.get("purchase_price"),
                         data.get("purchase_channel"),
+                        "全新",
                     ),
                 )
             conn.commit()
@@ -146,7 +164,16 @@ def api_filaments_delete_multiple():
             ids = data.get("ids", [])
             if not ids:
                 return jsonify({"status": "error", "error": "No IDs provided"}), 400
+            # Block deletion of any 上机 filaments
             placeholders = ",".join("?" for _ in ids)
+            active = conn.execute(
+                f"SELECT id FROM filaments WHERE id IN ({placeholders}) AND status = '上机'", ids
+            ).fetchall()
+            if active:
+                return jsonify({
+                    "status": "error",
+                    "error": "选中的耗材中有处于上机状态的，请先下机后再执行删除",
+                }), 400
             conn.execute(
                 f"DELETE FROM usage_records WHERE filament_id IN ({placeholders})", ids
             )
@@ -175,17 +202,18 @@ def api_filament_use(filament_id):
             if not filament:
                 return jsonify({"status": "error", "error": "Filament not found"}), 404
 
-            new_weight = max(0, filament["current_weight"] - used_weight)
+            new_weight = round(max(0, filament["current_weight"] - used_weight), 2)
+            new_status = "用尽" if new_weight == 0 else filament["status"]
             conn.execute(
-                "UPDATE filaments SET current_weight = ?, is_opened = 1 WHERE id = ?",
-                (new_weight, filament_id),
+                "UPDATE filaments SET current_weight = ?, is_opened = 1, status = ? WHERE id = ?",
+                (new_weight, new_status, filament_id),
             )
             conn.execute(
                 "INSERT INTO usage_records (filament_id, used_weight, note) VALUES (?, ?, ?)",
                 (filament_id, used_weight, note),
             )
             conn.commit()
-            return jsonify({"status": "success", "current_weight": new_weight})
+            return jsonify({"status": "success", "current_weight": round(new_weight, 2)})
     except Exception as e:
         logger.error("Filament use error: %s", e)
         return jsonify({"status": "error", "error": str(e)}), 500
@@ -243,7 +271,7 @@ def api_usage_record_delete(record_id):
                 "SELECT * FROM filaments WHERE id = ?", (record["filament_id"],)
             ).fetchone()
             if filament:
-                new_weight = filament["current_weight"] + record["used_weight"]
+                new_weight = round(filament["current_weight"] + record["used_weight"], 2)
                 conn.execute(
                     "UPDATE filaments SET current_weight = ? WHERE id = ?",
                     (new_weight, filament["id"]),
@@ -270,9 +298,9 @@ def api_statistics():
 
             # Apply status filter
             if filter_status == "remaining":
-                filaments = [f for f in all_filaments if f["current_weight"] > 0]
+                filaments = [f for f in all_filaments if f["status"] in ("全新", "闲置", "上机")]
             elif filter_status == "used":
-                filaments = [f for f in all_filaments if f["current_weight"] == 0]
+                filaments = [f for f in all_filaments if f["status"] == "用尽"]
             else:
                 filaments = all_filaments
 
@@ -306,7 +334,7 @@ def api_statistics():
             favorites = sum(1 for f in filaments if f["is_favorite"])
             low_stock = sum(
                 1 for f in filaments
-                if f["current_weight"] > 0 and f["current_weight"] < threshold
+                if f["status"] != "用尽" and f["current_weight"] > 0 and f["current_weight"] < threshold
             )
             material_types = len(set(f["material_type"] for f in filaments))
 
@@ -316,17 +344,17 @@ def api_statistics():
                 material_distribution[mt] = material_distribution.get(mt, 0) + 1
 
             stock_status = {
-                "unopened": sum(1 for f in filaments if not f["is_opened"]),
+                "unopened": sum(1 for f in filaments if f["status"] == "全新"),
                 "sufficient": sum(
                     1 for f in filaments
-                    if f["is_opened"] and f["current_weight"] >= threshold
+                    if f["status"] in ("闲置", "上机") and f["current_weight"] >= threshold
                 ),
                 "insufficient": low_stock,
                 "normal": sum(
                     1 for f in filaments
-                    if f["current_weight"] >= threshold and not f["is_opened"]
+                    if f["status"] == "全新" and f["current_weight"] >= threshold
                 ),
-                "used_up": sum(1 for f in filaments if f["current_weight"] == 0),
+                "used_up": sum(1 for f in filaments if f["status"] == "用尽"),
             }
 
             manufacturer_stats = {}

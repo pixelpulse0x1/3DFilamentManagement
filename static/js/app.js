@@ -14,7 +14,7 @@ let settings = {};
 let longPressTimer = null;
 let currentSort = { field: null, direction: 'none' };
 let currentSearchTerm = '';
-let currentStatusFilters = new Set(['opened']);
+let currentStatusFilters = new Set(['闲置']);
 
 const presetColors = [
     '#000000','#FFFFFF','#808080','#C0C0C0','#FF0000','#0000FF','#008000','#FFFF00','#FFA500','#FFC0CB',
@@ -67,17 +67,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Status helpers
 function getStatusClass(filament) {
-    if (filament.current_weight === 0) return 'status-used-up';
-    if (filament.current_weight < settings.threshold) return 'status-warning';
-    if (filament.is_opened) return 'status-in-use';
-    return 'status-unopened';
+    const s = filament.status || '全新';
+    if (s === '用尽') return 'status-used-up';
+    if (filament.current_weight < settings.threshold && s !== '用尽') return 'status-warning';
+    if (s === '上机') return 'status-in-use';
+    if (s === '闲置') return 'status-unopened';
+    return 'status-new';
 }
 
 function getStatusText(filament) {
-    if (filament.current_weight === 0) return '已用完';
-    if (filament.current_weight < settings.threshold) return '库存不足';
-    if (filament.is_opened) return '使用中';
-    return '未开封';
+    const s = filament.status || '全新';
+    if (filament.current_weight > 0 && filament.current_weight < settings.threshold && s !== '用尽') return '库存不足';
+    return s;
 }
 
 // Load settings
@@ -199,14 +200,8 @@ function applyFilters(filamentsList) {
             (f.color && f.color.toLowerCase().includes(term))
         );
     }
-    if (currentStatusFilters.size > 0 && currentStatusFilters.size < 3) {
-        filtered = filtered.filter(f => {
-            const match = [];
-            if (currentStatusFilters.has('opened')) match.push(f.is_opened && f.current_weight > 0);
-            if (currentStatusFilters.has('unopened')) match.push(!f.is_opened);
-            if (currentStatusFilters.has('used_up')) match.push(f.current_weight === 0);
-            return match.some(Boolean);
-        });
+    if (currentStatusFilters.size > 0 && currentStatusFilters.size < 4) {
+        filtered = filtered.filter(f => currentStatusFilters.has(f.status || '全新'));
     }
     return filtered;
 }
@@ -263,8 +258,8 @@ function bindEvents() {
     const useBtn = document.getElementById('confirmUseBtn'); if (useBtn) useBtn.addEventListener('click', confirmUseFilament);
     const batchFav = document.getElementById('batchFavoriteBtn'); if (batchFav) batchFav.addEventListener('click', batchFavorite);
     const batchDel = document.getElementById('batchDeleteBtn'); if (batchDel) batchDel.addEventListener('click', batchDelete);
-    const batchOpen = document.getElementById('batchMarkOpenedBtn'); if (batchOpen) batchOpen.addEventListener('click', () => batchUpdateStatus(true));
-    const batchUnopen = document.getElementById('batchMarkUnopenedBtn'); if (batchUnopen) batchUnopen.addEventListener('click', () => batchUpdateStatus(false));
+    const batchOpen = document.getElementById('batchMarkOpenedBtn'); if (batchOpen) batchOpen.addEventListener('click', () => batchUpdateStatus('闲置'));
+    const batchUnopen = document.getElementById('batchMarkUnopenedBtn'); if (batchUnopen) batchUnopen.addEventListener('click', () => batchUpdateStatus('全新'));
     const selectAll = document.getElementById('selectAll'); if (selectAll) selectAll.addEventListener('change', toggleSelectAll);
 
     // Search
@@ -279,10 +274,6 @@ function bindEvents() {
             renderFilamentTable(applyFilters(filaments));
         });
     });
-
-    // Is opened toggle
-    const io = document.getElementById('isOpened');
-    if (io) io.addEventListener('change', function () { document.getElementById('openedAtGroup').style.display = this.value === '1' ? 'block' : 'none'; });
 
     // Close modals
     document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', closeAllModals));
@@ -350,9 +341,9 @@ function renderFilamentTable(filaments) {
             <td><span class="color-indicator" style="background-color:${f.color};"></span></td>
             <td class="manufacturer-cell">${f.manufacturer || '-'}</td>
             <td class="weight-cell">
-                <div class="mobile-hidden"><div>${f.current_weight}g / ${f.initial_weight}g</div>
+                <div class="mobile-hidden"><div>${f.current_weight.toFixed(2)}g / ${f.initial_weight.toFixed(2)}g</div>
                 <div class="progress-container"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div></div>
-                <span class="mobile-only">${f.current_weight}g</span>
+                <span class="mobile-only">${f.current_weight.toFixed(2)}g</span>
             </td>
             <td class="hide-on-mobile">${f.location || '-'}</td>
             <td><span class="status-badge ${getStatusClass(f)}">${getStatusText(f)}</span></td>
@@ -384,7 +375,7 @@ function renderFavoriteFilaments(filaments) {
         card.className = 'filament-card'; card.dataset.id = f.id;
         card.innerHTML = `
             <div class="filament-spool"><div class="spool-outer" style="background-color:${f.color};"><div class="spool-center"></div><div class="spool-hole hole-top"></div><div class="spool-hole hole-right"></div><div class="spool-hole hole-bottom"></div><div class="spool-hole hole-left"></div></div></div>
-            <div class="filament-info"><div class="filament-manufacturer">${f.manufacturer}</div><div class="filament-material">${f.material_type}</div><div class="filament-weight ${f.current_weight <= 200 ? 'low' : ''}">${f.current_weight}g</div></div>
+            <div class="filament-info"><div class="filament-manufacturer">${f.manufacturer}</div><div class="filament-material">${f.material_type}</div><div class="filament-weight ${f.current_weight <= 200 ? 'low' : ''}">${f.current_weight.toFixed(2)}g</div></div>
             <i class="fas fa-star action-icon"></i>`;
         grid.appendChild(card);
     });
@@ -417,7 +408,7 @@ function renderManufacturerStats(stats) {
                 <div class="stat-card"><div class="stat-value-large">${s.total_filaments}</div><div class="stat-label-large">卷耗材</div></div>
                 <div class="stat-card"><div class="stat-value-large">${s.distinct_materials}</div><div class="stat-label-large">材料类型</div></div>
                 <div class="stat-card"><div class="stat-value-large">${s.distinct_colors}</div><div class="stat-label-large">颜色</div></div>
-                <div class="stat-card"><div class="stat-value-large">${s.total_weight ? s.total_weight.toFixed(0) : '0'}</div><div class="stat-label-large">总克数</div></div>
+                <div class="stat-card"><div class="stat-value-large">${s.total_weight ? s.total_weight.toFixed(2) : '0.00'}</div><div class="stat-label-large">总克数</div></div>
             </div>
             <div class="value-card"><div class="stat-value-large">¥${s.total_value ? s.total_value.toFixed(2) : '0.00'}</div><div class="stat-label-large">耗材总价值</div></div>`;
         grid.appendChild(card);
@@ -441,7 +432,7 @@ function renderUsageRecords(records) {
         const ds = d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0')+'-'+d.getDate().toString().padStart(2,'0');
         const ts = d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')+':'+d.getSeconds().toString().padStart(2,'0');
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${ds} ${ts}</td><td>${r.filament_name}</td><td>${r.used_weight}g</td><td>¥${r.used_cost ? r.used_cost.toFixed(2) : '0.00'}</td><td>${r.note || '-'}</td><td><button class="btn btn-danger btn-sm btn-withdraw" data-id="${r.id}"><i class="fas fa-undo"></i></button></td>`;
+        tr.innerHTML = `<td>${ds} ${ts}</td><td>${r.filament_name}</td><td>${r.used_weight.toFixed(2)}g</td><td>¥${r.used_cost ? r.used_cost.toFixed(2) : '0.00'}</td><td>${r.note || '-'}</td><td><button class="btn btn-danger btn-sm btn-withdraw" data-id="${r.id}"><i class="fas fa-undo"></i></button></td>`;
         tbody.appendChild(tr);
     });
     bindWithdrawButtons();
@@ -480,10 +471,10 @@ function renderUsageSummary(records) {
     });
     let html = '<table style="width:100%;margin-top:1rem;"><tr><th>日期</th><th>使用重量(g)</th><th>使用金额(¥)</th></tr>';
     Object.keys(daily).sort().reverse().forEach(date => {
-        html += '<tr><td>'+date+'</td><td>'+daily[date].weight.toFixed(1)+'</td><td>¥'+daily[date].cost.toFixed(2)+'</td></tr>';
+        html += '<tr><td>'+date+'</td><td>'+daily[date].weight.toFixed(2)+'</td><td>¥'+daily[date].cost.toFixed(2)+'</td></tr>';
     });
     html += '</table>';
-    el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;"><div class="stat-card"><div class="stat-value">'+totalW.toFixed(1)+'g</div><div class="stat-label">总使用重量</div></div><div class="stat-card"><div class="stat-value">¥'+totalC.toFixed(2)+'</div><div class="stat-label">总使用金额</div></div></div><div class="card-header" style="margin-top:1.5rem;"><div class="card-title">每日使用汇总</div></div>'+html;
+    el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;"><div class="stat-card"><div class="stat-value">'+totalW.toFixed(2)+'g</div><div class="stat-label">总使用重量</div></div><div class="stat-card"><div class="stat-value">¥'+totalC.toFixed(2)+'</div><div class="stat-label">总使用金额</div></div></div><div class="card-header" style="margin-top:1.5rem;"><div class="card-title">每日使用汇总</div></div>'+html;
     updateDailyUsageChart(daily);
 }
 
@@ -658,7 +649,7 @@ function openAddModal() {
     document.getElementById('colorPicker').value = '#5b9bd5';
     document.getElementById('colorPreview').style.backgroundColor = '#5b9bd5';
     document.getElementById('location').value = '';
-    document.getElementById('isOpened').value = '0';
+    document.getElementById('filamentStatus').value = '全新';
     document.getElementById('initialWeight').value = settings.default_weight || 1000;
     document.getElementById('currentWeight').value = settings.default_weight || 1000;
     document.getElementById('isFavorite').checked = false;
@@ -696,7 +687,7 @@ function openEditModal(filamentId) {
     document.getElementById('colorPicker').value = f.color;
     document.getElementById('colorPreview').style.backgroundColor = f.color;
     document.getElementById('location').value = f.location || '';
-    document.getElementById('isOpened').value = f.is_opened ? '1' : '0';
+    document.getElementById('filamentStatus').value = f.status || '闲置';
     document.getElementById('initialWeight').value = f.initial_weight;
     document.getElementById('currentWeight').value = f.current_weight;
     document.getElementById('isFavorite').checked = f.is_favorite;
@@ -704,7 +695,7 @@ function openEditModal(filamentId) {
     document.getElementById('purchasePrice').value = f.purchase_price || '';
     document.getElementById('purchaseChannel').value = f.purchase_channel || '';
     if (f.opened_at) document.getElementById('openedAt').value = f.opened_at;
-    document.getElementById('openedAtGroup').style.display = f.is_opened ? 'block' : 'none';
+    document.getElementById('openedAtGroup').style.display = (f.status && f.status !== '全新') ? 'block' : 'none';
     document.getElementById('addModal').style.display = 'flex';
 }
 
@@ -713,9 +704,9 @@ function openUseModal(filamentId) {
     if (!f) return;
     currentUseId = filamentId;
     document.getElementById('useFilamentName').textContent = f.name + ' - ' + f.material_type + ' - ' + f.manufacturer;
-    document.getElementById('currentWeightDisplay').textContent = f.current_weight;
+    document.getElementById('currentWeightDisplay').textContent = f.current_weight.toFixed(2);
     document.getElementById('usedWeight').value = '';
-    document.getElementById('usedWeight').max = f.current_weight;
+    document.getElementById('usedWeight').max = f.current_weight.toFixed(2);
     document.getElementById('useNote').value = '';
     document.getElementById('useModal').style.display = 'flex';
 }
@@ -726,12 +717,12 @@ function openDetailModal(filamentId) {
     document.getElementById('detailName').textContent = f.name || '-';
     document.getElementById('detailMaterial').textContent = f.material_type || '-';
     document.getElementById('detailManufacturer').textContent = f.manufacturer || '-';
-    document.getElementById('detailCurrentWeight').textContent = f.current_weight ? f.current_weight+'g' : '-';
-    document.getElementById('detailInitialWeight').textContent = f.initial_weight ? f.initial_weight+'g' : '-';
+    document.getElementById('detailCurrentWeight').textContent = f.current_weight != null ? f.current_weight.toFixed(2)+'g' : '-';
+    document.getElementById('detailInitialWeight').textContent = f.initial_weight != null ? f.initial_weight.toFixed(2)+'g' : '-';
     document.getElementById('detailPurchaseDate').textContent = f.purchase_date || '-';
-    document.getElementById('detailPurchasePrice').textContent = f.purchase_price ? '¥'+f.purchase_price : '-';
+    document.getElementById('detailPurchasePrice').textContent = f.purchase_price ? '¥'+f.purchase_price.toFixed(2) : '-';
     document.getElementById('detailPurchaseChannel').textContent = f.purchase_channel || '-';
-    document.getElementById('detailOpenedStatus').textContent = f.is_opened ? '已开封' : '未开封';
+    document.getElementById('detailOpenedStatus').textContent = f.status || '全新';
     document.getElementById('detailOpenedDate').textContent = f.opened_at || '-';
     document.getElementById('detailLocation').textContent = f.location || '-';
     document.getElementById('detailColorPreview').style.backgroundColor = f.color;
@@ -760,7 +751,7 @@ function saveFilament() {
         name, material_type: mt, color,
         manufacturer: document.getElementById('manufacturer').value,
         location: document.getElementById('location').value,
-        is_opened: document.getElementById('isOpened').value === '1',
+        status: document.getElementById('filamentStatus').value,
         initial_weight: parseFloat(document.getElementById('initialWeight').value),
         current_weight: parseFloat(document.getElementById('currentWeight').value),
         is_favorite: document.getElementById('isFavorite').checked,
@@ -769,7 +760,7 @@ function saveFilament() {
         purchase_channel: document.getElementById('purchaseChannel').value || null,
         opened_at: null
     };
-    if (data.is_opened && document.getElementById('openedAt').value) data.opened_at = document.getElementById('openedAt').value;
+    if (document.getElementById('openedAt').value) data.opened_at = document.getElementById('openedAt').value;
     const url = currentEditId ? '/api/filaments/'+currentEditId : '/api/filaments';
     fetch(url, { method: currentEditId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
         .then(r => r.json()).then(d => { if (d.status==='success') { closeAllModals(); loadData(); } else alert('保存失败: '+(d.error||'未知错误')); })
@@ -785,7 +776,7 @@ function saveBatch() {
     const batch = [];
     for (let i=1; i<=qty; i++) batch.push({
         name: prefix, manufacturer: document.getElementById('batchManufacturer').value, material_type: mt, color,
-        location: document.getElementById('batchLocation').value, is_opened: false,
+        location: document.getElementById('batchLocation').value, status: '全新',
         initial_weight: parseFloat(document.getElementById('batchInitialWeight').value),
         current_weight: parseFloat(document.getElementById('batchInitialWeight').value), is_favorite: false,
         purchase_date: document.getElementById('batchPurchaseDate').value || null,
@@ -819,10 +810,10 @@ function batchFavorite() {
     )).then(rs=>Promise.all(rs.map(r=>r.json()))).then(r=>{if(r.every(res=>res.status==='success')){loadData();alert('已标记'+r.length+'卷耗材为常用');}else alert('部分操作失败');});
 }
 
-function batchUpdateStatus(isOpened) {
+function batchUpdateStatus(status) {
     if (selectedFilaments.size===0) { alert('请先选择要操作的耗材'); return; }
     Promise.all(Array.from(selectedFilaments).map(id =>
-        fetch('/api/filaments/'+id, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({is_opened:isOpened}) })
+        fetch('/api/filaments/'+id, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: status}) })
     )).then(rs=>Promise.all(rs.map(r=>r.json()))).then(r=>{if(r.every(res=>res.status==='success')){loadData();alert('已更新'+r.length+'卷耗材状态');}else alert('部分操作失败');});
 }
 

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}设备管理 — 3D耗材库存管理系统{% endblock %}
+
+{% block content %}
+<header class="content-header">
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">设备管理</h2>
+    <button class="btn btn-primary" id="addPrinterBtn">
+        <i class="fas fa-plus"></i> 添加打印机
+    </button>
+</header>
+
+<div class="content-body">
+    <div class="printer-grid" id="printerGrid">
+        <div class="empty-state" id="noPrinters">
+            <i class="fas fa-print"></i>
+            <p>暂无打印机设备，点击上方按钮添加</p>
+        </div>
+    </div>
+</div>
+
+<!-- 添加打印机模态框 -->
+<div class="modal" id="addPrinterModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">添加打印机</div>
+            <div class="close-modal">&times;</div>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>打印机名称 *</label>
+                <input type="text" class="form-control" id="printerName" placeholder="例如: 拓竹 P1S-01">
+            </div>
+            <div class="form-group">
+                <label>机型</label>
+                <select class="form-control" id="printerModel">
+                    <option value="">请选择机型</option>
+                    <option value="Bambu P1S">Bambu P1S</option>
+                    <option value="Bambu P1P">Bambu P1P</option>
+                    <option value="Bambu X1C">Bambu X1C</option>
+                    <option value="Bambu X1E">Bambu X1E</option>
+                    <option value="Bambu A1">Bambu A1</option>
+                    <option value="Bambu A1 Mini">Bambu A1 Mini</option>
+                    <option value="Voron 2.4">Voron 2.4</option>
+                    <option value="Voron 0.2">Voron 0.2</option>
+                    <option value="Prusa MK4">Prusa MK4</option>
+                    <option value="Creality K1">Creality K1</option>
+                    <option value="自定义">自定义</option>
+                </select>
+            </div>
+            <div class="form-group" id="customModelGroup" style="display:none;">
+                <label>自定义机型</label>
+                <input type="text" class="form-control" id="customModel" placeholder="输入机型名称">
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1.2rem;">
+                <button class="btn btn-primary" id="savePrinterBtn" style="flex:1;"><i class="fas fa-save"></i> 保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加槽位模态框 -->
+<div class="modal" id="addSlotModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">添加槽位 — <span id="slotPrinterName"></span></div>
+            <div class="close-modal">&times;</div>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>槽位名称 *</label>
+                <input type="text" class="form-control" id="slotName" placeholder="例如: AMS-A1, 侧边挂架">
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1.2rem;">
+                <button class="btn btn-primary" id="saveSlotBtn" style="flex:1;"><i class="fas fa-save"></i> 保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 选择耗材上机模态框 -->
+<div class="modal" id="bindFilamentModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">选择耗材上机 — <span id="bindSlotName"></span></div>
+            <div class="close-modal">&times;</div>
+        </div>
+        <div class="modal-body">
+            <div class="search-box" style="margin-bottom:1rem;">
+                <i class="fas fa-search"></i>
+                <input type="text" id="bindSearchInput" placeholder="搜索可用的耗材...">
+            </div>
+            <div class="bind-filament-list" id="bindFilamentList">
+                <div class="empty-state"><i class="fas fa-cube"></i><p>暂无可用的耗材</p></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="/static/js/printers.js"></script>
+{% endblock %}

@@ -1,0 +1,268 @@
+// Device Management JS — printers, slots, bind/unbind
+let currentPrinterIdForSlot = null;
+let currentSlotIdForBind = null;
+let allAvailableFilaments = [];
+
+document.addEventListener('DOMContentLoaded', function () {
+    loadPrinters();
+
+    document.getElementById('addPrinterBtn').addEventListener('click', openAddPrinter);
+    document.getElementById('savePrinterBtn').addEventListener('click', savePrinter);
+    document.getElementById('saveSlotBtn').addEventListener('click', saveSlot);
+    document.getElementById('printerModel').addEventListener('change', function () {
+        document.getElementById('customModelGroup').style.display = this.value === '自定义' ? 'block' : 'none';
+    });
+
+    // Bind filament search
+    const searchInput = document.getElementById('bindSearchInput');
+    if (searchInput) searchInput.addEventListener('input', filterBindList);
+
+    // Close all modals
+    document.querySelectorAll('.close-modal').forEach(b => b.addEventListener('click', closeAllModals));
+});
+
+// ─── Load Printers ───
+
+function loadPrinters() {
+    fetch('/api/printers')
+        .then(r => r.json())
+        .then(data => {
+            const grid = document.getElementById('printerGrid');
+            const empty = document.getElementById('noPrinters');
+            if (!data || data.length === 0) {
+                grid.querySelectorAll('.printer-card').forEach(c => c.remove());
+                if (empty) empty.style.display = 'block';
+                return;
+            }
+            if (empty) empty.style.display = 'none';
+            // Preserve existing cards by rebuilding
+            grid.querySelectorAll('.printer-card').forEach(c => c.remove());
+            data.forEach(printer => renderPrinterCard(grid, printer));
+        })
+        .catch(err => console.error('加载打印机失败:', err));
+}
+
+function renderPrinterCard(grid, printer) {
+    const card = document.createElement('div');
+    card.className = 'printer-card';
+    card.dataset.printerId = printer.id;
+
+    let slotsHtml = '';
+    (printer.slots || []).forEach(slot => {
+        if (slot.filament) {
+            const f = slot.filament;
+            const pct = f.initial_weight > 0 ? Math.round((f.current_weight / f.initial_weight) * 100) : 0;
+            slotsHtml += `
+                <div class="slot-card slot-occupied" data-slot-id="${slot.id}" style="border-left: 4px solid ${f.color};">
+                    <div class="slot-filament-color" style="background:${f.color};"></div>
+                    <div class="slot-filament-info">
+                        <div class="slot-filament-name">${f.manufacturer || ''} ${f.material_type || ''}</div>
+                        <div class="slot-filament-weight">
+                            <span>${f.current_weight.toFixed(2)}g / ${f.initial_weight.toFixed(2)}g</span>
+                            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-withdraw unbind-btn" data-slot-id="${slot.id}" title="下机解绑">
+                        <i class="fas fa-eject"></i>
+                    </button>
+                </div>`;
+        } else {
+            slotsHtml += `
+                <div class="slot-card slot-empty" data-slot-id="${slot.id}">
+                    <div class="slot-placeholder">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>${slot.slot_name}</span>
+                    </div>
+                </div>`;
+        }
+    });
+
+    card.innerHTML = `
+        <div class="printer-card-header">
+            <div class="printer-info">
+                <i class="fas fa-print"></i>
+                <div>
+                    <div class="printer-name">${printer.name}</div>
+                    <div class="printer-model">${printer.model || '-'}</div>
+                </div>
+            </div>
+            <div class="printer-actions">
+                <button class="btn btn-outline add-slot-btn" data-printer-id="${printer.id}" data-printer-name="${printer.name}">
+                    <i class="fas fa-plus"></i> 槽位
+                </button>
+                <button class="btn btn-danger del-printer-btn" data-printer-id="${printer.id}" data-printer-name="${printer.name}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        <div class="slots-grid">${slotsHtml || '<div class="slot-hint">暂无槽位，点击「槽位」按钮添加</div>'}</div>`;
+
+    grid.appendChild(card);
+
+    // Bind events within this card
+    card.querySelector('.add-slot-btn').addEventListener('click', function () {
+        openAddSlot(this.dataset.printerId, this.dataset.printerName);
+    });
+    card.querySelector('.del-printer-btn').addEventListener('click', function () {
+        deletePrinter(this.dataset.printerId, this.dataset.printerName);
+    });
+    card.querySelectorAll('.slot-empty').forEach(el => {
+        el.addEventListener('click', function () {
+            openBindFilament(this.dataset.slotId);
+        });
+    });
+    card.querySelectorAll('.unbind-btn').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            unbindFilament(this.dataset.slotId);
+        });
+    });
+}
+
+// ─── Printer CRUD ───
+
+function openAddPrinter() {
+    document.getElementById('printerName').value = '';
+    document.getElementById('printerModel').value = '';
+    document.getElementById('customModel').value = '';
+    document.getElementById('customModelGroup').style.display = 'none';
+    document.getElementById('addPrinterModal').style.display = 'flex';
+}
+
+function savePrinter() {
+    const name = document.getElementById('printerName').value.trim();
+    if (!name) { alert('请输入打印机名称'); return; }
+    let model = document.getElementById('printerModel').value;
+    if (model === '自定义') model = document.getElementById('customModel').value.trim();
+    fetch('/api/printers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, model })
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') { closeAllModals(); loadPrinters(); }
+            else alert(d.error || '添加失败');
+        })
+        .catch(err => alert('添加失败: ' + err.message));
+}
+
+function deletePrinter(id, name) {
+    if (!confirm(`确定要删除打印机「${name}」及其所有槽位吗？绑定的耗材将自动下机。`)) return;
+    fetch('/api/printers/' + id, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') loadPrinters();
+            else alert(d.error || '删除失败');
+        })
+        .catch(err => alert('删除失败: ' + err.message));
+}
+
+// ─── Slot CRUD ───
+
+function openAddSlot(printerId, printerName) {
+    currentPrinterIdForSlot = printerId;
+    document.getElementById('slotPrinterName').textContent = printerName;
+    document.getElementById('slotName').value = '';
+    document.getElementById('addSlotModal').style.display = 'flex';
+}
+
+function saveSlot() {
+    const slotName = document.getElementById('slotName').value.trim();
+    if (!slotName) { alert('请输入槽位名称'); return; }
+    fetch(`/api/printers/${currentPrinterIdForSlot}/slots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slot_name: slotName })
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') { closeAllModals(); loadPrinters(); }
+            else alert(d.error || '添加失败');
+        })
+        .catch(err => alert('添加失败: ' + err.message));
+}
+
+// ─── Bind / Unbind ───
+
+function openBindFilament(slotId) {
+    currentSlotIdForBind = slotId;
+    // Get slot name from the DOM
+    const slotEl = document.querySelector(`[data-slot-id="${slotId}"]`);
+    const slotName = slotEl ? slotEl.querySelector('.slot-placeholder span').textContent : '';
+    document.getElementById('bindSlotName').textContent = slotName;
+    document.getElementById('bindSearchInput').value = '';
+
+    fetch('/api/filaments')
+        .then(r => r.json())
+        .then(data => {
+            allAvailableFilaments = data.filter(f => f.status === '全新' || f.status === '闲置');
+            renderBindList(allAvailableFilaments);
+        })
+        .catch(err => console.error('加载耗材列表失败:', err));
+
+    document.getElementById('bindFilamentModal').style.display = 'flex';
+}
+
+function renderBindList(filaments) {
+    const container = document.getElementById('bindFilamentList');
+    container.innerHTML = '';
+    if (!filaments || filaments.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-cube"></i><p>暂无可用的耗材（需要「全新」或「闲置」状态）</p></div>';
+        return;
+    }
+    filaments.forEach(f => {
+        const item = document.createElement('div');
+        item.className = 'bind-filament-item';
+        item.innerHTML = `
+            <span class="color-indicator" style="background-color:${f.color};"></span>
+            <div class="bind-filament-detail">
+                <strong>${f.manufacturer || '未知'} ${f.material_type}</strong>
+                <small>${f.name} · ${f.current_weight.toFixed(2)}g · ${f.status}</small>
+            </div>`;
+        item.addEventListener('click', () => bindFilament(currentSlotIdForBind, f.id));
+        container.appendChild(item);
+    });
+}
+
+function filterBindList() {
+    const term = document.getElementById('bindSearchInput').value.toLowerCase();
+    const filtered = allAvailableFilaments.filter(f =>
+        f.name.toLowerCase().includes(term) ||
+        f.material_type.toLowerCase().includes(term) ||
+        (f.manufacturer && f.manufacturer.toLowerCase().includes(term))
+    );
+    renderBindList(filtered);
+}
+
+function bindFilament(slotId, filamentId) {
+    fetch(`/api/slots/${slotId}/bind`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filament_id: filamentId })
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') { closeAllModals(); loadPrinters(); }
+            else alert(d.error || '绑定失败');
+        })
+        .catch(err => alert('绑定失败: ' + err.message));
+}
+
+function unbindFilament(slotId) {
+    if (!confirm('确定要对该槽位执行下机解绑吗？')) return;
+    fetch(`/api/slots/${slotId}/unbind`, { method: 'PUT' })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') loadPrinters();
+            else alert(d.error || '解绑失败');
+        })
+        .catch(err => alert('解绑失败: ' + err.message));
+}
+
+function closeAllModals() {
+    ['addPrinterModal', 'addSlotModal', 'bindFilamentModal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+}

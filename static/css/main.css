@@ -926,6 +926,161 @@ select.form-control option { background: #fff; color: #333; }
 
 input, select, textarea { font-size: 16px; }
 
+/* ─── Printer Cards ─── */
+
+.printer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 1.2rem;
+}
+
+.printer-card {
+    background: var(--ha-card-bg);
+    backdrop-filter: blur(var(--ha-card-blur));
+    -webkit-backdrop-filter: blur(var(--ha-card-blur));
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 1.2rem;
+    box-shadow: var(--card-shadow);
+}
+
+.printer-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.printer-info {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.printer-info i { font-size: 1.5rem; color: var(--primary); }
+
+.printer-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--ha-card-color);
+}
+
+.printer-model {
+    font-size: 0.85rem;
+    color: var(--ha-card-color);
+    opacity: 0.6;
+}
+
+.printer-actions { display: flex; gap: 0.4rem; }
+.printer-actions .btn { padding: 0.4rem 0.7rem; font-size: 0.8rem; height: 30px; }
+
+/* ─── Slot Cards ─── */
+
+.slots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.8rem;
+}
+
+.slot-card {
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.slot-card:hover { transform: translateY(-2px); }
+
+.slot-empty {
+    border: 2px dashed rgba(0, 0, 0, 0.15);
+    background: rgba(0, 0, 0, 0.02);
+    cursor: pointer;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slot-empty:hover {
+    background: rgba(91, 155, 213, 0.08);
+    border-color: var(--primary);
+}
+
+.slot-placeholder {
+    text-align: center;
+    color: var(--ha-card-color);
+    opacity: 0.5;
+}
+
+.slot-placeholder i { font-size: 1.5rem; margin-bottom: 0.3rem; display: block; }
+.slot-placeholder span { font-size: 0.8rem; }
+
+.slot-occupied {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.slot-filament-color {
+    width: 100%;
+    height: 6px;
+}
+
+.slot-filament-info { padding: 0.6rem 0.8rem; }
+
+.slot-filament-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ha-card-color);
+    margin-bottom: 0.4rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.slot-filament-weight { font-size: 0.8rem; }
+
+.slot-filament-weight span { color: var(--ha-card-color); font-weight: 600; }
+
+.slot-occupied .unbind-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+}
+
+.slot-hint {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 1rem;
+    color: var(--ha-card-color);
+    opacity: 0.4;
+    font-size: 0.85rem;
+}
+
+/* ─── Bind Filament List ─── */
+
+.bind-filament-list { max-height: 400px; overflow-y: auto; }
+
+.bind-filament-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: 1px solid transparent;
+    margin-bottom: 4px;
+}
+
+.bind-filament-item:hover {
+    background: rgba(91, 155, 213, 0.08);
+    border-color: rgba(91, 155, 213, 0.2);
+}
+
+.bind-filament-detail { flex: 1; }
+.bind-filament-detail strong { display: block; color: var(--ha-card-color); font-size: 0.9rem; }
+.bind-filament-detail small { color: var(--ha-card-color); opacity: 0.5; font-size: 0.8rem; }
+
 /* ─── Mobile Visibility ─── */
 .mobile-hidden { display: table-cell; }
 .mobile-only { display: none; }

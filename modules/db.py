@@ -110,7 +110,39 @@ def init_db(data_dir: str):
                 key TEXT UNIQUE NOT NULL,
                 value TEXT DEFAULT ''
             );
+
+            CREATE TABLE IF NOT EXISTS printers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                model TEXT DEFAULT '',
+                created_at TEXT DEFAULT (datetime('now', 'localtime'))
+            );
+
+            CREATE TABLE IF NOT EXISTS printer_slots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                printer_id INTEGER NOT NULL,
+                slot_name TEXT NOT NULL,
+                current_filament_id INTEGER UNIQUE,
+                FOREIGN KEY (printer_id) REFERENCES printers(id) ON DELETE CASCADE,
+                FOREIGN KEY (current_filament_id) REFERENCES filaments(id) ON DELETE SET NULL
+            );
         """)
+
+        # --- Schema migration: add status column to filaments (v0.2.4.0) ---
+        col_check = conn.execute("PRAGMA table_info(filaments)").fetchall()
+        col_names = [c[1] for c in col_check]
+        if "status" not in col_names:
+            conn.execute("ALTER TABLE filaments ADD COLUMN status TEXT NOT NULL DEFAULT '全新'")
+            # One-shot migration: map old is_opened to new 4-state model
+            # Order matters: 用尽 first (catches weight=0 regardless of is_opened)
+            conn.execute("""
+                UPDATE filaments SET status = CASE
+                    WHEN current_weight = 0 THEN '用尽'
+                    WHEN is_opened = 1 THEN '闲置'
+                    ELSE '全新'
+                END
+            """)
+            logger.info("Migrated filaments to v0.2.4.0 4-state status model.")
 
         # Seed settings singleton
         cur = conn.execute("SELECT COUNT(*) FROM settings")
