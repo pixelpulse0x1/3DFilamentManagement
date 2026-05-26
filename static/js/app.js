@@ -327,9 +327,15 @@ function renderFilamentTable(filaments) {
     selectedFilaments.clear();
     const selAll = document.getElementById('selectAll'); if (selAll) selAll.checked = false;
     const sorted = sortFilaments(filaments);
-    if (sorted.length === 0) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">没有找到耗材记录</td></tr>'; return; }
+    if (sorted.length === 0) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;">没有找到耗材记录</td></tr>'; return; }
     sorted.forEach(f => {
         const pct = f.initial_weight > 0 ? (f.current_weight / f.initial_weight) * 100 : 0;
+        const imageCell = f.image_id && f.image_file
+            ? `<img src="/uploads/filaments/${f.image_file}" class="filament-thumb" onclick="openLightbox('/uploads/filaments/${f.image_file}')" title="点击放大" />`
+            : '<div class="no-image-placeholder"><i class="fas fa-image"></i></div>';
+        const remarkText = f.remark
+            ? `<span class="remark-text" title="${f.remark.replace(/"/g, '&quot;')}">${f.remark.length > 8 ? f.remark.substring(0, 8) + '...' : f.remark}</span>`
+            : '-';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><input type="checkbox" class="filament-checkbox" data-id="${f.id}"></td>
@@ -339,6 +345,7 @@ function renderFilamentTable(filaments) {
             </td>
             <td class="material-cell">${f.material_type}</td>
             <td><span class="color-indicator" style="background-color:${f.color};"></span></td>
+            <td class="image-cell">${imageCell}</td>
             <td class="manufacturer-cell">${f.manufacturer || '-'}</td>
             <td class="weight-cell">
                 <div class="mobile-hidden"><div>${f.current_weight.toFixed(2)}g / ${f.initial_weight.toFixed(2)}g</div>
@@ -346,6 +353,7 @@ function renderFilamentTable(filaments) {
                 <span class="mobile-only">${f.current_weight.toFixed(2)}g</span>
             </td>
             <td class="hide-on-mobile">${f.location || '-'}</td>
+            <td>${remarkText}</td>
             <td><span class="status-badge ${getStatusClass(f)}">${getStatusText(f)}</span></td>
             <td>
                 <div class="action-buttons-container">
@@ -658,6 +666,8 @@ function openAddModal() {
     document.getElementById('purchaseChannel').value = '';
     document.getElementById('openedAtGroup').style.display = 'none';
     document.getElementById('openedAt').value = '';
+    document.getElementById('filamentRemark').value = '';
+    clearFilamentImage();
     document.getElementById('addModal').style.display = 'flex';
 }
 
@@ -696,6 +706,14 @@ function openEditModal(filamentId) {
     document.getElementById('purchaseChannel').value = f.purchase_channel || '';
     if (f.opened_at) document.getElementById('openedAt').value = f.opened_at;
     document.getElementById('openedAtGroup').style.display = (f.status && f.status !== '全新') ? 'block' : 'none';
+    document.getElementById('filamentRemark').value = f.remark || '';
+    selectedFilamentImageId = f.image_id || null;
+    if (f.image_id && f.image_file) {
+        document.getElementById('selectedFilamentImage').src = '/uploads/filaments/' + f.image_file;
+        document.getElementById('selectedImagePreview').style.display = 'flex';
+    } else {
+        document.getElementById('selectedImagePreview').style.display = 'none';
+    }
     document.getElementById('addModal').style.display = 'flex';
 }
 
@@ -736,7 +754,7 @@ function openDetailModal(filamentId) {
 }
 
 function closeAllModals() {
-    ['addModal','batchAddModal','useModal','detailModal'].forEach(id => {
+    ['addModal','batchAddModal','useModal','detailModal','imagePickerModal'].forEach(id => {
         const el = document.getElementById(id); if (el) el.style.display = 'none';
     });
 }
@@ -758,7 +776,9 @@ function saveFilament() {
         purchase_date: document.getElementById('purchaseDate').value || null,
         purchase_price: parseFloat(document.getElementById('purchasePrice').value) || null,
         purchase_channel: document.getElementById('purchaseChannel').value || null,
-        opened_at: null
+        opened_at: null,
+        image_id: selectedFilamentImageId || null,
+        remark: document.getElementById('filamentRemark').value.trim() || null,
     };
     if (document.getElementById('openedAt').value) data.opened_at = document.getElementById('openedAt').value;
     const url = currentEditId ? '/api/filaments/'+currentEditId : '/api/filaments';
@@ -826,5 +846,67 @@ function batchDelete() {
 
 function deleteFilament(id) {
     fetch('/api/filaments/'+id, { method:'DELETE' }).then(r=>r.json()).then(d=>{if(d.status==='success')loadData();});
+}
+
+// ─── Lightbox ───
+
+function openLightbox(url) {
+    document.getElementById('lightboxImage').src = url;
+    document.getElementById('lightboxOverlay').style.display = 'flex';
+}
+
+function closeLightbox() {
+    document.getElementById('lightboxOverlay').style.display = 'none';
+    document.getElementById('lightboxImage').src = '';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLightbox();
+});
+
+// ─── Image Picker ───
+
+let selectedFilamentImageId = null;
+
+function openImagePicker() {
+    fetch('/api/images')
+        .then(r => r.json())
+        .then(images => {
+            const grid = document.getElementById('imagePickerGrid');
+            grid.innerHTML = `<div class="image-picker-item" data-image-id="" onclick="selectFilamentImage(null)">
+                <div class="picker-no-image"><i class="fas fa-times"></i></div>
+                <small>无实物图</small>
+            </div>`;
+            images.forEach(img => {
+                const item = document.createElement('div');
+                item.className = 'image-picker-item' + (img.id === selectedFilamentImageId ? ' selected' : '');
+                item.dataset.imageId = img.id;
+                item.innerHTML = `
+                    <img src="/uploads/filaments/${img.file_name}" alt="${img.name}" />
+                    <small>${img.name}</small>`;
+                item.addEventListener('click', function () { selectFilamentImage(img.id, img.file_name); });
+                grid.appendChild(item);
+            });
+            document.getElementById('imagePickerModal').style.display = 'flex';
+        })
+        .catch(err => console.error('加载实物图列表失败:', err));
+}
+
+function selectFilamentImage(imageId, file_name) {
+    selectedFilamentImageId = imageId;
+    document.getElementById('imagePickerModal').style.display = 'none';
+    const preview = document.getElementById('selectedImagePreview');
+    const img = document.getElementById('selectedFilamentImage');
+    if (imageId && file_name) {
+        img.src = '/uploads/filaments/' + file_name;
+        preview.style.display = 'flex';
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+function clearFilamentImage() {
+    selectedFilamentImageId = null;
+    document.getElementById('selectedImagePreview').style.display = 'none';
 }
 

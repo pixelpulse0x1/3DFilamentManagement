@@ -14,7 +14,8 @@ def _data_dir():
 
 
 def _filament_to_dict(row):
-    return {
+    keys = row.keys()
+    result = {
         "id": row["id"],
         "name": row["name"],
         "manufacturer": row["manufacturer"],
@@ -22,7 +23,7 @@ def _filament_to_dict(row):
         "color": row["color"],
         "location": row["location"],
         "is_opened": bool(row["is_opened"]),
-        "status": row["status"] if "status" in row.keys() else ("闲置" if row["is_opened"] else "全新"),
+        "status": row["status"] if "status" in keys else ("闲置" if row["is_opened"] else "全新"),
         "initial_weight": row["initial_weight"],
         "current_weight": row["current_weight"],
         "is_favorite": bool(row["is_favorite"]),
@@ -32,6 +33,11 @@ def _filament_to_dict(row):
         "purchase_channel": row["purchase_channel"],
         "opened_at": row["opened_at"],
     }
+    if "image_id" in keys:
+        result["image_id"] = row["image_id"]
+    if "remark" in keys:
+        result["remark"] = row["remark"]
+    return result
 
 
 # ─── Filament CRUD ───
@@ -42,8 +48,18 @@ def api_filaments():
     try:
         with get_db(data_dir) as conn:
             if request.method == "GET":
-                rows = conn.execute("SELECT * FROM filaments ORDER BY id DESC").fetchall()
-                return jsonify([_filament_to_dict(r) for r in rows])
+                rows = conn.execute("""
+                    SELECT f.*, fi.file_name AS image_file
+                    FROM filaments f
+                    LEFT JOIN filament_images fi ON f.image_id = fi.id
+                    ORDER BY f.id DESC
+                """).fetchall()
+                result = []
+                for r in rows:
+                    d = _filament_to_dict(r)
+                    d["image_file"] = r["image_file"] if "image_file" in r.keys() else None
+                    result.append(d)
+                return jsonify(result)
             else:
                 data = request.get_json()
                 # Determine initial status from legacy is_opened or new status field
@@ -54,8 +70,8 @@ def api_filaments():
                     """INSERT INTO filaments
                        (name, manufacturer, material_type, color, location, is_opened,
                         initial_weight, current_weight, is_favorite, purchase_date,
-                        purchase_price, purchase_channel, opened_at, status)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        purchase_price, purchase_channel, opened_at, status, image_id, remark)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         data["name"], data.get("manufacturer", ""),
                         data["material_type"], data["color"],
@@ -67,6 +83,8 @@ def api_filaments():
                         data.get("purchase_date"), data.get("purchase_price"),
                         data.get("purchase_channel"), data.get("opened_at"),
                         status,
+                        data.get("image_id"),
+                        data.get("remark"),
                     ),
                 )
                 conn.commit()
@@ -87,7 +105,7 @@ def api_filament_single(filament_id):
                     "name", "manufacturer", "material_type", "color", "location",
                     "is_opened", "initial_weight", "current_weight", "is_favorite",
                     "purchase_date", "purchase_price", "purchase_channel", "opened_at",
-                    "status",
+                    "status", "image_id", "remark",
                 ]
                 updates = {k: v for k, v in data.items() if k in allowed}
                 if "is_opened" in updates:

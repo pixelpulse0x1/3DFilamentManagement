@@ -9,12 +9,14 @@ from modules.filaments import filaments_bp
 from modules.materials import materials_bp
 from modules.manufacturers import manufacturers_bp
 from modules.printers import printers_bp
+from modules.images import images_bp
 
 
 def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-me-to-random-string")
     app.config["DATA_DIR"] = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "data"))
+    app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5MB max upload
 
     init_db(app.config["DATA_DIR"])
 
@@ -23,6 +25,7 @@ def create_app():
     app.register_blueprint(materials_bp, url_prefix="/api/materials")
     app.register_blueprint(manufacturers_bp, url_prefix="/api/manufacturers")
     app.register_blueprint(printers_bp)
+    app.register_blueprint(images_bp)
 
     @app.errorhandler(404)
     def not_found(error):

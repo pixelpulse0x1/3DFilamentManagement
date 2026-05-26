@@ -78,6 +78,24 @@
                 <input type="date" class="form-control" id="openedAt">
             </div>
             <div class="form-group">
+                <label>实物图</label>
+                <div class="image-selector" id="imageSelector">
+                    <div class="selected-image-preview" id="selectedImagePreview" style="display:none;">
+                        <img id="selectedFilamentImage" src="" alt="" style="width:48px;height:48px;border-radius:6px;object-fit:cover;">
+                        <button type="button" class="btn btn-cancel" onclick="clearFilamentImage()" style="padding:0.3rem 0.6rem;font-size:0.8rem;height:auto;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-outline" id="pickImageBtn" onclick="openImagePicker()">
+                        <i class="fas fa-images"></i> 选择实物图
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                <input type="text" class="form-control" id="filamentRemark" placeholder="输入自定义备注信息">
+            </div>
+            <div class="form-group">
                 <label><input type="checkbox" id="isFavorite"> 标记为常用耗材</label>
             </div>
             <div style="display:flex;gap:1rem;margin-top:1.2rem;">
@@ -206,6 +224,30 @@
                 <div class="detail-item"><div class="detail-label">存储位置</div><div class="detail-value" id="detailLocation">-</div></div>
                 <div class="detail-item"><div class="detail-label">使用进度</div><div class="detail-value"><div id="detailProgressText">-</div><div class="detail-progress"><div class="detail-progress-fill" id="detailProgressBar" style="width:0%"></div></div></div></div>
                 <div class="detail-item"><div class="detail-label">状态</div><div class="detail-value"><span class="detail-status status-in-use" id="detailStatus">-</span></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox 图片放大 -->
+<div class="lightbox-overlay" id="lightboxOverlay" onclick="closeLightbox()">
+    <span class="lightbox-close">&times;</span>
+    <img id="lightboxImage" src="" alt="实物图预览" />
+</div>
+
+<!-- 实物图选择器模态框 -->
+<div class="modal" id="imagePickerModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">选择实物图</div>
+            <div class="close-modal">&times;</div>
+        </div>
+        <div class="modal-body">
+            <div class="image-picker-grid" id="imagePickerGrid">
+                <div class="image-picker-item" data-image-id="" onclick="selectFilamentImage(null)">
+                    <div class="picker-no-image"><i class="fas fa-times"></i></div>
+                    <small>无实物图</small>
+                </div>
             </div>
         </div>
     </div>

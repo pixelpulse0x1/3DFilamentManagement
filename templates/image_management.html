@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}实物图管理 — 3D耗材库存管理系统{% endblock %}
+
+{% block content %}
+<header class="content-header">
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">实物图管理</h2>
+    <button class="btn btn-primary" id="addImageBtn">
+        <i class="fas fa-upload"></i> 上传实物图
+    </button>
+</header>
+
+<div class="content-body">
+    <div class="image-grid" id="imageGrid">
+        <div class="empty-state" id="noImages">
+            <i class="fas fa-images"></i>
+            <p>暂无实物图，点击上方按钮上传</p>
+        </div>
+    </div>
+</div>
+
+<!-- 上传/编辑实物图模态框 -->
+<div class="modal" id="imageModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title" id="imageModalTitle">上传实物图</div>
+            <div class="close-modal">&times;</div>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>图片名称 *</label>
+                <input type="text" class="form-control" id="imageName" placeholder="例如: 拓竹大理石PLA实物图">
+            </div>
+            <div class="form-group">
+                <label>选择图片 (jpg/jpeg/png/webp, 最大5MB)</label>
+                <input type="file" id="imageFile" accept=".jpg,.jpeg,.png,.webp">
+                <div class="image-preview" id="imagePreview" style="display:none;margin-top:0.8rem;">
+                    <img id="previewImg" src="" alt="预览" style="max-width:200px;max-height:150px;border-radius:8px;">
+                </div>
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1.2rem;">
+                <button class="btn btn-primary" id="saveImageBtn" style="flex:1;"><i class="fas fa-save"></i> 保存</button>
+            </div>
+            <div id="imageMsg" style="margin-top:0.8rem;display:none;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 高风险二次确认模态框 -->
+<div class="modal" id="confirmRiskModal">
+    <div class="modal-content" style="border: 2px solid var(--warning);">
+        <div class="modal-header" style="background: rgba(247,37,133,0.08);">
+            <div class="modal-title" style="color: var(--warning);">
+                <i class="fas fa-triangle-exclamation"></i> 高风险操作确认
+            </div>
+            <div class="close-modal">&times;</div>
+        </div>
+        <div class="modal-body">
+            <div id="confirmRiskMessage" style="padding:1rem;background:rgba(247,37,133,0.06);border-radius:8px;margin-bottom:1rem;color:var(--ha-card-color);"></div>
+            <p style="color:var(--warning);font-size:0.85rem;">
+                <i class="fas fa-exclamation-circle"></i>
+                此操作不可撤销，请确认无误后再继续。
+            </p>
+            <div style="display:flex;gap:1rem;margin-top:1.2rem;">
+                <button class="btn btn-cancel" id="cancelRiskBtn" style="flex:1;">取消</button>
+                <button class="btn btn-danger" id="confirmRiskBtn" style="flex:1;">
+                    <i class="fas fa-check"></i> 确认无误，继续执行
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="/static/js/images.js"></script>
+{% endblock %}

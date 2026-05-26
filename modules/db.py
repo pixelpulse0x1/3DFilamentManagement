@@ -126,9 +126,16 @@ def init_db(data_dir: str):
                 FOREIGN KEY (printer_id) REFERENCES printers(id) ON DELETE CASCADE,
                 FOREIGN KEY (current_filament_id) REFERENCES filaments(id) ON DELETE SET NULL
             );
+
+            CREATE TABLE IF NOT EXISTS filament_images (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                file_name TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now', 'localtime'))
+            );
         """)
 
-        # --- Schema migration: add status column to filaments (v0.2.4.0) ---
+        # --- Schema migration: v0.2.4.0 status column ---
         col_check = conn.execute("PRAGMA table_info(filaments)").fetchall()
         col_names = [c[1] for c in col_check]
         if "status" not in col_names:
@@ -143,6 +150,12 @@ def init_db(data_dir: str):
                 END
             """)
             logger.info("Migrated filaments to v0.2.4.0 4-state status model.")
+
+        # --- Schema migration: v0.3.0.0 image_id + remark columns ---
+        if "image_id" not in col_names:
+            conn.execute("ALTER TABLE filaments ADD COLUMN image_id INTEGER REFERENCES filament_images(id) ON DELETE SET NULL")
+            conn.execute("ALTER TABLE filaments ADD COLUMN remark TEXT")
+            logger.info("Migrated filaments to v0.3.0.0: image_id + remark columns.")
 
         # Seed settings singleton
         cur = conn.execute("SELECT COUNT(*) FROM settings")

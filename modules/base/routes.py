@@ -104,14 +104,16 @@ def dashboard_stats():
 def materials_page():
     return render_template("materials.html",
                            active_background=_bg_for_template(),
-                           active_nav="materials")
+                           active_nav="manage",
+                           active_sub="materials")
 
 
 @base_bp.route("/manufacturers")
 def manufacturers_page():
     return render_template("manufacturers.html",
                            active_background=_bg_for_template(),
-                           active_nav="manufacturers")
+                           active_nav="manage",
+                           active_sub="manufacturers")
 
 
 @base_bp.route("/settings/general")
@@ -143,6 +145,17 @@ def devices_page():
     return render_template("device_management.html",
                            active_background=_bg_for_template(),
                            active_nav="devices")
+
+
+@base_bp.route("/images")
+def images_page():
+    return render_template("image_management.html",
+                           active_background=_bg_for_template(),
+                           active_nav="manage",
+                           active_sub="images")
+
+
+# ─── Uploads File Serving ───
 
 
 # ─── Settings API ───
@@ -334,6 +347,14 @@ def serve_background(filename):
     return send_from_directory(bg_dir, filename)
 
 
+@base_bp.route("/uploads/filaments/<path:filename>")
+def serve_filament_image(filename):
+    """Serve uploaded filament images from /data/uploads/filaments/."""
+    data_dir = _data_dir()
+    img_dir = os.path.join(data_dir, "uploads", "filaments")
+    return send_from_directory(img_dir, filename)
+
+
 # ─── System Backup ───
 
 @base_bp.route("/api/settings/backup", methods=["GET"])
@@ -384,14 +405,27 @@ def api_export_excel():
         ws1.title = "耗材库存列表"
         headers_f = [
             "id", "name", "manufacturer", "material_type", "color", "location",
-            "is_opened", "initial_weight", "current_weight", "is_favorite",
+            "is_opened", "status", "initial_weight", "current_weight", "is_favorite",
             "created_at", "purchase_date", "purchase_price", "purchase_channel", "opened_at",
+            "实物图名称", "备注",
         ]
         ws1.append(headers_f)
         with get_db(data_dir) as conn:
-            rows = conn.execute("SELECT * FROM filaments ORDER BY id").fetchall()
+            rows = conn.execute("""
+                SELECT f.*, fi.name AS image_name
+                FROM filaments f
+                LEFT JOIN filament_images fi ON f.image_id = fi.id
+                ORDER BY f.id
+            """).fetchall()
             for r in rows:
-                ws1.append([r[c] for c in headers_f])
+                ws1.append([
+                    r["id"], r["name"], r["manufacturer"], r["material_type"],
+                    r["color"], r["location"], r["is_opened"], r["status"],
+                    r["initial_weight"], r["current_weight"], r["is_favorite"],
+                    r["created_at"], r["purchase_date"], r["purchase_price"],
+                    r["purchase_channel"], r["opened_at"],
+                    r["image_name"] or "", r["remark"] or "",
+                ])
 
             # Sheet 2: materials
             ws2 = wb.create_sheet("耗材类型管理")

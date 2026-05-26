@@ -26,18 +26,23 @@
             </ul>
         </li>
 
-        <!-- 类型管理 - Standalone -->
-        <li>
-            <a href="/materials" class="{{ 'active' if active_nav == 'materials' }}">
-                <i class="fa-solid fa-layer-group"></i> 类型管理
+        <!-- 管理 - Accordion -->
+        <li class="nav-group" data-group="manage">
+            <a class="nav-parent {{ 'active' if active_nav == 'manage' }}" data-target="manage">
+                <i class="fa-solid fa-folder-tree"></i> 管理
+                <i class="fa-solid fa-chevron-down accordion-arrow"></i>
             </a>
-        </li>
-
-        <!-- 品牌管理 - Standalone -->
-        <li>
-            <a href="/manufacturers" class="{{ 'active' if active_nav == 'manufacturers' }}">
-                <i class="fa-solid fa-tag"></i> 品牌管理
-            </a>
+            <ul class="nav-children {{ 'open' if active_nav == 'manage' }}" id="manageChildren">
+                <li><a href="/materials" class="{{ 'active' if active_sub == 'materials' }}">
+                    <i class="fa-solid fa-layer-group"></i> 类型
+                </a></li>
+                <li><a href="/manufacturers" class="{{ 'active' if active_sub == 'manufacturers' }}">
+                    <i class="fa-solid fa-tag"></i> 品牌
+                </a></li>
+                <li><a href="/images" class="{{ 'active' if active_sub == 'images' }}">
+                    <i class="fa-solid fa-images"></i> 实物图
+                </a></li>
+            </ul>
         </li>
 
         <!-- 设备管理 - Standalone -->
@@ -67,7 +72,7 @@
         </li>
     </ul>
     <div class="sidebar-footer">
-        <span>v0.2.4.0</span>
+        <span>v0.3.0.0</span>
     </div>
 </aside>
 
