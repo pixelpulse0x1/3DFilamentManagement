@@ -267,6 +267,43 @@ def api_slot_unbind(slot_id):
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+# ─── Quick Own (from model) ───
+
+@printers_bp.route("/api/printers/from-model", methods=["POST"])
+def api_printer_from_model():
+    """Create a printer instance from a model_id with auto-naming."""
+    data_dir = _data_dir()
+    try:
+        data = request.get_json() or {}
+        model_id = data.get("model_id")
+        if not model_id:
+            return jsonify({"status": "error", "error": "缺少型号ID"}), 400
+
+        with get_db(data_dir) as conn:
+            model = conn.execute(
+                "SELECT * FROM printer_models WHERE id = ?", (model_id,)
+            ).fetchone()
+            if not model:
+                return jsonify({"status": "error", "error": "型号不存在"}), 404
+
+            # Auto-name: count existing printers with same model_name prefix
+            cnt = conn.execute(
+                "SELECT COUNT(*) FROM printers WHERE name LIKE ?",
+                (model["model_name"] + "-%",),
+            ).fetchone()[0]
+            auto_name = f"{model['model_name']}-{cnt + 1:02d}"
+
+            cursor = conn.execute(
+                "INSERT INTO printers (name, model, model_id) VALUES (?, ?, ?)",
+                (auto_name, model["model_name"], model_id),
+            )
+            conn.commit()
+            return jsonify({"status": "success", "id": cursor.lastrowid, "name": auto_name})
+    except Exception as e:
+        logger.error("Printer from-model error: %s", e)
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
 # ─── Printer Models CRUD ───
 
 @printers_bp.route("/api/printer_models", methods=["GET", "POST", "PUT"])
@@ -281,6 +318,9 @@ def api_printer_models():
                 return jsonify([{
                     "id": r["id"], "brand": r["brand"], "model_name": r["model_name"],
                     "technology": r["technology"], "bed_size": r["bed_size"],
+                    "power_w": r["power_w"] if "power_w" in r.keys() else 200,
+                    "value_yuan": r["value_yuan"] if "value_yuan" in r.keys() else 0.0,
+                    "lifespan_h": r["lifespan_h"] if "lifespan_h" in r.keys() else 20000,
                     "remark": r["remark"],
                 } for r in rows])
             elif request.method == "POST":
@@ -302,10 +342,11 @@ def api_printer_models():
                 if not mid:
                     return jsonify({"status": "error", "error": "缺少型号ID"}), 400
                 conn.execute(
-                    """UPDATE printer_models SET brand=?, model_name=?, technology=?, bed_size=?, remark=?
-                       WHERE id=?""",
+                    """UPDATE printer_models SET brand=?, model_name=?, technology=?, bed_size=?,
+                       power_w=?, value_yuan=?, lifespan_h=?, remark=? WHERE id=?""",
                     (data.get("brand", ""), data.get("model_name", ""), data.get("technology", "FDM"),
-                     data.get("bed_size", ""), data.get("remark", ""), mid),
+                     data.get("bed_size", ""), data.get("power_w", 200), data.get("value_yuan", 0.0),
+                     data.get("lifespan_h", 20000), data.get("remark", ""), mid),
                 )
                 conn.commit()
                 return jsonify({"status": "success"})

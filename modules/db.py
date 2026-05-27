@@ -7,7 +7,7 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-LATEST_VERSION = 8
+LATEST_VERSION = 9
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
@@ -257,6 +257,9 @@ def _create_all_tables(conn):
             model_name TEXT NOT NULL UNIQUE,
             technology TEXT DEFAULT 'FDM',
             bed_size TEXT DEFAULT '',
+            power_w INTEGER DEFAULT 200,
+            value_yuan REAL DEFAULT 0.0,
+            lifespan_h INTEGER DEFAULT 20000,
             remark TEXT DEFAULT ''
         );
 
@@ -299,6 +302,8 @@ def _run_migration(from_ver, to_ver, data_dir, conn):
         _migrate_v6_to_v7(conn)
     elif from_ver == 7 and to_ver == 8:
         _migrate_v7_to_v8(conn)
+    elif from_ver == 8 and to_ver == 9:
+        _migrate_v8_to_v9(conn)
     else:
         logger.warning("Unknown migration step: %d → %d", from_ver, to_ver)
 
@@ -493,6 +498,34 @@ def _migrate_v7_to_v8(conn):
     conn.execute("INSERT OR IGNORE INTO system_configs (config_key, config_value) VALUES ('market_price_per_gram', '0.2')")
     conn.execute("INSERT OR IGNORE INTO system_configs (config_key, config_value) VALUES ('cost_per_gram', '0.01')")
     logger.info("  ✓ system_configs seeded with ROI defaults.")
+
+
+def _migrate_v8_to_v9(conn):
+    """v0.5.0.0: printer_models power/value/lifespan columns + built-in specs."""
+    m_cols = [c[1] for c in conn.execute("PRAGMA table_info(printer_models)").fetchall()]
+    if "power_w" not in m_cols:
+        conn.execute("ALTER TABLE printer_models ADD COLUMN power_w INTEGER DEFAULT 200")
+    if "value_yuan" not in m_cols:
+        conn.execute("ALTER TABLE printer_models ADD COLUMN value_yuan REAL DEFAULT 0.0")
+    if "lifespan_h" not in m_cols:
+        conn.execute("ALTER TABLE printer_models ADD COLUMN lifespan_h INTEGER DEFAULT 20000")
+
+    # Seed/update specs for Bambu Lab + Creality models
+    specs = [
+        ("Bambu Lab", "X2D", 105, 4499), ("Bambu Lab", "H2C", 200, 12999),
+        ("Bambu Lab", "H2D", 197, 11999), ("Bambu Lab", "H2S", 200, 7999),
+        ("Bambu Lab", "X1", 105, 9499), ("Bambu Lab", "P1S", 105, 3899),
+        ("Bambu Lab", "A1", 95, 2659), ("Bambu Lab", "A1 mini", 80, 2199),
+        ("Creality", "K2 Plus", 1000, 13863), ("Creality", "K2 Pro", 350, 7199),
+        ("Creality", "K2", 350, 4299), ("Creality", "K1 Max", 1000, 6499),
+        ("Creality", "K1C", 350, 3999), ("Creality", "Ender-3 V3 Plus", 350, 2999),
+    ]
+    for brand, model_name, power, value in specs:
+        conn.execute(
+            "UPDATE printer_models SET power_w=?, value_yuan=? WHERE brand=? AND model_name=?",
+            (power, value, brand, model_name),
+        )
+    logger.info("  ✓ printer_models specs updated (power/value/lifespan).")
 
 
 # ─── Phase 5: Seed Data ───
