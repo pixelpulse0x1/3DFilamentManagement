@@ -35,10 +35,7 @@
                         </a></li>
                     </ul>
                 </li>
-                <!-- ROI效能账单 - Standalone -->
-                <li><a href="/roi" class="{{ 'active' if active_sub == 'roi' }}">
-                    <i class="fa-solid fa-coins"></i> ROI效能账单
-                </a></li>
+                
             </ul>
         </li>
 
@@ -80,6 +77,20 @@
             </ul>
         </li>
 
+        
+        <!-- 工具 - Accordion -->
+        <li class="nav-group" data-group="tools">
+            <a class="nav-parent {{ 'active' if active_nav == 'tools' }}" data-target="tools">
+                <i class="fa-solid fa-screwdriver-wrench"></i> 工具
+                <i class="fa-solid fa-chevron-down accordion-arrow"></i>
+            </a>
+            <ul class="nav-children {{ 'open' if active_nav == 'tools' }}" id="toolsChildren">
+                <li><a href="/roi" class="{{ 'active' if active_sub == 'roi' }}">
+                    <i class="fa-solid fa-chart-line"></i> ROI效能账单
+                </a></li>
+            </ul>
+        </li>
+
         <!-- 系统设置 - Accordion -->
         <li class="nav-group" data-group="settings">
             <a class="nav-parent {{ 'active' if active_nav == 'settings' }}" data-target="settings">
@@ -100,7 +111,7 @@
         </li>
     </ul>
     <div class="sidebar-footer">
-        <span>v0.4.2.3</span>
+        <span>v0.4.3.0</span>
         <a href="https://github.com/pixelpulse0x1" target="_blank" rel="noopener noreferrer" class="github-link" title="GitHub">
             <i class="fab fa-github"></i>
         </a>

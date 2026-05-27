@@ -161,7 +161,7 @@ def dashboard_brands():
 def roi_page():
     return render_template("roi.html",
                            active_background=_bg_for_template(),
-                           active_nav="dashboard",
+                           active_nav="tools",
                            active_sub="roi")
 
 
@@ -443,6 +443,39 @@ def serve_filament_image(filename):
     data_dir = _data_dir()
     img_dir = os.path.join(data_dir, "uploads", "filaments")
     return send_from_directory(img_dir, filename)
+
+
+# ─── System Config ───
+
+@base_bp.route("/api/system/config", methods=["GET", "POST"])
+def api_system_config():
+    """Read/write system config key-value pairs."""
+    data_dir = _data_dir()
+    try:
+        with get_db(data_dir) as conn:
+            if request.method == "GET":
+                rows = conn.execute("SELECT config_key, config_value FROM system_configs").fetchall()
+                configs = {}
+                for r in rows:
+                    try:
+                        configs[r["config_key"]] = float(r["config_value"])
+                    except (ValueError, TypeError):
+                        configs[r["config_key"]] = r["config_value"]
+                return jsonify({"status": "success", "data": configs})
+            else:
+                data = request.get_json() or {}
+                for key, value in data.items():
+                    conn.execute(
+                        """INSERT INTO system_configs (config_key, config_value)
+                           VALUES (?, ?)
+                           ON CONFLICT(config_key) DO UPDATE SET config_value=excluded.config_value""",
+                        (key, str(value)),
+                    )
+                conn.commit()
+                return jsonify({"status": "success", "message": "配置保存成功"})
+    except Exception as e:
+        logger.error("System config error: %s", e)
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 
 # ─── System Status ───

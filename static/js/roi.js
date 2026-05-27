@@ -2,17 +2,42 @@ let monthlyROIChart = null;
 let roiUsageData = [];
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadROIData();
+    loadConfigAndData();
+    document.getElementById('marketPrice').addEventListener('change', onParamChange);
+    document.getElementById('elecDepreciation').addEventListener('change', onParamChange);
 });
 
-function loadROIData() {
-    fetch('/api/usage_records')
+function loadConfigAndData() {
+    fetch('/api/system/config')
         .then(r => r.json())
-        .then(records => {
-            roiUsageData = records;
-            calcROI();
+        .then(d => {
+            if (d.status === 'success' && d.data) {
+                document.getElementById('marketPrice').value = d.data.market_price_per_gram ?? 0.2;
+                document.getElementById('elecDepreciation').value = d.data.cost_per_gram ?? 0.01;
+            }
         })
-        .catch(err => console.error('ROI数据加载失败:', err));
+        .catch(() => {})
+        .finally(() => {
+            fetch('/api/usage_records')
+                .then(r => r.json())
+                .then(records => {
+                    roiUsageData = records;
+                    calcROI();
+                });
+        });
+}
+
+function onParamChange() {
+    const payload = {
+        market_price_per_gram: parseFloat(document.getElementById('marketPrice').value) || 0.2,
+        cost_per_gram: parseFloat(document.getElementById('elecDepreciation').value) || 0.01,
+    };
+    fetch('/api/system/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    }).catch(() => {});
+    calcROI();
 }
 
 function calcROI() {
@@ -29,12 +54,10 @@ function calcROI() {
         const unitPrice = (r.purchase_price && r.initial_weight > 0) ? r.purchase_price / r.initial_weight : 0;
         const cost = w * unitPrice + w * elecDep;
         actualCost += cost;
-
         const m = new Date(r.used_at).toISOString().slice(0, 7);
         if (!monthly[m]) monthly[m] = { weight: 0, cost: 0 };
         monthly[m].weight += w;
         monthly[m].cost += cost;
-
         const t = r.material_type || '未知';
         if (!byType[t]) byType[t] = { weight: 0, cost: 0 };
         byType[t].weight += w;
@@ -50,14 +73,12 @@ function calcROI() {
     document.getElementById('totalThroughput').textContent = totalWeight.toFixed(0) + 'g';
     document.getElementById('roiNote').textContent = '净收益: ¥' + netSaving.toFixed(2);
 
-    // Monthly ROI chart
     const months = Object.keys(monthly).sort();
-    const marketVals = months.map(m => monthly[m].weight * marketPrice);
-    const actualVals = months.map(m => monthly[m].cost);
-    const savings = months.map((m, i) => marketVals[i] - actualVals[i]);
-
     const ctx = document.getElementById('monthlyROIChart');
     if (ctx) {
+        const marketVals = months.map(m => monthly[m].weight * marketPrice);
+        const actualVals = months.map(m => monthly[m].cost);
+        const savings = months.map((m, i) => marketVals[i] - actualVals[i]);
         if (monthlyROIChart) monthlyROIChart.destroy();
         monthlyROIChart = new Chart(ctx.getContext('2d'), {
             type: 'bar',
@@ -73,7 +94,6 @@ function calcROI() {
         });
     }
 
-    // Material ROI table
     const tbody = document.getElementById('roiMaterialTable');
     if (tbody) {
         const sorted = Object.entries(byType).sort((a, b) => b[1].weight - a[1].weight);

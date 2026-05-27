@@ -1,7 +1,7 @@
 services:
   3dfilamentmanagement:
     build: .
-    image: pixelpulse01/3dfilamentmanagement:v0.4.2.3
+    image: pixelpulse01/3dfilamentmanagement:v0.4.3.0
     container_name: 3dfilamentmanagement
     restart: unless-stopped
 

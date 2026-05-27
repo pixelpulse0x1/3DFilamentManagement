@@ -7,7 +7,7 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-LATEST_VERSION = 7
+LATEST_VERSION = 8
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
@@ -259,6 +259,11 @@ def _create_all_tables(conn):
             bed_size TEXT DEFAULT '',
             remark TEXT DEFAULT ''
         );
+
+        CREATE TABLE IF NOT EXISTS system_configs (
+            config_key TEXT PRIMARY KEY,
+            config_value TEXT NOT NULL
+        );
     """)
 
 
@@ -292,6 +297,8 @@ def _run_migration(from_ver, to_ver, data_dir, conn):
         _migrate_v5_to_v6(conn)
     elif from_ver == 6 and to_ver == 7:
         _migrate_v6_to_v7(conn)
+    elif from_ver == 7 and to_ver == 8:
+        _migrate_v7_to_v8(conn)
     else:
         logger.warning("Unknown migration step: %d → %d", from_ver, to_ver)
 
@@ -479,6 +486,13 @@ def _migrate_v6_to_v7(conn):
             WHERE status = '上机'
         """)
         logger.info("  ✓ filaments.is_loaded column added, old 上机 records converted.")
+
+
+def _migrate_v7_to_v8(conn):
+    """v0.4.3.0: system_configs table with ROI pricing defaults."""
+    conn.execute("INSERT OR IGNORE INTO system_configs (config_key, config_value) VALUES ('market_price_per_gram', '0.2')")
+    conn.execute("INSERT OR IGNORE INTO system_configs (config_key, config_value) VALUES ('cost_per_gram', '0.01')")
+    logger.info("  ✓ system_configs seeded with ROI defaults.")
 
 
 # ─── Phase 5: Seed Data ───
