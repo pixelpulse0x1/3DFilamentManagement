@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}常规设置 — 3D耗材库存管理系统{% endblock %}
+{% block title %}常规设置 — 3DFilamentManagement{% endblock %}
 
 {% block content %}
 <header class="content-header">
@@ -9,11 +9,11 @@
     <div class="settings-card">
         <h3><i class="fas fa-sliders-h"></i> 常规</h3>
         <div class="form-group">
-            <label>库存预警阈值 (克)</label>
+            <label>耗材预警阈值 (g)</label>
             <input type="number" class="form-control" id="thresholdInput" min="50" step="10" value="200">
         </div>
         <div class="form-group">
-            <label>默认初始重量 (克)</label>
+            <label>新添耗材默认初始重量 (g)</label>
             <input type="number" class="form-control" id="defaultWeightInput" min="100" step="50" value="1000">
         </div>
         <div style="display:flex;gap:1rem;margin-top:1.2rem;">

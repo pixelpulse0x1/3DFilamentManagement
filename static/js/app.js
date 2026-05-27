@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadMaterialOptions();
     loadBrandOptions();
     loadChannelOptions();
+    populateCloneDropdowns();
 
     // Handle search query param from manufacturer card click
     const urlParams = new URLSearchParams(window.location.search);
@@ -74,23 +75,31 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// Status helpers (5 mutually exclusive states: 全新/闲置/上机/不足/用尽)
-function getStatusClass(filament) {
-    const s = filament.status || '全新';
-    const low = settings.low_weight_threshold || 100;
-    if (s === '用尽' || filament.current_weight === 0) return 'status-used-up';
-    if (filament.current_weight > 0 && filament.current_weight <= low) return 'status-warning';
-    if (s === '上机') return 'status-in-use';
-    if (s === '闲置') return 'status-unopened';
-    return 'status-new';
-}
-
-function getStatusText(filament) {
+// Status helpers (dual-track: base status + is_loaded)
+function getBaseStatus(filament) {
     const s = filament.status || '全新';
     const low = settings.low_weight_threshold || 100;
     if (filament.current_weight === 0) return '用尽';
     if (filament.current_weight > 0 && filament.current_weight <= low) return '不足';
-    return s;
+    return s; // 全新 or 闲置
+}
+
+function getStatusBadges(filament) {
+    const badges = [];
+    if (filament.is_loaded) {
+        badges.push('<span class="status-badge status-in-use">上机</span>');
+    }
+    const base = getBaseStatus(filament);
+    const clsMap = { '全新': 'status-new', '闲置': 'status-unopened', '不足': 'status-warning', '用尽': 'status-used-up' };
+    badges.push(`<span class="status-badge ${clsMap[base] || 'status-new'}">${base}</span>`);
+    return badges.join(' ');
+}
+
+function getStatusText(filament) {
+    const parts = [];
+    if (filament.is_loaded) parts.push('上机');
+    parts.push(getBaseStatus(filament));
+    return parts.join(' ');
 }
 
 // Load settings
@@ -198,27 +207,39 @@ function onSpoolChange(scope) {
 
 function toggleWeighing(scope) {
     const prefix = scope === 'batch' ? 'batch' : '';
-    const cb = document.getElementById(prefix + 'EnableWeighing');
+    const cb = document.getElementById(prefix + 'enableWeighing');
     const grossEl = document.querySelector('.' + (scope === 'batch' ? 'batch-' : '') + 'gross-weight');
+    const netEl = document.querySelector('.' + (scope === 'batch' ? 'batch-' : '') + 'net-weight');
+    const spoolEl = document.querySelector('.' + (scope === 'batch' ? 'batch-' : '') + 'spool-weight-display');
     const enabled = cb && cb.checked;
-    if (grossEl) grossEl.disabled = !enabled;
     const hint = document.getElementById(prefix + 'WeighingHint');
-    if (hint) {
-        const spoolVal = document.getElementById(prefix + 'spoolSelect')?.value;
-        if (!spoolVal) {
-            hint.innerHTML = '<small style="color:var(--warning);">当前耗材未指定品牌盘型，无法获取空盘重，请先选择品牌和盘型以启用称重计算。</small>';
-            if (cb) { cb.checked = false; cb.disabled = true; }
-            if (grossEl) grossEl.disabled = true;
-        } else {
-            hint.innerHTML = '';
-            if (cb) cb.disabled = false;
-        }
+    const spoolVal = document.getElementById(prefix + 'spoolSelect')?.value;
+
+    if (!spoolVal) {
+        if (hint) hint.innerHTML = '<small style="color:var(--warning);">当前耗材未指定品牌盘型，无法获取空盘重，请先选择品牌和盘型以启用称重计算。</small>';
+        if (cb) { cb.checked = false; cb.disabled = true; }
+        if (grossEl) { grossEl.disabled = true; grossEl.placeholder = '---未启用---'; }
+        if (netEl) netEl.placeholder = '---未启用---';
+        if (spoolEl) spoolEl.value = '---';
+        return;
     }
+
+    if (hint) hint.innerHTML = '';
+    if (cb) cb.disabled = false;
+    if (grossEl) {
+        grossEl.disabled = !enabled;
+        grossEl.placeholder = enabled ? '放秤上的读数' : '---未启用---';
+    }
+    if (netEl) netEl.placeholder = enabled ? '' : '---未启用---';
+    if (!enabled) {
+        if (spoolEl && spoolEl.value === '---') spoolEl.value = '0.0';
+    }
+    if (enabled) calcNetWeight(scope);
 }
 
 function calcNetWeight(scope) {
     const prefix = scope === 'batch' ? 'batch-' : '';
-    const cb = document.getElementById((scope === 'batch' ? 'batch' : '') + 'EnableWeighing');
+    const cb = document.getElementById((scope === 'batch' ? 'batch' : '') + 'enableWeighing');
     if (!cb || !cb.checked) return;
     const gross = parseFloat(document.querySelector('.' + prefix + 'gross-weight')?.value) || 0;
     const spool = parseFloat(document.querySelector('.' + prefix + 'spool-weight-display')?.value) || 0;
@@ -322,7 +343,7 @@ function applyFilters(filamentsList) {
             const match = [];
             if (currentStatusFilters.has('全新')) match.push(f.status === '全新' && !(f.current_weight > 0 && f.current_weight <= low));
             if (currentStatusFilters.has('闲置')) match.push(f.status === '闲置' && !(f.current_weight > 0 && f.current_weight <= low));
-            if (currentStatusFilters.has('上机')) match.push(f.status === '上机' && !(f.current_weight > 0 && f.current_weight <= low));
+            if (currentStatusFilters.has('上机')) match.push(f.is_loaded === true || f.is_loaded === 1);
             if (currentStatusFilters.has('不足')) match.push(f.current_weight > 0 && f.current_weight <= low);
             if (currentStatusFilters.has('用尽')) match.push(f.current_weight === 0);
             return match.some(Boolean);
@@ -402,6 +423,10 @@ function bindEvents() {
 
     // Close modals
     document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', closeAllModals));
+
+    // Status change anti-error
+    const fs = document.getElementById('filamentStatus');
+    if (fs) fs.addEventListener('change', function () { onStatusChange(this.value); });
 
     // Edit remark
     const saveRemarkBtn = document.getElementById('saveRemarkBtn');
@@ -483,7 +508,7 @@ function renderFilamentTable(filaments) {
             </td>
             <td class="hide-on-mobile">${f.location || '-'}</td>
             <td>${remarkText}</td>
-            <td><span class="status-badge ${getStatusClass(f)}">${getStatusText(f)}</span></td>
+            <td>${getStatusBadges(f)}</td>
             <td>
                 <div class="action-buttons-container">
                     <i class="fas fa-edit action-btn" title="编辑" data-id="${f.id}"></i>
@@ -925,6 +950,12 @@ function openAddModal() {
     document.getElementById('enableWeighing').checked = false;
     document.querySelector('.gross-weight').disabled = true;
     clearFilamentImage();
+    lockInitialWeight();
+    const cb = document.getElementById('editIsLoaded'); if (cb) cb.checked = false;
+    // Reset weighing
+    const enableCb = document.getElementById('enableWeighing'); if (enableCb) enableCb.checked = false;
+    toggleWeighing('add');
+    populateCloneDropdowns();
     document.getElementById('addModal').style.display = 'flex';
 }
 
@@ -942,6 +973,7 @@ function openBatchAddModal() {
     document.getElementById('batchPurchaseChannel').value = '';
     document.getElementById('batchRemark').value = '';
     clearBatchFilamentImage();
+    populateCloneDropdowns();
     document.getElementById('batchAddModal').style.display = 'flex';
 }
 
@@ -995,6 +1027,11 @@ function openEditModal(filamentId, brandId, brandName) {
         }
         document.getElementById('enableWeighing').checked = false;
         document.querySelector('.gross-weight').disabled = true;
+
+        // is_loaded checkbox
+        const ilCb = document.getElementById('editIsLoaded');
+        if (ilCb) ilCb.checked = !!(f.is_loaded);
+        lockInitialWeight();
 
         document.getElementById('addModal').style.display = 'flex';
     }
@@ -1069,6 +1106,7 @@ function saveFilament() {
         image_id: selectedFilamentImageId || null,
         remark: document.getElementById('filamentRemark').value.trim() || null,
         brand_id: getSelectedBrandId('add'),
+        is_loaded: document.getElementById('editIsLoaded')?.checked ? 1 : 0,
     };
     if (document.getElementById('openedAt').value) data.opened_at = document.getElementById('openedAt').value;
     const url = currentEditId ? '/api/filaments/'+currentEditId : '/api/filaments';
@@ -1225,6 +1263,165 @@ function renderMatrixPie(pieData, filter) {
         },
         plugins: [ChartDataLabels]
     });
+}
+
+// ─── Status Anti-Error ───
+
+let pendingStatus = null;
+
+function onStatusChange(newStatus) {
+    const initial = parseFloat(document.getElementById('initialWeight').value) || 0;
+    const current = parseFloat(document.getElementById('currentWeight').value) || 0;
+
+    if (newStatus === '上机') {
+        if (!confirm('耗材确认已上机？')) {
+            document.getElementById('filamentStatus').value = pendingStatus || '闲置';
+            return;
+        }
+    } else if (newStatus === '全新') {
+        if (Math.abs(current - initial) > 0.01) {
+            alert('耗材已被使用，耗材当前重量≠初始重量，请核实并修改当前重量后再尝试。');
+            document.getElementById('filamentStatus').value = pendingStatus || '闲置';
+            return;
+        }
+        if (!confirm('耗材将变更为全新状态？')) {
+            document.getElementById('filamentStatus').value = pendingStatus || '闲置';
+            return;
+        }
+    } else if (newStatus === '用尽') {
+        if (current === 0) {
+            if (!confirm('耗材将变更为用尽状态？')) {
+                document.getElementById('filamentStatus').value = pendingStatus || '闲置';
+                return;
+            }
+        } else {
+            if (!confirm('耗材重量不为0，确定变更为用尽状态？')) {
+                document.getElementById('filamentStatus').value = pendingStatus || '闲置';
+                return;
+            }
+            // Append timestamp to remark
+            const now = new Date();
+            const ts = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' +
+                       String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+            const currentRemark = document.getElementById('filamentRemark').value || '';
+            document.getElementById('filamentRemark').value = currentRemark + '\n[' + ts + '] 用户确认变更为用尽状态';
+        }
+    }
+    pendingStatus = newStatus;
+}
+
+// ─── Is Loaded Toggle ───
+
+function onIsLoadedToggle() {
+    const cb = document.getElementById('editIsLoaded');
+    if (cb && cb.checked) {
+        if (!confirm('耗材确认已上机？')) {
+            cb.checked = false;
+        }
+    }
+}
+
+// ─── Initial Weight Lock ───
+
+function toggleInitialWeight() {
+    const el = document.getElementById('initialWeight');
+    if (el.hasAttribute('readonly')) {
+        el.removeAttribute('readonly');
+        el.focus();
+    }
+}
+
+function lockInitialWeight() {
+    const el = document.getElementById('initialWeight');
+    if (el && !el.hasAttribute('readonly')) {
+        el.setAttribute('readonly', 'readonly');
+    }
+}
+
+// ─── Clone Filament ───
+
+function populateCloneDropdowns() {
+    if (filaments.length === 0) {
+        loadData();
+        setTimeout(populateCloneDropdowns, 500);
+        return;
+    }
+    ['cloneFilamentSelect', 'batchCloneFilamentSelect'].forEach(sid => {
+        const sel = document.getElementById(sid);
+        if (!sel) return;
+        sel.innerHTML = '<option value="">-- 选择已有耗材快速填充表单 --</option>';
+        filaments.forEach((f, i) => {
+            sel.innerHTML += `<option value="${i}" data-name="${f.name||''}" data-mt="${f.material_type||''}" data-color="${f.color||''}" data-imgid="${f.image_id||''}" data-imgfile="${f.image_file||''}" data-mfr="${f.brand_name||''}" data-loc="${f.location||''}" data-iw="${f.initial_weight||''}" data-cw="${f.current_weight||''}" data-rm="${f.remark||''}" data-pd="${f.purchase_date||''}" data-pp="${f.purchase_price||''}" data-chid="${f.channel_id||''}" data-bid="${f.brand_id||''}" data-bname="${f.brand_name||''}">${f.manufacturer||f.brand_name||''} ${f.material_type||''} — ${f.name||''}</option>`;
+        });
+    });
+}
+
+function onCloneFilament(scope) {
+    const prefix = scope === 'batch' ? 'batch' : '';
+    const sel = document.getElementById(prefix + 'cloneFilamentSelect');
+    const opt = sel?.selectedOptions[0];
+    if (!opt || !opt.value) return;
+
+    const ds = opt.dataset;
+    // Fill basic fields
+    document.getElementById((scope === 'batch' ? 'batchNamePrefix' : 'filamentName')).value = ds.name || '';
+    if (scope === 'batch') {
+        const mtEl = document.getElementById('batchMaterialType');
+        if (mtEl) mtEl.value = ds.mt || '';
+    } else {
+        const mtEl = document.getElementById('materialType');
+        if (mtEl) mtEl.value = ds.mt || '';
+    }
+    // Color
+    const cpId = scope === 'batch' ? 'batchColorPicker' : 'colorPicker';
+    const cprId = scope === 'batch' ? 'batchColorPreview' : 'colorPreview';
+    if (ds.color) {
+        document.getElementById(cpId).value = ds.color;
+        document.getElementById(cprId).style.backgroundColor = ds.color;
+    }
+    // Location
+    if (scope !== 'batch') document.getElementById('location').value = ds.loc || '';
+    else document.getElementById('batchLocation').value = ds.loc || '';
+    // Initial weight
+    document.getElementById((scope === 'batch' ? 'batchInitialWeight' : 'initialWeight')).value = ds.iw || '';
+    // Current weight (add only)
+    if (scope !== 'batch') document.getElementById('currentWeight').value = ds.cw || '';
+    // Purchase
+    if (scope !== 'batch') {
+        document.getElementById('purchaseDate').value = ds.pd || '';
+        document.getElementById('purchasePrice').value = ds.pp || '';
+        document.getElementById('purchaseChannel').value = ds.chid || '';
+        document.getElementById('filamentRemark').value = ds.rm || '';
+    } else {
+        document.getElementById('batchPurchaseDate').value = ds.pd || '';
+        document.getElementById('batchPurchasePrice').value = ds.pp || '';
+        document.getElementById('batchPurchaseChannel').value = ds.chid || '';
+        document.getElementById('batchRemark').value = ds.rm || '';
+    }
+    // Image (add only)
+    if (scope !== 'batch' && ds.imgid) {
+        selectedFilamentImageId = parseInt(ds.imgid);
+        document.getElementById('selectedFilamentImage').src = '/uploads/filaments/' + ds.imgfile;
+        document.getElementById('selectedImagePreview').style.display = 'flex';
+    } else if (scope === 'batch' && ds.imgid) {
+        selectedBatchImageId = parseInt(ds.imgid);
+        document.getElementById('batchSelectedFilamentImage').src = '/uploads/filaments/' + ds.imgfile;
+        document.getElementById('batchSelectedImagePreview').style.display = 'flex';
+    }
+    // Brand/spool
+    if (ds.bname && ds.bid) {
+        const brandSel = document.getElementById((scope === 'batch' ? 'batchBrandSelect' : 'brandSelect'));
+        if (brandSel && brandSpoolMap[ds.bname]) {
+            brandSel.value = ds.bname;
+            onBrandChange(scope);
+            setTimeout(() => {
+                document.getElementById((scope === 'batch' ? 'batchSpoolSelect' : 'spoolSelect')).value = ds.bid;
+                onSpoolChange(scope);
+            }, 60);
+        }
+    }
+    // Reset dropdown
+    sel.value = '';
 }
 
 // ─── Lightbox ───

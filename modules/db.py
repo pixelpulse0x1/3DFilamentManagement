@@ -7,7 +7,7 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-LATEST_VERSION = 6
+LATEST_VERSION = 7
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
@@ -290,6 +290,8 @@ def _run_migration(from_ver, to_ver, data_dir, conn):
         _migrate_v4_to_v5(data_dir, conn)
     elif from_ver == 5 and to_ver == 6:
         _migrate_v5_to_v6(conn)
+    elif from_ver == 6 and to_ver == 7:
+        _migrate_v6_to_v7(conn)
     else:
         logger.warning("Unknown migration step: %d → %d", from_ver, to_ver)
 
@@ -385,6 +387,8 @@ def _migrate_v3_to_v4(conn):
 
 def _migrate_v4_to_v5(data_dir, conn):
     """v0.4.0.0: brands table with spool weights, filaments.brand_id FK, data extraction."""
+    col_names = [c[1] for c in conn.execute("PRAGMA table_info(filaments)").fetchall()]
+
     # 1. Seed built-in brand data
     for name, spool_type, weight in BUILTIN_BRANDS:
         conn.execute(
@@ -407,7 +411,6 @@ def _migrate_v4_to_v5(data_dir, conn):
             )
 
     # 3. Add brand_id FK column to filaments
-    col_names = [c[1] for c in conn.execute("PRAGMA table_info(filaments)").fetchall()]
     if "brand_id" not in col_names:
         conn.execute(
             "ALTER TABLE filaments ADD COLUMN brand_id INTEGER REFERENCES brands(id) ON DELETE SET NULL"
@@ -465,6 +468,19 @@ def _migrate_v5_to_v6(conn):
         logger.info("  ✓ printers.model_id FK added and old model text mapped.")
 
 
+def _migrate_v6_to_v7(conn):
+    """v0.4.2.2: is_loaded dual-track status, migrate old status='上机' records."""
+    col_names = [c[1] for c in conn.execute("PRAGMA table_info(filaments)").fetchall()]
+    if "is_loaded" not in col_names:
+        conn.execute("ALTER TABLE filaments ADD COLUMN is_loaded INTEGER DEFAULT 0")
+        # Convert old status='上机' → is_loaded=1, status reset to 闲置
+        conn.execute("""
+            UPDATE filaments SET is_loaded = 1, status = '闲置'
+            WHERE status = '上机'
+        """)
+        logger.info("  ✓ filaments.is_loaded column added, old 上机 records converted.")
+
+
 # ─── Phase 5: Seed Data ───
 
 def _seed_data(conn, data_dir):
@@ -475,10 +491,10 @@ def _seed_data(conn, data_dir):
 
     # System settings defaults
     for k, v in [
-        ("active_background", ""),
-        ("card_opacity", "0.05"),
+        ("active_background", "Background.png"),
+        ("card_opacity", "0.15"),
         ("card_color", "#ffffff"),
-        ("card_blur", "2"),
+        ("card_blur", "1"),
         ("low_weight_threshold", "100"),
     ]:
         conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES (?, ?)", (k, v))
@@ -499,8 +515,22 @@ def _seed_data(conn, data_dir):
         for name in DEFAULT_CHANNELS:
             conn.execute("INSERT OR IGNORE INTO channels (name) VALUES (?)", (name,))
 
+    # Seed default background file
+    _seed_default_background(data_dir)
+
 
 # ─── Helpers ───
+
+def _seed_default_background(data_dir):
+    """Copy the built-in default background to /data if it doesn't exist."""
+    dst = os.path.join(data_dir, "uploads", "backgrounds", "Background.png")
+    if not os.path.exists(dst):
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        # Try from static (Docker build context)
+        src = os.path.join(os.path.dirname(__file__), "..", "static", "uploads", "backgrounds", "Background.png")
+        if os.path.isfile(src):
+            shutil.copy2(src, dst)
+            logger.info("Default background seeded: %s", dst)
 
 def _read_txt_list(path, defaults):
     """Read a line-delimited text file, falling back to defaults."""

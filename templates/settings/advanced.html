@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}高级设置 — 3D耗材库存管理系统{% endblock %}
+{% block title %}高级设置 — 3DFilamentManagement{% endblock %}
 
 {% block content %}
 <header class="content-header">
@@ -12,6 +12,19 @@
         <p style="color:var(--text-secondary);margin-bottom:1rem;">将数据库和上传的背景图片打包为 ZIP 文件下载，包含 `/data` 目录下的所有用户数据。</p>
         <button class="btn btn-primary" id="backupBtn"><i class="fas fa-download"></i> 一键备份系统数据</button>
         <div id="backupMsg" style="margin-top:0.8rem;display:none;"></div>
+    </div>
+
+    <!-- 导入备份 -->
+    <div class="settings-card" style="border: 1px solid rgba(247, 37, 133, 0.3);">
+        <h3><i class="fas fa-upload"></i> 导入备份与热还原</h3>
+        <p style="color:var(--warning);margin-bottom:1rem;font-size:0.85rem;">
+            <i class="fas fa-triangle-exclamation"></i> 导入备份将会完全覆盖当前系统的数据库与所有上传的图片，此操作不可逆！系统将在导入完成后自动尝试数据库版本兼容与升级。是否确定继续？
+        </p>
+        <div style="display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;">
+            <input type="file" id="restoreBackupFile" accept=".zip" style="color:var(--text-primary);">
+            <button class="btn btn-danger" id="restoreBackupBtn"><i class="fas fa-upload"></i> 导入备份</button>
+        </div>
+        <div id="restoreBackupMsg" style="margin-top:0.8rem;display:none;"></div>
     </div>
 
     <!-- 表格导出 -->

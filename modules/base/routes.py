@@ -31,11 +31,11 @@ def _get_appearance_settings(conn):
     sys = {r["key"]: r["value"] for r in rows}
 
     try:
-        card_opacity = float(sys.get("card_opacity", "0.05"))
+        card_opacity = float(sys.get("card_opacity", "0.15"))
         if not (0.0 <= card_opacity <= 1.0):
-            card_opacity = 0.05
+            card_opacity = 0.15
     except (ValueError, TypeError):
-        card_opacity = 0.05
+        card_opacity = 0.15
 
     try:
         card_color = sys.get("card_color", "#ffffff")
@@ -45,11 +45,11 @@ def _get_appearance_settings(conn):
         card_color = "#ffffff"
 
     try:
-        card_blur = int(sys.get("card_blur", "2"))
+        card_blur = int(sys.get("card_blur", "1"))
         if not (0 <= card_blur <= 30):
-            card_blur = 2
+            card_blur = 1
     except (ValueError, TypeError):
-        card_blur = 2
+        card_blur = 1
 
     return card_opacity, card_color, card_blur
 
@@ -331,6 +331,35 @@ def api_background_set():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+@base_bp.route("/api/settings/background/delete", methods=["POST"])
+def api_background_delete():
+    """Delete a user-uploaded background file. System default (Background.png) is protected."""
+    data_dir = _data_dir()
+    try:
+        data = request.get_json() or {}
+        filename = data.get("filename", "")
+        if not filename:
+            return jsonify({"status": "error", "error": "未指定文件名"}), 400
+        if filename == "Background.png":
+            return jsonify({"status": "error", "error": "系统默认背景不可删除"}), 400
+
+        bg_dir = get_background_dir(data_dir)
+        file_path = os.path.join(bg_dir, filename)
+        if not os.path.isfile(file_path):
+            return jsonify({"status": "error", "error": "文件不存在"}), 404
+
+        # If this is the active background, reset to default
+        active = get_active_background(data_dir)
+        if active == filename:
+            set_active_background(data_dir, "Background.png")
+
+        os.remove(file_path)
+        return jsonify({"status": "success"})
+    except Exception as e:
+        logger.error("Delete background error: %s", e)
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
 # ─── Appearance API ───
 
 @base_bp.route("/api/settings/appearance", methods=["GET"])
@@ -346,7 +375,7 @@ def api_appearance_get():
             })
     except Exception as e:
         logger.error("Appearance get error: %s", e)
-        return jsonify({"card_opacity": 0.05, "card_color": "#ffffff", "card_blur": 2})
+        return jsonify({"card_opacity": 0.15, "card_color": "#ffffff", "card_blur": 1})
 
 
 @base_bp.route("/api/settings/appearance", methods=["PUT"])
@@ -587,6 +616,70 @@ def api_export_excel():
         )
     except Exception as e:
         logger.error("Excel export error: %s", e)
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+# ─── Backup Restore ───
+
+@base_bp.route("/api/settings/backup/restore", methods=["POST"])
+def api_backup_restore():
+    """Import and restore a backup ZIP file with hot migration."""
+    import tempfile, shutil
+    data_dir = _data_dir()
+    try:
+        if "file" not in request.files:
+            return jsonify({"status": "error", "error": "未选择备份文件"}), 400
+        file = request.files["file"]
+        if not file.filename or not file.filename.endswith('.zip'):
+            return jsonify({"status": "error", "error": "请上传 .zip 格式的备份文件"}), 400
+
+        tmp_dir = tempfile.mkdtemp()
+        zip_path = os.path.join(tmp_dir, "backup.zip")
+        file.save(zip_path)
+
+        # Extract
+        import zipfile
+        extract_dir = os.path.join(tmp_dir, "extracted")
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            zf.extractall(extract_dir)
+
+        # Find .db file
+        db_file = None
+        for root, dirs, files in os.walk(extract_dir):
+            for f in files:
+                if f.endswith('.db'):
+                    db_file = os.path.join(root, f)
+                    break
+        if not db_file:
+            shutil.rmtree(tmp_dir)
+            return jsonify({"status": "error", "error": "备份包中未找到数据库文件"}), 400
+
+        # Close all DB connections via get_db context manager pattern
+        # Copy new DB over
+        target_db = os.path.join(data_dir, "database", "filament_inventory.db")
+        os.makedirs(os.path.dirname(target_db), exist_ok=True)
+        shutil.copy2(db_file, target_db)
+
+        # Restore uploads
+        for sub in ['backgrounds', 'filaments']:
+            src_uploads = os.path.join(extract_dir, 'uploads', sub)
+            if os.path.isdir(src_uploads):
+                dst_uploads = os.path.join(data_dir, 'uploads', sub)
+                os.makedirs(dst_uploads, exist_ok=True)
+                for f in os.listdir(src_uploads):
+                    src_f = os.path.join(src_uploads, f)
+                    dst_f = os.path.join(dst_uploads, f)
+                    if os.path.isfile(src_f):
+                        shutil.copy2(src_f, dst_f)
+
+        # Run migration on restored DB
+        from modules.db import init_db
+        init_db(data_dir)
+
+        shutil.rmtree(tmp_dir)
+        return jsonify({"status": "success", "message": "系统数据热还原成功，页面即将刷新"})
+    except Exception as e:
+        logger.error("Backup restore error: %s", e)
         return jsonify({"status": "error", "error": str(e)}), 500
 
 

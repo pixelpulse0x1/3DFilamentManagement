@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('saveAppearanceBtn').addEventListener('click', saveAppearanceSettings);
         document.getElementById('resetAppearanceBtn').addEventListener('click', resetAppearanceSettings);
         document.getElementById('uploadBgBtn').addEventListener('click', uploadBackground);
+        document.getElementById('restoreDefaultBgBtn').addEventListener('click', restoreDefaultBackground);
+        document.getElementById('clearBgBtn').addEventListener('click', clearBackground);
         loadBackgrounds();
     }
 
@@ -28,6 +30,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (document.getElementById('exportExcelBtn')) {
         document.getElementById('exportExcelBtn').addEventListener('click', triggerExcelExport);
+    }
+    if (document.getElementById('restoreBackupBtn')) {
+        document.getElementById('restoreBackupBtn').addEventListener('click', triggerRestore);
     }
 });
 
@@ -75,9 +80,9 @@ function loadAppearanceSettings() {
     fetch('/api/settings')
         .then(r => r.json())
         .then(data => {
-            const opacity = data.card_opacity !== undefined ? data.card_opacity : 0.05;
+            const opacity = data.card_opacity !== undefined ? data.card_opacity : 0.15;
             const color = data.card_color || '#ffffff';
-            const blur = data.card_blur !== undefined ? data.card_blur : 2;
+            const blur = data.card_blur !== undefined ? data.card_blur : 1;
             document.getElementById('cardOpacitySlider').value = Math.round(opacity * 100);
             document.getElementById('opacityValue').textContent = Math.round(opacity * 100) + '%';
             document.getElementById('cardColorPicker').value = color;
@@ -159,13 +164,13 @@ function saveAppearanceSettings() {
 
 function resetAppearanceSettings() {
     if (!confirm('确定要恢复默认外观设置吗？')) return;
-    document.getElementById('cardOpacitySlider').value = 5;
-    document.getElementById('opacityValue').textContent = '5%';
+    document.getElementById('cardOpacitySlider').value = 15;
+    document.getElementById('opacityValue').textContent = '15%';
     document.getElementById('cardColorPicker').value = '#ffffff';
     document.getElementById('cardColorHex').textContent = '#ffffff';
-    document.getElementById('cardBlurSlider').value = 2;
-    document.getElementById('blurValue').textContent = '2px';
-    applyAppearancePreview(0.05, '#ffffff', 2);
+    document.getElementById('cardBlurSlider').value = 1;
+    document.getElementById('blurValue').textContent = '1px';
+    applyAppearancePreview(0.15, '#ffffff', 1);
     showMsg('appearanceMsg', '已恢复默认值，请点击保存', 'success');
 }
 
@@ -184,16 +189,27 @@ function loadBackgrounds() {
             }
             data.backgrounds.forEach(filename => {
                 const isActive = filename === data.active;
+                const isDefault = filename === 'Background.png';
                 const thumb = document.createElement('div');
                 thumb.className = 'bg-thumb' + (isActive ? ' active' : '');
-                thumb.innerHTML = '<img src="/uploads/backgrounds/' + filename + '" alt="' + filename + '">' +
-                    '<div class="bg-thumb-overlay">' +
-                    (!isActive ? '<button class="btn btn-primary set-bg-btn" data-filename="' + filename + '">设为背景</button>' : '<span style="color:#4cc9f0;font-size:0.8rem;">当前使用</span>') +
-                    '</div>';
+                let overlayHtml = '<div class="bg-thumb-overlay">';
+                if (!isActive) {
+                    overlayHtml += '<button class="btn btn-primary set-bg-btn" data-filename="' + filename + '">设为背景</button>';
+                } else {
+                    overlayHtml += '<span style="color:#4cc9f0;font-size:0.8rem;">当前使用</span>';
+                }
+                if (!isDefault) {
+                    overlayHtml += '<button class="btn btn-danger del-bg-btn" data-filename="' + filename + '" style="font-size:0.7rem;padding:0.2rem 0.5rem;"><i class="fas fa-trash"></i></button>';
+                }
+                overlayHtml += '</div>';
+                thumb.innerHTML = '<img src="/uploads/backgrounds/' + filename + '" alt="' + filename + '">' + overlayHtml;
                 container.appendChild(thumb);
             });
             document.querySelectorAll('.set-bg-btn').forEach(b => {
                 b.addEventListener('click', function () { setActiveBackground(this.dataset.filename); });
+            });
+            document.querySelectorAll('.del-bg-btn').forEach(b => {
+                b.addEventListener('click', function () { deleteBackground(this.dataset.filename); });
             });
         })
         .catch(err => { console.error('加载背景列表失败:', err); });
@@ -217,6 +233,78 @@ function uploadBackground() {
         })
         .catch(err => { showMsg('bgUploadMsg', '上传失败: ' + err.message, 'error'); })
         .finally(() => { btn.innerHTML = '<i class="fas fa-upload"></i> 上传'; btn.disabled = false; });
+}
+
+function deleteBackground(filename) {
+    if (!confirm(`确定要删除背景图片「${filename}」吗？`)) return;
+    fetch('/api/settings/background/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename })
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') {
+                showMsg('bgUploadMsg', '已删除', 'success');
+                loadBackgrounds();
+                // Refresh body background if needed
+                if (filename === document.body.style.backgroundImage?.match(/[^/]+(?=\))/)?.[0]) {
+                    loadCurrentBg();
+                }
+            } else {
+                showMsg('bgUploadMsg', d.error || '删除失败', 'error');
+            }
+        });
+}
+
+function restoreDefaultBackground() {
+    if (!confirm('确定要恢复为系统默认背景吗？')) return;
+    fetch('/api/settings/background/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: 'Background.png' })
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') {
+                document.body.classList.add('has-background');
+                document.body.style.backgroundImage = 'url(/uploads/backgrounds/Background.png)';
+                showMsg('bgUploadMsg', '已恢复为默认背景', 'success');
+                loadBackgrounds();
+            }
+        });
+}
+
+function clearBackground() {
+    if (!confirm('确定要移除背景图片吗？')) return;
+    fetch('/api/settings/background/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: '' })
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') {
+                document.body.classList.remove('has-background');
+                document.body.style.backgroundImage = '';
+                showMsg('bgUploadMsg', '已移除背景', 'success');
+                loadBackgrounds();
+            }
+        });
+}
+
+function loadCurrentBg() {
+    fetch('/api/settings/background')
+        .then(r => r.json())
+        .then(d => {
+            if (d.active) {
+                document.body.classList.add('has-background');
+                document.body.style.backgroundImage = 'url(/uploads/backgrounds/' + d.active + ')';
+            } else {
+                document.body.classList.remove('has-background');
+                document.body.style.backgroundImage = '';
+            }
+        });
 }
 
 function setActiveBackground(filename) {
@@ -283,6 +371,32 @@ function triggerBackup() {
             btn.innerHTML = '<i class="fas fa-download"></i> 一键备份系统数据';
             btn.disabled = false;
         });
+}
+
+// ─── Backup Restore ───
+
+function triggerRestore() {
+    const fileInput = document.getElementById('restoreBackupFile');
+    if (!fileInput.files.length) { showMsg('restoreBackupMsg', '请选择 .zip 备份文件', 'error'); return; }
+    if (!confirm('导入备份将会完全覆盖当前系统的数据库与所有上传的图片，此操作不可逆！\n\n系统将在导入完成后自动尝试数据库版本兼容与升级。\n\n是否确定继续？')) return;
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    const btn = document.getElementById('restoreBackupBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 导入中...'; btn.disabled = true;
+
+    fetch('/api/settings/backup/restore', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') {
+                showMsg('restoreBackupMsg', '系统数据热还原成功，页面即将刷新', 'success');
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showMsg('restoreBackupMsg', d.error || '导入失败', 'error');
+            }
+        })
+        .catch(err => showMsg('restoreBackupMsg', '导入失败: ' + err.message, 'error'))
+        .finally(() => { btn.innerHTML = '<i class="fas fa-upload"></i> 导入备份'; btn.disabled = false; });
 }
 
 // ─── Excel Export ───

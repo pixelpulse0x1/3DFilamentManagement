@@ -33,6 +33,7 @@ def _filament_to_dict(row):
         "remark": row["remark"] if "remark" in keys else None,
         "channel_id": row["channel_id"] if "channel_id" in keys else None,
         "brand_id": row["brand_id"] if "brand_id" in keys else None,
+        "is_loaded": bool(row["is_loaded"]) if "is_loaded" in keys else False,
     }
     return result
 
@@ -52,7 +53,7 @@ def api_filaments():
                     LEFT JOIN filament_images fi ON f.image_id = fi.id
                     LEFT JOIN channels ch ON f.channel_id = ch.id
                     LEFT JOIN brands b ON f.brand_id = b.id
-                    ORDER BY f.id DESC
+                    ORDER BY f.is_favorite DESC, f.id DESC
                 """).fetchall()
                 result = []
                 for r in rows:
@@ -107,7 +108,7 @@ def api_filament_single(filament_id):
                     "name", "material_type", "color", "location",
                     "initial_weight", "current_weight", "is_favorite",
                     "purchase_date", "purchase_price", "opened_at",
-                    "status", "image_id", "remark", "channel_id", "brand_id",
+                    "status", "image_id", "remark", "channel_id", "brand_id", "is_loaded",
                 ]
                 updates = {k: v for k, v in data.items() if k in allowed}
                 if "is_favorite" in updates:
@@ -236,6 +237,10 @@ def api_filament_use(filament_id):
                     "UPDATE printer_slots SET current_filament_id = NULL WHERE current_filament_id = ?",
                     (filament_id,),
                 )
+                conn.execute(
+                    "UPDATE filaments SET is_loaded = 0 WHERE id = ?",
+                    (filament_id,),
+                )
             conn.commit()
             return jsonify({
                 "status": "success",
@@ -345,7 +350,7 @@ def api_statistics():
 
             # Apply status filter
             if filter_status == "remaining":
-                filaments = [f for f in all_filaments if f["status"] in ("全新", "闲置", "上机")]
+                filaments = [f for f in all_filaments if f["status"] != "用尽"]
             elif filter_status == "used":
                 filaments = [f for f in all_filaments if f["status"] == "用尽"]
             else:
@@ -506,7 +511,7 @@ def api_stats_matrix():
                     f.material_type,
                     SUM(CASE WHEN f.current_weight > :thresh AND f.status = '全新' THEN 1 ELSE 0 END) AS 全新,
                     SUM(CASE WHEN f.current_weight > :thresh AND f.status = '闲置' THEN 1 ELSE 0 END) AS 闲置,
-                    SUM(CASE WHEN f.current_weight > :thresh AND f.status = '上机' THEN 1 ELSE 0 END) AS 上机,
+                    SUM(CASE WHEN f.is_loaded = 1 THEN 1 ELSE 0 END) AS 上机,
                     SUM(CASE WHEN f.current_weight > 0 AND f.current_weight <= :thresh THEN 1 ELSE 0 END) AS 不足,
                     SUM(CASE WHEN f.current_weight = 0 THEN 1 ELSE 0 END) AS 用尽
                 FROM filaments f

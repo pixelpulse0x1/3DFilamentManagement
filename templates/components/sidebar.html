@@ -1,7 +1,7 @@
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <i class="fa-solid fa-cubes"></i>
-        <h2>3D耗材管理</h2>
+        <img src="/static/favicon-96x96.png" alt="logo" style="width:32px;height:32px;">
+        <h2>3DFilamentManagement</h2>
     </div>
     <ul class="sidebar-nav">
         <!-- 耗材面板 - Accordion -->
@@ -66,13 +66,13 @@
             </a>
             <ul class="nav-children {{ 'open' if active_nav == 'manage' or active_sub == 'brands' }}" id="manageChildren">
                 <li><a href="/materials" class="{{ 'active' if active_sub == 'materials' }}">
-                    <i class="fa-solid fa-layer-group"></i> 类型
+                    <i class="fa-solid fa-layer-group"></i> 耗材类型
                 </a></li>
                 <li><a href="/dashboard/brands" class="{{ 'active' if active_sub == 'brands' }}">
-                    <i class="fa-solid fa-tag"></i> 品牌管理
+                    <i class="fa-solid fa-tag"></i> 耗材品牌
                 </a></li>
                 <li><a href="/channels" class="{{ 'active' if active_sub == 'channels' }}">
-                    <i class="fa-solid fa-store"></i> 渠道
+                    <i class="fa-solid fa-store"></i> 购入渠道
                 </a></li>
                 <li><a href="/images" class="{{ 'active' if active_sub == 'images' }}">
                     <i class="fa-solid fa-images"></i> 实物图
@@ -100,7 +100,7 @@
         </li>
     </ul>
     <div class="sidebar-footer">
-        <span>v0.4.1.2</span>
+        <span>v0.4.2.3</span>
         <a href="https://github.com/pixelpulse0x1" target="_blank" rel="noopener noreferrer" class="github-link" title="GitHub">
             <i class="fab fa-github"></i>
         </a>

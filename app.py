@@ -1,4 +1,4 @@
-"""3D Consumables Inventory Management System — Application entry point."""
+"""3DFilamentManagement — Application entry point."""
 import os
 
 from flask import Flask, jsonify

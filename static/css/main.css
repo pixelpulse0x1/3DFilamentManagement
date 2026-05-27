@@ -22,9 +22,9 @@
     --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     --sidebar-width: 260px;
     --header-height: 56px;
-    --ha-card-bg: rgba(255, 255, 255, 0.05);
+    --ha-card-bg: rgba(255, 255, 255, 0.15);
     --ha-card-color: #333333;
-    --ha-card-blur: 2px;
+    --ha-card-blur: 1px;
     --ha-text-dark: #111111;
     --ha-text-light: #ffffff;
 }
@@ -1464,6 +1464,15 @@ input, select, textarea { font-size: 16px; }
     padding: 0.2rem 0.5rem;
     font-size: 0.75rem;
     height: auto;
+}
+
+/* ─── Initial Weight Lock Button ─── */
+
+#btnUnlockInitial {
+    padding: 0 0.6rem;
+    height: auto;
+    font-size: 0.85rem;
+    border-left: none;
 }
 
 /* ─── Mobile Visibility ─── */

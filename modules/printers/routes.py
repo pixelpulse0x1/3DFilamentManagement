@@ -215,13 +215,16 @@ def api_slot_bind(slot_id):
                     "error": f"该耗材当前状态为「{filament['status']}」，仅「全新」或「闲置」的耗材可以上机",
                 }), 400
 
+            if filament["is_loaded"] if "is_loaded" in filament.keys() else False:
+                return jsonify({"status": "error", "error": "该耗材已上机"}), 400
+
             try:
                 conn.execute(
                     "UPDATE printer_slots SET current_filament_id = ? WHERE id = ?",
                     (filament_id, slot_id),
                 )
                 conn.execute(
-                    "UPDATE filaments SET status = '上机' WHERE id = ?", (filament_id,)
+                    "UPDATE filaments SET is_loaded = 1 WHERE id = ?", (filament_id,)
                 )
                 conn.commit()
             except sqlite3.IntegrityError:
@@ -338,13 +341,13 @@ def api_printer_model_delete(model_id):
 
 
 def _release_filament(conn, filament_id):
-    """Release a filament from its slot: set status based on remaining weight."""
+    """Release a filament from its slot: set is_loaded=0, update status if depleted."""
     filament = conn.execute(
         "SELECT * FROM filaments WHERE id = ?", (filament_id,)
     ).fetchone()
     if filament:
-        new_status = "用尽" if filament["current_weight"] == 0 else "闲置"
+        new_status = "用尽" if filament["current_weight"] == 0 else filament["status"]
         conn.execute(
-            "UPDATE filaments SET status = ? WHERE id = ?",
+            "UPDATE filaments SET is_loaded = 0, status = ? WHERE id = ?",
             (new_status, filament_id),
         )
