@@ -17,9 +17,21 @@
                 <li><a href="/dashboard/filaments" class="{{ 'active' if active_sub == 'filaments' }}">
                     <i class="fa-solid fa-boxes-stacked"></i> 耗材管理
                 </a></li>
-                <li><a href="/dashboard/logs" class="{{ 'active' if active_sub == 'logs' }}">
-                    <i class="fa-solid fa-clock-rotate-left"></i> 使用记录
-                </a></li>
+                <!-- 记录报表（三级菜单） -->
+                <li class="nav-subgroup" data-subgroup="logs">
+                    <a class="nav-subparent {{ 'active' if active_sub in ('logs', 'daily') }}" data-target="logs">
+                        <i class="fa-solid fa-clipboard-list"></i> 记录报表
+                        <i class="fa-solid fa-chevron-down accordion-arrow"></i>
+                    </a>
+                    <ul class="nav-grandchildren {{ 'open' if active_sub in ('logs', 'daily') }}" id="logsGrandchildren">
+                        <li><a href="/dashboard/logs" class="{{ 'active' if active_sub == 'logs' }}">
+                            <i class="fa-solid fa-list-ul"></i> 使用记录
+                        </a></li>
+                        <li><a href="/dashboard/daily" class="{{ 'active' if active_sub == 'daily' }}">
+                            <i class="fa-solid fa-chart-bar"></i> 每日统计
+                        </a></li>
+                    </ul>
+                </li>
                 <li><a href="/dashboard/stats" class="{{ 'active' if active_sub == 'stats' }}">
                     <i class="fa-solid fa-chart-line"></i> 统计报表
                 </a></li>
@@ -75,7 +87,7 @@
         </li>
     </ul>
     <div class="sidebar-footer">
-        <span>v0.3.2.0</span>
+        <span>v0.3.3.0</span>
         <a href="https://github.com/pixelpulse0x1" target="_blank" rel="noopener noreferrer" class="github-link" title="GitHub">
             <i class="fab fa-github"></i>
         </a>
@@ -84,28 +96,35 @@
 
 <script>
 (function() {
-    const groups = document.querySelectorAll('.nav-parent');
-    groups.forEach(parent => {
-        parent.addEventListener('click', function(e) {
+    function toggleAccordion(btn, childrenId, storageKey) {
+        const children = document.getElementById(childrenId);
+        if (children) {
+            children.classList.toggle('open');
+            btn.classList.toggle('expanded');
+            localStorage.setItem(storageKey, children.classList.contains('open') ? '1' : '0');
+        }
+    }
+
+    document.querySelectorAll('.nav-parent').forEach(btn => {
+        btn.addEventListener('click', function(e) {
             e.preventDefault();
-            const target = this.dataset.target;
-            const children = document.getElementById(target + 'Children');
-            const arrow = this.querySelector('.accordion-arrow');
-            if (children) {
-                children.classList.toggle('open');
-                this.classList.toggle('expanded');
-            }
-            localStorage.setItem('accordion_' + target, children && children.classList.contains('open') ? '1' : '0');
+            toggleAccordion(this, this.dataset.target + 'Children', 'accordion_' + this.dataset.target);
+        });
+    });
+
+    document.querySelectorAll('.nav-subparent').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleAccordion(this, this.dataset.target + 'Grandchildren', 'accordion_sub_' + this.dataset.target);
         });
     });
 
     // Restore accordion state from localStorage
-    document.querySelectorAll('.nav-group').forEach(group => {
-        const groupName = group.dataset.group;
-        const stored = localStorage.getItem('accordion_' + groupName);
+    function restoreState(key, childrenId, parentSelector) {
+        const stored = localStorage.getItem(key);
         if (stored !== null) {
-            const children = document.getElementById(groupName + 'Children');
-            const parent = group.querySelector('.nav-parent');
+            const children = document.getElementById(childrenId);
+            const parent = document.querySelector(parentSelector);
             if (children && parent) {
                 if (stored === '1') {
                     children.classList.add('open');
@@ -116,6 +135,13 @@
                 }
             }
         }
+    }
+
+    document.querySelectorAll('.nav-group').forEach(group => {
+        restoreState('accordion_' + group.dataset.group, group.dataset.group + 'Children', `.nav-parent[data-target="${group.dataset.group}"]`);
+    });
+    document.querySelectorAll('.nav-subgroup').forEach(group => {
+        restoreState('accordion_sub_' + group.dataset.subgroup, group.dataset.subgroup + 'Grandchildren', `.nav-subparent[data-target="${group.dataset.subgroup}"]`);
     });
 })();
 </script>

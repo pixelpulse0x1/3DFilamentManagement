@@ -43,6 +43,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (si) si.value = currentSearchTerm;
     }
 
+    // Weight card unit toggle
+    document.querySelectorAll('.weight-stat-card').forEach(card => {
+        card.addEventListener('click', toggleWeightUnit);
+    });
+
     // Status filter radio buttons on overview page
     document.querySelectorAll('input[name="filterStatus"]').forEach(radio => {
         radio.addEventListener('change', function () {
@@ -298,6 +303,10 @@ function bindEvents() {
     // Close modals
     document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', closeAllModals));
 
+    // Edit remark
+    const saveRemarkBtn = document.getElementById('saveRemarkBtn');
+    if (saveRemarkBtn) saveRemarkBtn.addEventListener('click', saveRemark);
+
     // Sort headers
     document.querySelectorAll('th.sortable').forEach(th => {
         th.addEventListener('click', function () { toggleSort(this.dataset.sort); });
@@ -460,7 +469,8 @@ function renderUsageRecords(records) {
         const ds = d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0')+'-'+d.getDate().toString().padStart(2,'0');
         const ts = d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')+':'+d.getSeconds().toString().padStart(2,'0');
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${ds} ${ts}</td><td>${r.filament_name}</td><td>${r.used_weight.toFixed(2)}g</td><td>¥${r.used_cost ? r.used_cost.toFixed(2) : '0.00'}</td><td>${r.note || '-'}</td><td><button class="btn btn-danger btn-sm btn-withdraw" data-id="${r.id}"><i class="fas fa-undo"></i></button></td>`;
+        tr.innerHTML = `<td>${ds} ${ts}</td><td>${r.filament_name}</td><td>${r.used_weight.toFixed(2)}g</td><td>¥${r.used_cost ? r.used_cost.toFixed(2) : '0.00'}</td><td>${r.note || '-'}</td>
+    <td><i class="fas fa-edit action-btn edit-remark-btn" data-id="${r.id}" data-name="${r.filament_name}" data-note="${(r.note || '').replace(/"/g, '&quot;')}" title="编辑备注" style="color:var(--primary);"></i><button class="btn btn-danger btn-sm btn-withdraw" data-id="${r.id}"><i class="fas fa-undo"></i></button></td>`;
         tbody.appendChild(tr);
     });
     bindWithdrawButtons();
@@ -470,6 +480,46 @@ function bindWithdrawButtons() {
     document.querySelectorAll('.btn-withdraw').forEach(btn => {
         btn.addEventListener('click', function () { withdrawUsageRecord(this.dataset.id); });
     });
+    document.querySelectorAll('.edit-remark-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            openEditRemark(this.dataset.id, this.dataset.name, this.dataset.note);
+        });
+    });
+}
+
+let currentEditRemarkId = null;
+
+function openEditRemark(id, name, note) {
+    currentEditRemarkId = id;
+    document.getElementById('editRemarkFilament').textContent = name;
+    document.getElementById('editRemarkInput').value = note;
+    document.getElementById('editRemarkMsg').style.display = 'none';
+    document.getElementById('editRemarkModal').style.display = 'flex';
+}
+
+function saveRemark() {
+    const remark = document.getElementById('editRemarkInput').value;
+    fetch('/api/usage_records/' + currentEditRemarkId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remark })
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') {
+                document.getElementById('editRemarkModal').style.display = 'none';
+                loadUsageRecords();
+            } else {
+                const el = document.getElementById('editRemarkMsg');
+                el.textContent = d.error || '保存失败'; el.style.display = 'block';
+                el.style.color = '#f72585';
+            }
+        })
+        .catch(err => {
+            const el = document.getElementById('editRemarkMsg');
+            el.textContent = '保存失败: ' + err.message; el.style.display = 'block';
+            el.style.color = '#f72585';
+        });
 }
 
 function withdrawUsageRecord(recordId) {
@@ -483,26 +533,24 @@ function withdrawUsageRecord(recordId) {
         .catch(err => { alert('撤回失败: ' + err.message); });
 }
 
-// Render usage summary
+// Render usage summary (daily stats page only)
 function renderUsageSummary(records) {
-    const el = document.getElementById('usageSummary');
-    if (!el) return;
-    el.innerHTML = '';
-    if (records.length === 0) { el.innerHTML = '<p style="padding:1rem;color:var(--text-muted);">暂无使用数据</p>'; return; }
-    let totalW = 0, totalC = 0;
+    const dailyTable = document.getElementById('dailySummaryTable');
+    if (!dailyTable) return;
     const daily = {};
     records.forEach(r => {
-        totalW += r.used_weight; totalC += r.used_cost || 0;
         const date = new Date(r.used_at).toISOString().split('T')[0];
         if (!daily[date]) daily[date] = { weight: 0, cost: 0 };
         daily[date].weight += r.used_weight; daily[date].cost += r.used_cost || 0;
     });
-    let html = '<table style="width:100%;margin-top:1rem;"><tr><th>日期</th><th>使用重量(g)</th><th>使用金额(¥)</th></tr>';
-    Object.keys(daily).sort().reverse().forEach(date => {
-        html += '<tr><td>'+date+'</td><td>'+daily[date].weight.toFixed(2)+'</td><td>¥'+daily[date].cost.toFixed(2)+'</td></tr>';
-    });
-    html += '</table>';
-    el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;"><div class="stat-card"><div class="stat-value">'+totalW.toFixed(2)+'g</div><div class="stat-label">总使用重量</div></div><div class="stat-card"><div class="stat-value">¥'+totalC.toFixed(2)+'</div><div class="stat-label">总使用金额</div></div></div><div class="card-header" style="margin-top:1.5rem;"><div class="card-title">每日使用汇总</div></div>'+html;
+    dailyTable.innerHTML = '';
+    if (records.length === 0) {
+        dailyTable.innerHTML = '<tr><td colspan="3" style="text-align:center;">暂无使用数据</td></tr>';
+    } else {
+        Object.keys(daily).sort().reverse().forEach(date => {
+            dailyTable.innerHTML += '<tr><td>'+date+'</td><td>'+daily[date].weight.toFixed(2)+'</td><td>¥'+daily[date].cost.toFixed(2)+'</td></tr>';
+        });
+    }
     updateDailyUsageChart(daily);
 }
 
@@ -587,7 +635,7 @@ function renderStatistics(data) {
     } else {
         metrics.push(
             { title:'总耗材数量', icon:'fas fa-boxes', value:data.total_filaments, label:'卷', cls:'icon-primary' },
-            { title:'库存总价值', icon:'fas fa-yen-sign', value:'¥'+data.total_value.toFixed(2), label:'耗材总价值', cls:'icon-primary' }
+            { title:'累计购入价值', icon:'fas fa-yen-sign', value:'¥'+data.total_value.toFixed(2), label:'财务维度总投入', cls:'icon-primary' }
         );
     }
 
@@ -609,7 +657,33 @@ function renderStatistics(data) {
             alertEl.style.display = 'flex';
         } else { alertEl.style.display = 'none'; }
     }
+    // Weight cards with g/kg toggle
+    window._weightData = {
+        used: data.total_used_weight || 0,
+        remaining: data.remaining_total_weight || 0,
+        unit: window._weightData ? window._weightData.unit : 'g',
+    };
+    _renderWeightCards();
     updateCharts(data);
+}
+
+function _renderWeightCards() {
+    const d = window._weightData;
+    const unit = d.unit;
+    const usedEl = document.getElementById('totalUsedWeight');
+    const remainEl = document.getElementById('remainingTotalWeight');
+    if (unit === 'kg') {
+        if (usedEl) usedEl.textContent = (d.used / 1000).toFixed(3) + 'kg';
+        if (remainEl) remainEl.textContent = (d.remaining / 1000).toFixed(3) + 'kg';
+    } else {
+        if (usedEl) usedEl.textContent = d.used.toFixed(2) + 'g';
+        if (remainEl) remainEl.textContent = d.remaining.toFixed(2) + 'g';
+    }
+}
+
+function toggleWeightUnit() {
+    window._weightData.unit = window._weightData.unit === 'g' ? 'kg' : 'g';
+    _renderWeightCards();
 }
 
 // Render reports
@@ -776,7 +850,7 @@ function openDetailModal(filamentId) {
 }
 
 function closeAllModals() {
-    ['addModal','batchAddModal','useModal','detailModal','imagePickerModal'].forEach(id => {
+    ['addModal','batchAddModal','useModal','detailModal','imagePickerModal','editRemarkModal'].forEach(id => {
         const el = document.getElementById(id); if (el) el.style.display = 'none';
     });
 }

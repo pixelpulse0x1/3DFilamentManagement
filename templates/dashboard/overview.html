@@ -32,8 +32,32 @@
             <div class="stat-value">0</div><div class="stat-label">标记为常用</div>
         </div>
         <div class="card">
-            <div class="card-header"><div class="card-title">库存总价值</div><div class="card-icon icon-primary"><i class="fas fa-yen-sign"></i></div></div>
-            <div class="stat-value">¥0</div><div class="stat-label">所有耗材总价值</div>
+            <div class="card-header"><div class="card-title">累计购入价值</div><div class="card-icon icon-primary"><i class="fas fa-yen-sign"></i></div></div>
+            <div class="stat-value">¥0</div><div class="stat-label">财务维度总投入</div>
+        </div>
+    </div>
+
+    <!-- 总使用重量 + 剩余重量 -->
+    <div class="usage-weight-row">
+        <div class="card weight-stat-card">
+            <div class="card-header">
+                <div class="card-title">总使用重量</div>
+                <div class="card-icon" style="background:rgba(247,37,133,0.15);color:var(--warning);">
+                    <i class="fas fa-weight-hanging"></i>
+                </div>
+            </div>
+            <div class="stat-value mono" id="totalUsedWeight">0.00g</div>
+            <div class="stat-label">历史累计消耗总克数</div>
+        </div>
+        <div class="card weight-stat-card">
+            <div class="card-header">
+                <div class="card-title">剩余重量</div>
+                <div class="card-icon" style="background:rgba(76,201,240,0.15);color:var(--success);">
+                    <i class="fas fa-scale-balanced"></i>
+                </div>
+            </div>
+            <div class="stat-value mono" id="remainingTotalWeight">0.00g</div>
+            <div class="stat-label">全量可用耗材实存净重之和</div>
         </div>
     </div>
 

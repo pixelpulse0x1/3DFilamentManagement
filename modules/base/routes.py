@@ -101,6 +101,14 @@ def dashboard_stats():
                            active_sub="stats")
 
 
+@base_bp.route("/dashboard/daily")
+def dashboard_daily():
+    return render_template("dashboard/daily.html",
+                           active_background=_bg_for_template(),
+                           active_nav="dashboard",
+                           active_sub="daily")
+
+
 @base_bp.route("/materials")
 def materials_page():
     return render_template("materials.html",

@@ -289,8 +289,8 @@ def api_usage_records():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
-@filaments_bp.route("/api/usage_records/<int:record_id>", methods=["DELETE"])
-def api_usage_record_delete(record_id):
+@filaments_bp.route("/api/usage_records/<int:record_id>", methods=["PUT", "DELETE"])
+def api_usage_record_modify(record_id):
     data_dir = _data_dir()
     try:
         with get_db(data_dir) as conn:
@@ -298,8 +298,21 @@ def api_usage_record_delete(record_id):
                 "SELECT * FROM usage_records WHERE id = ?", (record_id,)
             ).fetchone()
             if not record:
-                return jsonify({"status": "error", "error": "Record not found"}), 404
+                return jsonify({"status": "error", "error": "未找到对应的使用记录"}), 404
 
+            if request.method == "PUT":
+                data = request.get_json() or {}
+                remark = data.get("remark")
+                if remark is None:
+                    return jsonify({"status": "error", "error": "缺少备注内容"}), 400
+                conn.execute(
+                    "UPDATE usage_records SET note = ? WHERE id = ?",
+                    (str(remark) if remark else "", record_id),
+                )
+                conn.commit()
+                return jsonify({"status": "success", "remark": remark})
+
+            # DELETE
             filament = conn.execute(
                 "SELECT * FROM filaments WHERE id = ?", (record["filament_id"],)
             ).fetchone()
@@ -443,6 +456,16 @@ def api_statistics():
             """).fetchall()
             usage_stats = [{"month": r["month"], "total_used": r["total_used"]} for r in usage_rows]
 
+            # Remaining total weight (only active filaments)
+            remaining_weight = round(sum(
+                f["current_weight"] for f in all_filaments if f["status"] != "用尽"
+            ), 2)
+
+            # Total used weight (all time)
+            total_used_weight = round(sum(
+                r["total_used"] for r in usage_rows
+            ), 2) if usage_rows else 0.0
+
             return jsonify({
                 "total_filaments": total_filaments,
                 "material_types": material_types,
@@ -450,6 +473,8 @@ def api_statistics():
                 "low_stock": low_stock,
                 "threshold": threshold,
                 "total_value": round(total_value, 2),
+                "remaining_total_weight": remaining_weight,
+                "total_used_weight": total_used_weight,
                 "material_distribution": material_distribution,
                 "stock_status": stock_status,
                 "manufacturer_stats": mfr_stats_list,

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}每日统计 — 3D耗材库存管理系统{% endblock %}
+
+{% block content %}
+<header class="content-header">
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">每日统计</h2>
+</header>
+
+<div class="content-body">
+    <!-- 每日使用统计图表 -->
+    <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-header"><div class="card-title">每日使用统计</div></div>
+        <div class="chart-container" style="height:300px;">
+            <canvas id="dailyUsageChart"></canvas>
+        </div>
+    </div>
+
+    <!-- 每日使用汇总表格 -->
+    <div class="card">
+        <div class="card-header"><div class="card-title">每日使用汇总</div></div>
+        <div class="table-container" style="max-height:500px;">
+            <table>
+                <thead>
+                    <tr><th>日期</th><th>使用重量(g)</th><th>使用金额(¥)</th></tr>
+                </thead>
+                <tbody id="dailySummaryTable">
+                    <tr><td colspan="3" style="text-align:center;">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
