@@ -145,8 +145,13 @@ def init_db(data_dir: str):
 
         # Phase 4: Step-loop migration
         while current < LATEST_VERSION:
-            _run_migration(current, current + 1, data_dir, conn)
-            current += 1
+            try:
+                _run_migration(current, current + 1, data_dir, conn)
+                current += 1
+            except Exception as e:
+                logger.error("Migration V%d→V%d failed: %s", current, current+1, e)
+                conn.rollback()
+                raise RuntimeError(f"Database migration V{current}→V{current+1} failed: {e}") from e
             conn.execute(
                 "UPDATE system_settings SET value = ? WHERE key = 'database_version'",
                 (str(current),),

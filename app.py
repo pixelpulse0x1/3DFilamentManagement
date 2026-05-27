@@ -39,6 +39,15 @@ def create_app():
     def internal_error(error):
         return jsonify({"status": "error", "error": "服务器内部错误"}), 500
 
+    @app.teardown_appcontext
+    def close_db(error):
+        """Force-close any lingering DB connection after each request."""
+        from flask import g
+        db = g.pop('db', None)
+        if db is not None:
+            try: db.close()
+            except Exception: pass
+
     return app
 
 

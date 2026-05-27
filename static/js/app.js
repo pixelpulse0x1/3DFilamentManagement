@@ -1,4 +1,11 @@
 // 3D Consumables Inventory Management System — Main Application JS
+// Global Ajax error handler
+window.addEventListener('unhandledrejection', function (e) {
+    if (e.reason && e.reason.message) {
+        console.error('Unhandled error:', e.reason.message);
+    }
+});
+
 // Global state
 let filaments = [];
 let materialChart = null;

@@ -29,22 +29,39 @@ def api_calc_history_list():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+def _safe_float(val, default=0.0):
+    try: return float(val)
+    except (ValueError, TypeError): return default
+
 @tools_bp.route("/api/tools/calculator/save", methods=["POST"])
 def api_calc_save():
     data_dir = _data_dir()
     try:
         data = request.get_json() or {}
+        if not data.get("project_name", "").strip():
+            return jsonify({"status": "error", "error": "保存失败：项目/模型名称不能为空！"}), 400
+        if not data.get("filaments") or data.get("filaments") == []:
+            return jsonify({"status": "error", "error": "保存失败：请至少添加一种打印耗材！"}), 400
+        if not data.get("printers") or data.get("printers") == []:
+            return jsonify({"status": "error", "error": "保存失败：请至少关联一台打印设备！"}), 400
+
         record_id = data.get("id")
+        profit_rate = _safe_float(data.get("profit_rate_expect", 0))
+        commission_rate = _safe_float(data.get("platform_commission_rate", 0))
+        tax_rate = _safe_float(data.get("tax_rate", 0))
+        denominator = 1 - (profit_rate / 100.0) - (commission_rate / 100.0) - (tax_rate / 100.0)
+        if denominator <= 0:
+            return jsonify({"status": "error", "error": "期望利润率+平台抽成+税率之和不能大于或等于100%，请调整参数后重试"}), 400
+
         params = (
             data["project_name"],
             json.dumps(data.get("filaments", [])),
             json.dumps(data.get("printers", [])),
             json.dumps(data.get("post_processing", [])),
-            data.get("design_fee", 0), data.get("packaging_fee", 0),
-            data.get("shipping_fee", 0), data.get("other_fee", 0),
-            data.get("tax_rate", 0), data.get("platform_commission_rate", 0),
-            data.get("profit_rate_expect", 0), data.get("labor_markup_fee", 0),
-            data["total_cost"], data["suggested_price"], data["pure_profit"],
+            _safe_float(data.get("design_fee")), _safe_float(data.get("packaging_fee")),
+            _safe_float(data.get("shipping_fee")), _safe_float(data.get("other_fee")),
+            tax_rate, commission_rate, profit_rate, _safe_float(data.get("labor_markup_fee")),
+            _safe_float(data.get("total_cost")), _safe_float(data.get("suggested_price")), _safe_float(data.get("pure_profit")),
         )
         with get_db(data_dir) as conn:
             if record_id:
