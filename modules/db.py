@@ -7,7 +7,7 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-LATEST_VERSION = 9
+LATEST_VERSION = 10
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
@@ -267,6 +267,26 @@ def _create_all_tables(conn):
             config_key TEXT PRIMARY KEY,
             config_value TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS calculation_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_name TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            filaments_json TEXT NOT NULL,
+            printers_json TEXT NOT NULL,
+            post_processing_json TEXT DEFAULT '[]',
+            design_fee REAL DEFAULT 0.0,
+            packaging_fee REAL DEFAULT 0.0,
+            shipping_fee REAL DEFAULT 0.0,
+            other_fee REAL DEFAULT 0.0,
+            tax_rate REAL DEFAULT 0.0,
+            platform_commission_rate REAL DEFAULT 0.0,
+            profit_rate_expect REAL DEFAULT 0.0,
+            labor_markup_fee REAL DEFAULT 0.0,
+            total_cost REAL NOT NULL,
+            suggested_price REAL NOT NULL,
+            pure_profit REAL NOT NULL
+        );
     """)
 
 
@@ -304,6 +324,8 @@ def _run_migration(from_ver, to_ver, data_dir, conn):
         _migrate_v7_to_v8(conn)
     elif from_ver == 8 and to_ver == 9:
         _migrate_v8_to_v9(conn)
+    elif from_ver == 9 and to_ver == 10:
+        _migrate_v9_to_v10(conn)
     else:
         logger.warning("Unknown migration step: %d → %d", from_ver, to_ver)
 
@@ -526,6 +548,31 @@ def _migrate_v8_to_v9(conn):
             (power, value, brand, model_name),
         )
     logger.info("  ✓ printer_models specs updated (power/value/lifespan).")
+
+
+def _migrate_v9_to_v10(conn):
+    """v0.5.1.0: calculation_history table."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS calculation_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_name TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            filaments_json TEXT NOT NULL,
+            printers_json TEXT NOT NULL,
+            post_processing_json TEXT DEFAULT '[]',
+            design_fee REAL DEFAULT 0.0,
+            packaging_fee REAL DEFAULT 0.0,
+            shipping_fee REAL DEFAULT 0.0,
+            other_fee REAL DEFAULT 0.0,
+            tax_rate REAL DEFAULT 0.0,
+            platform_commission_rate REAL DEFAULT 0.0,
+            profit_rate_expect REAL DEFAULT 0.0,
+            labor_markup_fee REAL DEFAULT 0.0,
+            total_cost REAL NOT NULL,
+            suggested_price REAL NOT NULL,
+            pure_profit REAL NOT NULL
+        )
+    """)
 
 
 # ─── Phase 5: Seed Data ───

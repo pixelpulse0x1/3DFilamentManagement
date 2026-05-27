@@ -11,6 +11,7 @@ from modules.printers import printers_bp
 from modules.images import images_bp
 from modules.channels import channels_bp
 from modules.brands import brands_bp
+from modules.tools import tools_bp
 
 
 def create_app():
@@ -28,6 +29,7 @@ def create_app():
     app.register_blueprint(images_bp)
     app.register_blueprint(channels_bp)
     app.register_blueprint(brands_bp)
+    app.register_blueprint(tools_bp)
 
     @app.errorhandler(404)
     def not_found(error):

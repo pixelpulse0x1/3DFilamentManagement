@@ -85,6 +85,9 @@
                 <i class="fa-solid fa-chevron-down accordion-arrow"></i>
             </a>
             <ul class="nav-children {{ 'open' if active_nav == 'tools' }}" id="toolsChildren">
+                <li><a href="/tools/cost_calculator" class="{{ 'active' if active_sub == 'calculator' }}">
+                    <i class="fa-solid fa-calculator"></i> 成本计算器
+                </a></li>
                 <li><a href="/roi" class="{{ 'active' if active_sub == 'roi' }}">
                     <i class="fa-solid fa-chart-line"></i> ROI效能账单
                 </a></li>
@@ -111,7 +114,7 @@
         </li>
     </ul>
     <div class="sidebar-footer">
-        <span>v0.5.0.0</span>
+        <span>v0.5.1.0</span>
         <a href="https://github.com/pixelpulse0x1" target="_blank" rel="noopener noreferrer" class="github-link" title="GitHub">
             <i class="fab fa-github"></i>
         </a>

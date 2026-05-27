@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}成本计算器 — 3DFilamentManagement{% endblock %}
+{% block extra_head %}<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>{% endblock %}
+{% block content %}
+<header class="content-header"><h2 style="color:var(--text-primary);font-size:1.3rem;">成本计算器</h2></header>
+<div class="content-body">
+<div class="card" style="margin-bottom:0.8rem;">
+    <div class="form-group"><label>项目名称</label><input type="text" class="form-control" id="calcProjectName" placeholder="例如: 高达头雕-多色"></div>
+</div>
+<!-- Filaments -->
+<div class="card" style="margin-bottom:0.8rem;"><div class="card-header"><div class="card-title">耗材配置</div><button class="btn btn-outline btn-sm" onclick="addFilamentRow()">+ 增加材料</button></div>
+    <div class="calc-table-header">
+        <span style="width:35%">在库耗材</span>
+        <span style="width:10%">克重(g)</span>
+        <span style="width:10%">排废(g)</span>
+        <span style="width:10%">单价</span>
+        <span style="width:10%">支撑料</span>
+        <span style="width:5%"></span>
+    </div>
+    <div id="filamentsContainer"></div>
+</div>
+<!-- Printers -->
+<div class="card" style="margin-bottom:0.8rem;"><div class="card-header"><div class="card-title">设备与工时</div><button class="btn btn-outline btn-sm" onclick="addPrinterRow()">+ 关联打印设备</button></div>
+    <div class="calc-table-header">
+        <span style="width:30%">已有设备</span>
+        <span style="width:8%">时</span>
+        <span style="width:8%">分</span>
+        <span style="width:30%">设备参数</span>
+        <span style="width:5%"></span>
+    </div>
+    <div id="printersContainer"></div>
+</div>
+<!-- Post-processing -->
+<div class="card" style="margin-bottom:0.8rem;"><div class="card-header"><div class="card-title">后处理</div><button class="btn btn-outline btn-sm" onclick="addPostRow()">+ 增加后处理</button></div>
+    <div class="calc-table-header">
+        <span style="width:20%">工序名</span>
+        <span style="width:15%">计费模式</span>
+        <span style="width:10%">单价</span>
+        <span style="width:10%">数量</span>
+        <span style="width:5%"></span>
+    </div>
+    <div id="postContainer"></div>
+</div>
+<!-- Extra fees -->
+<div class="card" style="margin-bottom:0.8rem;"><div class="card-header"><div class="card-title">附加费用</div></div>
+    <div class="grid-2">
+        <div class="form-group"><label>建模/设计费 (¥)</label><input type="number" class="form-control calc-input" id="designFee" value="0" oninput="recalc()"></div>
+        <div class="form-group"><label>包装材料费 (¥)</label><input type="number" class="form-control calc-input" id="packagingFee" value="0" oninput="recalc()"></div>
+        <div class="form-group"><label>快递运费 (¥)</label><input type="number" class="form-control calc-input" id="shippingFee" value="0" oninput="recalc()"></div>
+        <div class="form-group"><label>其他杂费 (¥)</label><input type="number" class="form-control calc-input" id="otherFee" value="0" oninput="recalc()"></div>
+    </div>
+</div>
+<div class="card" style="margin-bottom:1.5rem;"><div class="card-header"><div class="card-title">商业参数</div></div>
+    <div class="grid-2">
+        <div class="form-group"><label>税率 (%)</label><input type="number" class="form-control calc-input" id="taxRate" value="0" oninput="recalc()"></div>
+        <div class="form-group"><label>平台抽成 (%)</label><input type="number" class="form-control calc-input" id="platformRate" value="0" oninput="recalc()"></div>
+        <div class="form-group"><label>期望利润率 (%)</label><input type="number" class="form-control calc-input" id="profitExpect" value="40" oninput="recalc()"></div>
+        <div class="form-group"><label>加收辛苦费 (¥)</label><input type="number" class="form-control calc-input" id="laborFee" value="0" oninput="recalc()"></div>
+    </div>
+</div>
+<!-- DASHBOARD -->
+<div class="card" style="margin-bottom:0.8rem;">
+    <div class="card-header"><div class="card-title">实时看板</div>
+        <button class="btn btn-primary btn-sm" id="saveCalcBtn" onclick="saveCalculation()"><i class="fas fa-save"></i> 保存计算</button>
+    </div>
+    <div class="roi-metrics-grid">
+        <div class="card"><div class="card-title">生产总成本</div><div class="stat-value mono" id="dispTotalCost">¥0</div></div>
+        <div class="card"><div class="card-title">建议报价</div><div class="stat-value mono" id="dispPrice" style="color:var(--primary);">¥0</div></div>
+        <div class="card"><div class="card-title">预估纯利润</div><div class="stat-value mono" id="dispProfit" style="color:var(--success);">¥0</div></div>
+    </div>
+    <div class="chart-container" style="height:280px;"><canvas id="costPieChart"></canvas></div>
+</div>
+<div class="card">
+    <div class="card-header"><div class="card-title">历史账单中心</div></div>
+    <div id="historyList"><div class="empty-state"><i class="fas fa-history"></i><p>暂无历史记录</p></div></div>
+</div>
+</div>
+<input type="hidden" id="currentRecordId" value="">
+
+<!-- Filament Picker Modal -->
+<div class="modal" id="filamentPickerModal">
+    <div class="modal-content" style="max-width:800px;">
+        <div class="modal-header">
+            <div class="modal-title">选择耗材</div>
+            <div class="close-modal" onclick="closeFilamentPicker()">&times;</div>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex;gap:0.5rem;margin-bottom:0.8rem;flex-wrap:wrap;">
+                <input type="text" class="form-control" id="pickerSearch" placeholder="搜索耗材..." oninput="renderPickerTable()" style="flex:1;min-width:200px;">
+                <div class="filter-checkboxes" id="pickerStatusFilters">
+                    <label class="filter-checkbox"><input type="checkbox" value="闲置" checked onchange="renderPickerTable()"> 闲置</label>
+                    <label class="filter-checkbox"><input type="checkbox" value="上机" checked onchange="renderPickerTable()"> 上机</label>
+                    <label class="filter-checkbox"><input type="checkbox" value="全新" onchange="renderPickerTable()"> 全新</label>
+                    <label class="filter-checkbox"><input type="checkbox" value="不足" onchange="renderPickerTable()"> 不足</label>
+                </div>
+            </div>
+            <div class="table-container" style="max-height:400px;">
+                <table><thead><tr><th>品牌</th><th>材料类型</th><th>耗材名称</th><th>颜色</th><th>剩余重量</th><th style="width:60px;"></th></tr></thead>
+                <tbody id="pickerTableBody"></tbody></table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block page_js %}<script src="/static/js/cost_calculator.js"></script>{% endblock %}

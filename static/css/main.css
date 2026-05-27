@@ -1475,6 +1475,18 @@ input, select, textarea { font-size: 16px; }
     border-left: none;
 }
 
+/* ─── Cost Calculator ─── */
+
+.calc-table-header {
+    display: flex; gap: 0.4rem; align-items: center;
+    padding: 0.5rem 0.4rem; font-size: 0.8rem; font-weight: 600;
+    color: #111; border-bottom: 2px solid rgba(0,0,0,0.1);
+    background: rgba(0,0,0,0.03);
+}
+.calc-row { display: flex; gap: 0.4rem; align-items: center; padding: 0.5rem 0.4rem; border-bottom: 1px solid rgba(0,0,0,0.04); flex-wrap: wrap; }
+.calc-row .form-control { padding: 0.4rem 0.5rem; font-size: 0.85rem; }
+.calc-row .btn-sm { padding: 0.2rem 0.5rem; font-size: 0.75rem; height: auto; }
+
 /* ─── Mobile Visibility ─── */
 .mobile-hidden { display: table-cell; }
 .mobile-only { display: none; }
