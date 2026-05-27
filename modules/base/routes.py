@@ -149,6 +149,22 @@ def settings_advanced():
                            active_sub="advanced")
 
 
+@base_bp.route("/dashboard/brands")
+def dashboard_brands():
+    return render_template("brand_management.html",
+                           active_background=_bg_for_template(),
+                           active_nav="manage",
+                           active_sub="brands")
+
+
+@base_bp.route("/roi")
+def roi_page():
+    return render_template("roi.html",
+                           active_background=_bg_for_template(),
+                           active_nav="dashboard",
+                           active_sub="roi")
+
+
 @base_bp.route("/devices")
 def devices_page():
     return render_template("device_management.html",
@@ -471,8 +487,8 @@ def api_export_excel():
         ws1 = wb.active
         ws1.title = "耗材库存列表"
         headers_f = [
-            "id", "name", "manufacturer", "material_type", "color", "location",
-            "is_opened", "status", "initial_weight", "current_weight", "is_favorite",
+            "id", "name", "material_type", "color", "location",
+            "status", "initial_weight", "current_weight", "is_favorite",
             "created_at", "purchase_date", "purchase_price", "购买渠道", "opened_at",
             "实物图名称", "备注",
         ]
@@ -487,8 +503,8 @@ def api_export_excel():
             """).fetchall()
             for r in rows:
                 ws1.append([
-                    r["id"], r["name"], r["manufacturer"], r["material_type"],
-                    r["color"], r["location"], r["is_opened"], r["status"],
+                    r["id"], r["name"], r["material_type"],
+                    r["color"], r["location"], r["status"],
                     r["initial_weight"], r["current_weight"], r["is_favorite"],
                     r["created_at"], r["purchase_date"], r["purchase_price"],
                     r["channel_name"] or "", r["opened_at"],
@@ -501,15 +517,9 @@ def api_export_excel():
             for r in conn.execute("SELECT * FROM materials ORDER BY id").fetchall():
                 ws2.append([r["id"], r["name"], r["description"]])
 
-            # Sheet 3: manufacturers
-            ws3 = wb.create_sheet("品牌厂商管理")
-            ws3.append(["id", "name", "website"])
-            for r in conn.execute("SELECT * FROM manufacturers ORDER BY id").fetchall():
-                ws3.append([r["id"], r["name"], r["website"]])
-
-            # Sheet 4: usage_records
-            ws4 = wb.create_sheet("耗材使用日志")
-            ws4.append(["id", "filament_id", "filament_name", "used_weight", "note", "used_at"])
+            # Sheet 3: usage_records
+            ws3 = wb.create_sheet("耗材使用日志")
+            ws3.append(["id", "filament_id", "filament_name", "used_weight", "note", "used_at"])
             usage_rows = conn.execute("""
                 SELECT ur.id, ur.filament_id, f.name AS filament_name,
                        ur.used_weight, ur.note, ur.used_at
@@ -518,18 +528,18 @@ def api_export_excel():
                 ORDER BY ur.id
             """).fetchall()
             for r in usage_rows:
-                ws4.append([r["id"], r["filament_id"], r["filament_name"],
+                ws3.append([r["id"], r["filament_id"], r["filament_name"],
                            r["used_weight"], r["note"], r["used_at"]])
 
-            # Sheet 5: printers
-            ws5 = wb.create_sheet("打印机设备集群")
-            ws5.append(["id", "name", "model", "created_at"])
+            # Sheet 4: printers
+            ws4 = wb.create_sheet("打印机设备集群")
+            ws4.append(["id", "name", "model", "created_at"])
             for r in conn.execute("SELECT * FROM printers ORDER BY id").fetchall():
-                ws5.append([r["id"], r["name"], r["model"], r["created_at"]])
+                ws4.append([r["id"], r["name"], r["model"], r["created_at"]])
 
-            # Sheet 6: printer_slots
-            ws6 = wb.create_sheet("仓位挂载实时快照")
-            ws6.append(["id", "printer_id", "printer_name", "slot_name",
+            # Sheet 5: printer_slots
+            ws5 = wb.create_sheet("仓位挂载实时快照")
+            ws5.append(["id", "printer_id", "printer_name", "slot_name",
                        "current_filament_id", "filament_name", "filament_status"])
             slot_rows = conn.execute("""
                 SELECT ps.id, ps.printer_id, p.name AS printer_name, ps.slot_name,
@@ -540,14 +550,20 @@ def api_export_excel():
                 ORDER BY ps.printer_id, ps.id
             """).fetchall()
             for r in slot_rows:
-                ws6.append([r["id"], r["printer_id"], r["printer_name"], r["slot_name"],
+                ws5.append([r["id"], r["printer_id"], r["printer_name"], r["slot_name"],
                            r["current_filament_id"], r["filament_name"], r["filament_status"]])
 
-            # Sheet 7: channels
-            ws7 = wb.create_sheet("购买渠道管理")
-            ws7.append(["id", "name", "description"])
+            # Sheet 6: channels
+            ws6 = wb.create_sheet("购买渠道管理")
+            ws6.append(["id", "name", "description"])
             for r in conn.execute("SELECT * FROM channels ORDER BY id").fetchall():
-                ws7.append([r["id"], r["name"], r["description"]])
+                ws6.append([r["id"], r["name"], r["description"]])
+
+            # Sheet 7: brands
+            ws7 = wb.create_sheet("品牌与盘重管理")
+            ws7.append(["id", "name", "spool_type", "spool_weight", "remark"])
+            for r in conn.execute("SELECT * FROM brands ORDER BY name, spool_type").fetchall():
+                ws7.append([r["id"], r["name"], r["spool_type"], r["spool_weight"], r["remark"]])
 
         output = io.BytesIO()
         wb.save(output)

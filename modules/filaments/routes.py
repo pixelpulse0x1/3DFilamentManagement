@@ -18,25 +18,22 @@ def _filament_to_dict(row):
     result = {
         "id": row["id"],
         "name": row["name"],
-        "manufacturer": row["manufacturer"],
         "material_type": row["material_type"],
         "color": row["color"],
         "location": row["location"],
-        "is_opened": bool(row["is_opened"]),
-        "status": row["status"] if "status" in keys else ("闲置" if row["is_opened"] else "全新"),
+        "status": row["status"] if "status" in keys else "全新",
         "initial_weight": row["initial_weight"],
         "current_weight": row["current_weight"],
         "is_favorite": bool(row["is_favorite"]),
         "created_at": row["created_at"],
         "purchase_date": row["purchase_date"],
         "purchase_price": row["purchase_price"],
-        "purchase_channel": row["purchase_channel"],
         "opened_at": row["opened_at"],
+        "image_id": row["image_id"] if "image_id" in keys else None,
+        "remark": row["remark"] if "remark" in keys else None,
+        "channel_id": row["channel_id"] if "channel_id" in keys else None,
+        "brand_id": row["brand_id"] if "brand_id" in keys else None,
     }
-    if "image_id" in keys:
-        result["image_id"] = row["image_id"]
-    if "remark" in keys:
-        result["remark"] = row["remark"]
     return result
 
 
@@ -49,10 +46,12 @@ def api_filaments():
         with get_db(data_dir) as conn:
             if request.method == "GET":
                 rows = conn.execute("""
-                    SELECT f.*, fi.file_name AS image_file, ch.name AS channel_name
+                    SELECT f.*, fi.file_name AS image_file, ch.name AS channel_name,
+                           b.name AS brand_name, b.spool_type, b.spool_weight
                     FROM filaments f
                     LEFT JOIN filament_images fi ON f.image_id = fi.id
                     LEFT JOIN channels ch ON f.channel_id = ch.id
+                    LEFT JOIN brands b ON f.brand_id = b.id
                     ORDER BY f.id DESC
                 """).fetchall()
                 result = []
@@ -60,34 +59,34 @@ def api_filaments():
                     d = _filament_to_dict(r)
                     d["image_file"] = r["image_file"] if "image_file" in r.keys() else None
                     d["channel_name"] = r["channel_name"] if "channel_name" in r.keys() else None
+                    d["brand_name"] = r["brand_name"] if "brand_name" in r.keys() else None
+                    d["spool_type"] = r["spool_type"] if "spool_type" in r.keys() else None
+                    d["spool_weight"] = r["spool_weight"] if "spool_weight" in r.keys() else None
                     result.append(d)
                 return jsonify(result)
             else:
                 data = request.get_json()
-                # Determine initial status from legacy is_opened or new status field
                 status = data.get("status", "全新")
-                if "is_opened" in data and "status" not in data:
-                    status = "闲置" if data.get("is_opened") else "全新"
                 cursor = conn.execute(
                     """INSERT INTO filaments
-                       (name, manufacturer, material_type, color, location, is_opened,
+                       (name, material_type, color, location,
                         initial_weight, current_weight, is_favorite, purchase_date,
-                        purchase_price, purchase_channel, opened_at, status, image_id, remark, channel_id)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        purchase_price, opened_at, status, image_id, remark, channel_id, brand_id)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
-                        data["name"], data.get("manufacturer", ""),
+                        data["name"],
                         data["material_type"], data["color"],
                         data.get("location", ""),
-                        1 if data.get("is_opened") or status in ("闲置", "上机", "用尽") else 0,
                         data.get("initial_weight", 1000.0),
                         data.get("current_weight", data.get("initial_weight", 1000.0)),
                         1 if data.get("is_favorite") else 0,
                         data.get("purchase_date"), data.get("purchase_price"),
-                        data.get("purchase_channel"), data.get("opened_at"),
+                        data.get("opened_at"),
                         status,
                         data.get("image_id"),
                         data.get("remark"),
                         data.get("channel_id"),
+                        data.get("brand_id"),
                     ),
                 )
                 conn.commit()
@@ -105,14 +104,12 @@ def api_filament_single(filament_id):
             if request.method == "PUT":
                 data = request.get_json()
                 allowed = [
-                    "name", "manufacturer", "material_type", "color", "location",
-                    "is_opened", "initial_weight", "current_weight", "is_favorite",
-                    "purchase_date", "purchase_price", "purchase_channel", "opened_at",
-                    "status", "image_id", "remark", "channel_id",
+                    "name", "material_type", "color", "location",
+                    "initial_weight", "current_weight", "is_favorite",
+                    "purchase_date", "purchase_price", "opened_at",
+                    "status", "image_id", "remark", "channel_id", "brand_id",
                 ]
                 updates = {k: v for k, v in data.items() if k in allowed}
-                if "is_opened" in updates:
-                    updates["is_opened"] = 1 if updates["is_opened"] else 0
                 if "is_favorite" in updates:
                     updates["is_favorite"] = 1 if updates["is_favorite"] else 0
                 if updates:
@@ -152,20 +149,18 @@ def api_filaments_batch():
             for data in items:
                 conn.execute(
                     """INSERT INTO filaments
-                       (name, manufacturer, material_type, color, location, is_opened,
+                       (name, material_type, color, location,
                         initial_weight, current_weight, is_favorite, purchase_date,
-                        purchase_price, purchase_channel, status, image_id, remark)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        purchase_price, status, image_id, remark)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
-                        data["name"], data.get("manufacturer", ""),
+                        data["name"],
                         data["material_type"], data["color"],
                         data.get("location", ""),
-                        0,
                         data.get("initial_weight", 1000.0),
                         data.get("current_weight", data.get("initial_weight", 1000.0)),
                         1 if data.get("is_favorite") else 0,
                         data.get("purchase_date"), data.get("purchase_price"),
-                        data.get("purchase_channel"),
                         "全新",
                         data.get("image_id"),
                         data.get("remark"),
@@ -228,7 +223,7 @@ def api_filament_use(filament_id):
             new_weight = round(max(0, filament["current_weight"] - used_weight), 2)
             new_status = "用尽" if new_weight == 0 else filament["status"]
             conn.execute(
-                "UPDATE filaments SET current_weight = ?, is_opened = 1, status = ? WHERE id = ?",
+                "UPDATE filaments SET current_weight = ?, status = ? WHERE id = ?",
                 (new_weight, new_status, filament_id),
             )
             conn.execute(
@@ -407,7 +402,7 @@ def api_statistics():
 
             manufacturer_stats = {}
             for f in filaments:
-                mfr = f["manufacturer"] or "Unknown"
+                mfr = (f.get("brand_name") or f.get("manufacturer") or "Unknown")
                 if mfr not in manufacturer_stats:
                     manufacturer_stats[mfr] = {
                         "manufacturer": mfr,

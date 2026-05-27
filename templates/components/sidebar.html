@@ -35,21 +35,25 @@
                         </a></li>
                     </ul>
                 </li>
+                <!-- ROI效能账单 - Standalone -->
+                <li><a href="/roi" class="{{ 'active' if active_sub == 'roi' }}">
+                    <i class="fa-solid fa-coins"></i> ROI效能账单
+                </a></li>
             </ul>
         </li>
 
         <!-- 管理 - Accordion -->
         <li class="nav-group" data-group="manage">
-            <a class="nav-parent {{ 'active' if active_nav == 'manage' }}" data-target="manage">
+            <a class="nav-parent {{ 'active' if active_nav == 'manage' or active_sub == 'brands' }}" data-target="manage">
                 <i class="fa-solid fa-folder-tree"></i> 管理
                 <i class="fa-solid fa-chevron-down accordion-arrow"></i>
             </a>
-            <ul class="nav-children {{ 'open' if active_nav == 'manage' }}" id="manageChildren">
+            <ul class="nav-children {{ 'open' if active_nav == 'manage' or active_sub == 'brands' }}" id="manageChildren">
                 <li><a href="/materials" class="{{ 'active' if active_sub == 'materials' }}">
                     <i class="fa-solid fa-layer-group"></i> 类型
                 </a></li>
-                <li><a href="/manufacturers" class="{{ 'active' if active_sub == 'manufacturers' }}">
-                    <i class="fa-solid fa-tag"></i> 品牌
+                <li><a href="/dashboard/brands" class="{{ 'active' if active_sub == 'brands' }}">
+                    <i class="fa-solid fa-tag"></i> 品牌管理
                 </a></li>
                 <li><a href="/channels" class="{{ 'active' if active_sub == 'channels' }}">
                     <i class="fa-solid fa-store"></i> 渠道
@@ -87,7 +91,7 @@
         </li>
     </ul>
     <div class="sidebar-footer">
-        <span>v0.3.4.1</span>
+        <span>v0.4.0.12</span>
         <a href="https://github.com/pixelpulse0x1" target="_blank" rel="noopener noreferrer" class="github-link" title="GitHub">
             <i class="fab fa-github"></i>
         </a>

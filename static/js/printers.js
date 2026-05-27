@@ -13,12 +13,10 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('customModelGroup').style.display = this.value === '自定义' ? 'block' : 'none';
     });
 
-    // Bind filament search
     const searchInput = document.getElementById('bindSearchInput');
     if (searchInput) searchInput.addEventListener('input', filterBindList);
 
-    // Close all modals
-    document.querySelectorAll('.close-modal').forEach(b => b.addEventListener('click', closeAllModals));
+    document.querySelectorAll('.close-modal').forEach(b => b.addEventListener('click', closeDeviceModals));
 });
 
 // ─── Load Printers ───
@@ -29,13 +27,12 @@ function loadPrinters() {
         .then(data => {
             const grid = document.getElementById('printerGrid');
             const empty = document.getElementById('noPrinters');
-            if (!data || data.length === 0) {
+            if (!Array.isArray(data) || data.length === 0) {
                 grid.querySelectorAll('.printer-card').forEach(c => c.remove());
                 if (empty) empty.style.display = 'block';
                 return;
             }
             if (empty) empty.style.display = 'none';
-            // Preserve existing cards by rebuilding
             grid.querySelectorAll('.printer-card').forEach(c => c.remove());
             data.forEach(printer => renderPrinterCard(grid, printer));
         })
@@ -56,6 +53,7 @@ function renderPrinterCard(grid, printer) {
                 ? `<img src="/uploads/filaments/${f.image_file}" class="filament-thumb"
                        onclick="event.stopPropagation();openLightbox('/uploads/filaments/${f.image_file}')" />`
                 : '<div class="no-image-placeholder"><i class="fas fa-image"></i></div>';
+            const brandDisplay = f.brand_name || '';
             slotsHtml += `
                 <div class="slot-card slot-occupied" data-slot-id="${slot.id}" style="border-left: 4px solid ${f.color};">
                     <div class="slot-filament-color" style="background:${f.color};"></div>
@@ -63,7 +61,7 @@ function renderPrinterCard(grid, printer) {
                         <div class="slot-filament-row">
                             ${imageHtml}
                             <div class="slot-filament-detail">
-                                <div class="slot-filament-name">${f.manufacturer || ''} ${f.material_type || ''}</div>
+                                <div class="slot-filament-name">${brandDisplay} ${f.material_type || ''}</div>
                                 <div class="slot-filament-weight">
                                     <span>${f.current_weight.toFixed(2)}g / ${f.initial_weight.toFixed(2)}g</span>
                                     <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
@@ -78,7 +76,6 @@ function renderPrinterCard(grid, printer) {
                         <i class="fas fa-eject"></i>
                     </button>
                 </div>`;
-        } else {
         } else {
             slotsHtml += `
                 <div class="slot-card slot-empty" data-slot-id="${slot.id}">
@@ -112,7 +109,6 @@ function renderPrinterCard(grid, printer) {
 
     grid.appendChild(card);
 
-    // Bind events within this card
     card.querySelector('.add-slot-btn').addEventListener('click', function () {
         openAddSlot(this.dataset.printerId, this.dataset.printerName);
     });
@@ -160,7 +156,7 @@ function savePrinter() {
     })
         .then(r => r.json())
         .then(d => {
-            if (d.status === 'success') { closeAllModals(); loadPrinters(); }
+            if (d.status === 'success') { closeDeviceModals(); loadPrinters(); }
             else alert(d.error || '添加失败');
         })
         .catch(err => alert('添加失败: ' + err.message));
@@ -196,7 +192,7 @@ function saveSlot() {
     })
         .then(r => r.json())
         .then(d => {
-            if (d.status === 'success') { closeAllModals(); loadPrinters(); }
+            if (d.status === 'success') { closeDeviceModals(); loadPrinters(); }
             else alert(d.error || '添加失败');
         })
         .catch(err => alert('添加失败: ' + err.message));
@@ -206,7 +202,6 @@ function saveSlot() {
 
 function openBindFilament(slotId) {
     currentSlotIdForBind = slotId;
-    // Get slot name from the DOM
     const slotEl = document.querySelector(`[data-slot-id="${slotId}"]`);
     const slotName = slotEl ? slotEl.querySelector('.slot-placeholder span').textContent : '';
     document.getElementById('bindSlotName').textContent = slotName;
@@ -233,10 +228,11 @@ function renderBindList(filaments) {
     filaments.forEach(f => {
         const item = document.createElement('div');
         item.className = 'bind-filament-item';
+        const brandDisplay = f.brand_name || '';
         item.innerHTML = `
             <span class="color-indicator" style="background-color:${f.color};"></span>
             <div class="bind-filament-detail">
-                <strong>${f.manufacturer || '未知'} ${f.material_type}</strong>
+                <strong>${brandDisplay} ${f.material_type}</strong>
                 <small>${f.name} · ${f.current_weight.toFixed(2)}g · ${f.status}</small>
             </div>`;
         item.addEventListener('click', () => bindFilament(currentSlotIdForBind, f.id));
@@ -249,7 +245,7 @@ function filterBindList() {
     const filtered = allAvailableFilaments.filter(f =>
         f.name.toLowerCase().includes(term) ||
         f.material_type.toLowerCase().includes(term) ||
-        (f.manufacturer && f.manufacturer.toLowerCase().includes(term))
+        (f.brand_name && f.brand_name.toLowerCase().includes(term))
     );
     renderBindList(filtered);
 }
@@ -262,7 +258,7 @@ function bindFilament(slotId, filamentId) {
     })
         .then(r => r.json())
         .then(d => {
-            if (d.status === 'success') { closeAllModals(); loadPrinters(); }
+            if (d.status === 'success') { closeDeviceModals(); loadPrinters(); }
             else alert(d.error || '绑定失败');
         })
         .catch(err => alert('绑定失败: ' + err.message));
@@ -280,13 +276,12 @@ function unbindFilament(slotId) {
 }
 
 function openUseFromSlot(filamentId) {
-    // Reuse the global openUseModal from app.js
     if (typeof openUseModal === 'function') {
         openUseModal(filamentId);
     }
 }
 
-function closeAllModals() {
+function closeDeviceModals() {
     ['addPrinterModal', 'addSlotModal', 'bindFilamentModal'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';

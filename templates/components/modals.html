@@ -16,8 +16,13 @@
                     <select class="form-control" id="materialType"></select>
                 </div>
                 <div class="form-group">
-                    <label>生产厂商</label>
-                    <select class="form-control" id="manufacturer"></select>
+                    <label>品牌与盘型</label>
+                    <select class="form-control" id="brandSelect" onchange="onBrandChange('add')">
+                        <option value="">请选择品牌</option>
+                    </select>
+                    <select class="form-control" id="spoolSelect" onchange="onSpoolChange('add')" style="margin-top:0.5rem;">
+                        <option value="">请选择盘型</option>
+                    </select>
                 </div>
             </div>
             <div class="form-group">
@@ -43,6 +48,29 @@
                         <option value="用尽">用尽</option>
                     </select>
                 </div>
+            </div>
+            <!-- Weight Calculator: Gross - Spool = Net -->
+            <div class="weight-calc-row" id="addWeightCalcRow">
+                <div style="grid-column:1/-1;display:flex;align-items:center;gap:0.6rem;margin-bottom:0.3rem;">
+                    <label style="margin:0;cursor:pointer;display:flex;align-items:center;gap:0.4rem;">
+                        <input type="checkbox" id="enableWeighing" onchange="toggleWeighing('add')">
+                        <strong>核实称重</strong>
+                    </label>
+                    <small style="color:var(--ha-card-color);opacity:0.5;">勾选后启用秤测计算</small>
+                </div>
+                <div class="form-group">
+                    <label>秤测总重量 (g)</label>
+                    <input type="number" class="form-control gross-weight" placeholder="放秤上的读数" step="0.1" oninput="calcNetWeight('add')" disabled>
+                </div>
+                <div class="form-group">
+                    <label>盘重 (g)</label>
+                    <input type="number" class="form-control spool-weight-display" value="0.0" readonly style="background:rgba(0,0,0,0.06);">
+                </div>
+                <div class="form-group">
+                    <label>当前净重 (g) =</label>
+                    <input type="number" class="form-control net-weight" readonly style="background:rgba(76,201,240,0.1);font-weight:bold;">
+                </div>
+                <div class="weighing-hint" id="addWeighingHint"></div>
             </div>
             <div class="grid-2">
                 <div class="form-group">
@@ -125,13 +153,41 @@
             </div>
             <div class="grid-2">
                 <div class="form-group">
-                    <label>生产厂商</label>
-                    <select class="form-control" id="batchManufacturer"></select>
+                    <label>品牌与盘型</label>
+                    <select class="form-control" id="batchBrandSelect" onchange="onBrandChange('batch')">
+                        <option value="">请选择品牌</option>
+                    </select>
+                    <select class="form-control" id="batchSpoolSelect" onchange="onSpoolChange('batch')" style="margin-top:0.5rem;">
+                        <option value="">请选择盘型</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>存储位置</label>
                     <input type="text" class="form-control" id="batchLocation" placeholder="例如: A区-3层">
                 </div>
+            </div>
+            <!-- Weight Calculator -->
+            <div class="weight-calc-row" id="batchWeightCalcRow">
+                <div style="grid-column:1/-1;display:flex;align-items:center;gap:0.6rem;margin-bottom:0.3rem;">
+                    <label style="margin:0;cursor:pointer;display:flex;align-items:center;gap:0.4rem;">
+                        <input type="checkbox" id="batchEnableWeighing" onchange="toggleWeighing('batch')">
+                        <strong>核实称重</strong>
+                    </label>
+                    <small style="color:var(--ha-card-color);opacity:0.5;">勾选后启用秤测计算</small>
+                </div>
+                <div class="form-group">
+                    <label>秤测总重量 (g)</label>
+                    <input type="number" class="form-control batch-gross-weight" placeholder="放秤上的读数" step="0.1" oninput="calcNetWeight('batch')" disabled>
+                </div>
+                <div class="form-group">
+                    <label>盘重 (g)</label>
+                    <input type="number" class="form-control batch-spool-weight-display" value="0.0" readonly style="background:rgba(0,0,0,0.06);">
+                </div>
+                <div class="form-group">
+                    <label>当前净重 (g) =</label>
+                    <input type="number" class="form-control batch-net-weight" readonly style="background:rgba(76,201,240,0.1);font-weight:bold;">
+                </div>
+                <div class="weighing-hint" id="batchWeighingHint"></div>
             </div>
             <div class="grid-2">
                 <div class="form-group">

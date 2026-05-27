@@ -7,10 +7,10 @@ from modules.db import init_db
 from modules.base import base_bp
 from modules.filaments import filaments_bp
 from modules.materials import materials_bp
-from modules.manufacturers import manufacturers_bp
 from modules.printers import printers_bp
 from modules.images import images_bp
 from modules.channels import channels_bp
+from modules.brands import brands_bp
 
 
 def create_app():
@@ -24,10 +24,10 @@ def create_app():
     app.register_blueprint(base_bp)
     app.register_blueprint(filaments_bp)
     app.register_blueprint(materials_bp, url_prefix="/api/materials")
-    app.register_blueprint(manufacturers_bp, url_prefix="/api/manufacturers")
     app.register_blueprint(printers_bp)
     app.register_blueprint(images_bp)
     app.register_blueprint(channels_bp)
+    app.register_blueprint(brands_bp)
 
     @app.errorhandler(404)
     def not_found(error):

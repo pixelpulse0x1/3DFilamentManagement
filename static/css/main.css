@@ -1350,6 +1350,122 @@ input, select, textarea { font-size: 16px; }
     font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
+/* ─── Weight Calculator ─── */
+
+.weight-calc-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.8rem;
+    margin: 0.5rem 0 1rem;
+    padding: 0.8rem;
+    background: rgba(76, 201, 240, 0.06);
+    border-radius: 8px;
+    border: 1px solid rgba(76, 201, 240, 0.15);
+}
+
+/* ─── ROI Metrics ─── */
+
+.roi-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.roi-metrics-grid .card { text-align: center; }
+
+/* ─── Brand Tree Accordion ─── */
+
+.brand-tree-card {
+    background: var(--ha-card-bg);
+    backdrop-filter: blur(var(--ha-card-blur));
+    -webkit-backdrop-filter: blur(var(--ha-card-blur));
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.2);
+    margin-bottom: 0.6rem;
+    overflow: hidden;
+}
+
+.brand-tree-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.2rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.brand-tree-header:hover { background: rgba(0,0,0,0.03); }
+
+.brand-tree-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.brand-tree-arrow {
+    font-size: 0.7rem;
+    transition: transform 0.3s;
+    opacity: 0.5;
+}
+
+.brand-tree-card.expanded .brand-tree-arrow { transform: rotate(90deg); }
+
+.brand-spool-count {
+    font-size: 0.8rem;
+    color: var(--ha-card-color);
+    opacity: 0.5;
+}
+
+.brand-tree-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+}
+
+.brand-tree-card.expanded .brand-tree-body { max-height: 600px; }
+
+.btn-edit-brand-name {
+    cursor: pointer;
+    opacity: 0;
+    color: var(--primary);
+    font-size: 0.9rem;
+    padding: 0.3rem;
+    transition: opacity 0.2s;
+}
+.brand-tree-header:hover .btn-edit-brand-name { opacity: 0.7; }
+.btn-edit-brand-name:hover { opacity: 1 !important; }
+
+.spool-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1.2rem 0.6rem 2.8rem;
+    border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+.spool-detail {
+    display: flex;
+    gap: 1.2rem;
+    align-items: center;
+}
+
+.spool-type { font-weight: 500; color: var(--ha-card-color); }
+.spool-weight { color: var(--ha-card-color); opacity: 0.7; font-family: monospace; }
+.spool-remark { color: var(--ha-card-color); opacity: 0.4; font-size: 0.85rem; }
+
+.spool-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.spool-actions .btn {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    height: auto;
+}
+
 /* ─── Mobile Visibility ─── */
 .mobile-hidden { display: table-cell; }
 .mobile-only { display: none; }
@@ -1414,6 +1530,33 @@ input, select, textarea { font-size: 16px; }
 .status-radio:last-child { border-right: none; }
 
 .status-radio input { display: none; }
+
+/* ─── Filter Checkboxes ─── */
+
+.filter-checkboxes {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--ha-card-color);
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+}
+
+.filter-checkbox:hover { background: rgba(0, 0, 0, 0.06); }
+
+.filter-checkbox input[type="checkbox"] { accent-color: var(--primary); }
 
 .status-radio:hover { background: rgba(0, 0, 0, 0.04); }
 

@@ -14,7 +14,7 @@ let settings = {};
 let longPressTimer = null;
 let currentSort = { field: null, direction: 'none' };
 let currentSearchTerm = '';
-let currentFilamentFilter = 'all';
+let currentStatusFilters = new Set(['闲置']);
 
 const presetColors = [
     '#000000','#FFFFFF','#808080','#C0C0C0','#FF0000','#0000FF','#008000','#FFFF00','#FFA500','#FFC0CB',
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadUsageRecords();
     initColorPickers();
     loadMaterialOptions();
-    loadManufacturerOptions();
+    loadBrandOptions();
     loadChannelOptions();
 
     // Handle search query param from manufacturer card click
@@ -150,6 +150,91 @@ function loadData() {
 }
 
 // Load material/manufacturer options (adapted for new object-array API format)
+// ─── Brand Cascade + Weight Calculator ───
+let brandSpoolMap = {};
+
+function loadBrandOptions() {
+    return fetch('/api/brands')
+        .then(r => r.json())
+        .then(data => {
+            brandSpoolMap = {};
+            const names = [...new Set(data.map(d => d.name))];
+            ['brandSelect', 'batchBrandSelect'].forEach(sid => {
+                const sel = document.getElementById(sid);
+                if (!sel) return;
+                sel.innerHTML = '<option value="">请选择品牌</option>';
+                names.forEach(name => {
+                    sel.innerHTML += `<option value="${name}">${name}</option>`;
+                });
+            });
+            names.forEach(name => {
+                brandSpoolMap[name] = data.filter(d => d.name === name);
+            });
+        });
+}
+
+function onBrandChange(scope) {
+    const prefix = scope === 'batch' ? 'batch' : '';
+    const name = document.getElementById(prefix + 'brandSelect').value;
+    const spoolSel = document.getElementById(prefix + 'spoolSelect');
+    spoolSel.innerHTML = '<option value="">请选择盘型</option>';
+    if (brandSpoolMap[name]) {
+        brandSpoolMap[name].forEach(b => {
+            spoolSel.innerHTML += `<option value="${b.id}" data-weight="${b.spool_weight}">${b.spool_type} (${b.spool_weight}g)</option>`;
+        });
+    }
+    onSpoolChange(scope);
+}
+
+function onSpoolChange(scope) {
+    const prefix = scope === 'batch' ? 'batch' : '';
+    const opt = document.getElementById(prefix + 'spoolSelect').selectedOptions[0];
+    const weight = opt ? parseFloat(opt.dataset.weight) || 0 : 0;
+    const displayEl = document.querySelector('.' + (scope === 'batch' ? 'batch-spool-weight-display' : 'spool-weight-display'));
+    if (displayEl) displayEl.value = weight.toFixed(1);
+    toggleWeighing(scope);
+    calcNetWeight(scope);
+}
+
+function toggleWeighing(scope) {
+    const prefix = scope === 'batch' ? 'batch' : '';
+    const cb = document.getElementById(prefix + 'EnableWeighing');
+    const grossEl = document.querySelector('.' + (scope === 'batch' ? 'batch-' : '') + 'gross-weight');
+    const enabled = cb && cb.checked;
+    if (grossEl) grossEl.disabled = !enabled;
+    const hint = document.getElementById(prefix + 'WeighingHint');
+    if (hint) {
+        const spoolVal = document.getElementById(prefix + 'spoolSelect')?.value;
+        if (!spoolVal) {
+            hint.innerHTML = '<small style="color:var(--warning);">当前耗材未指定品牌盘型，无法获取空盘重，请先选择品牌和盘型以启用称重计算。</small>';
+            if (cb) { cb.checked = false; cb.disabled = true; }
+            if (grossEl) grossEl.disabled = true;
+        } else {
+            hint.innerHTML = '';
+            if (cb) cb.disabled = false;
+        }
+    }
+}
+
+function calcNetWeight(scope) {
+    const prefix = scope === 'batch' ? 'batch-' : '';
+    const cb = document.getElementById((scope === 'batch' ? 'batch' : '') + 'EnableWeighing');
+    if (!cb || !cb.checked) return;
+    const gross = parseFloat(document.querySelector('.' + prefix + 'gross-weight')?.value) || 0;
+    const spool = parseFloat(document.querySelector('.' + prefix + 'spool-weight-display')?.value) || 0;
+    const net = Math.max(0, gross - spool);
+    const netEl = document.querySelector('.' + prefix + 'net-weight');
+    if (netEl) netEl.value = net.toFixed(1);
+    // Only update current_weight, NEVER touch initial_weight
+    document.getElementById((scope === 'batch' ? 'batchInitialWeight' : 'currentWeight')).value = net.toFixed(1);
+}
+
+function getSelectedBrandId(scope) {
+    const prefix = scope === 'batch' ? 'batch' : '';
+    const val = document.getElementById(prefix + 'spoolSelect').value;
+    return val ? parseInt(val) : null;
+}
+
 function loadMaterialOptions() {
     fetch('/api/materials')
         .then(r => r.json())
@@ -231,19 +316,17 @@ function applyFilters(filamentsList) {
             (f.color && f.color.toLowerCase().includes(term))
         );
     }
-    if (currentFilamentFilter !== 'all') {
+    if (currentStatusFilters.size > 0 && currentStatusFilters.size < 5) {
         const low = settings.low_weight_threshold || 100;
-        if (currentFilamentFilter === '不足') {
-            filtered = filtered.filter(f => f.current_weight > 0 && f.current_weight <= low);
-        } else if (currentFilamentFilter === '用尽') {
-            filtered = filtered.filter(f => f.current_weight === 0);
-        } else {
-            // 全新/闲置/上机: mutual exclusion with 不足
-            filtered = filtered.filter(f => {
-                if (f.current_weight > 0 && f.current_weight <= low) return false;
-                return f.status === currentFilamentFilter;
-            });
-        }
+        filtered = filtered.filter(f => {
+            const match = [];
+            if (currentStatusFilters.has('全新')) match.push(f.status === '全新' && !(f.current_weight > 0 && f.current_weight <= low));
+            if (currentStatusFilters.has('闲置')) match.push(f.status === '闲置' && !(f.current_weight > 0 && f.current_weight <= low));
+            if (currentStatusFilters.has('上机')) match.push(f.status === '上机' && !(f.current_weight > 0 && f.current_weight <= low));
+            if (currentStatusFilters.has('不足')) match.push(f.current_weight > 0 && f.current_weight <= low);
+            if (currentStatusFilters.has('用尽')) match.push(f.current_weight === 0);
+            return match.some(Boolean);
+        });
     }
     return filtered;
 }
@@ -308,15 +391,12 @@ function bindEvents() {
     const si = document.getElementById('searchInput');
     if (si) si.addEventListener('input', function () { currentSearchTerm = this.value.toLowerCase(); renderFilamentTable(applyFilters(filaments)); });
 
-    // Status filter radio buttons
-    document.querySelectorAll('input[name="filamentFilter"]').forEach(radio => {
-        radio.addEventListener('change', function () {
-            if (this.checked) {
-                currentFilamentFilter = this.value;
-                document.querySelectorAll('#filamentFilterGroup .status-radio').forEach(l => l.classList.remove('active'));
-                this.parentElement.classList.add('active');
-                renderFilamentTable(applyFilters(filaments));
-            }
+    // Status filter checkboxes
+    document.querySelectorAll('#statusFilterCheckboxes input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', function () {
+            if (this.checked) currentStatusFilters.add(this.value);
+            else currentStatusFilters.delete(this.value);
+            renderFilamentTable(applyFilters(filaments));
         });
     });
 
@@ -395,7 +475,7 @@ function renderFilamentTable(filaments) {
             <td class="material-cell">${f.material_type}</td>
             <td><span class="color-indicator" style="background-color:${f.color};"></span></td>
             <td class="image-cell">${imageCell}</td>
-            <td class="manufacturer-cell">${f.manufacturer || '-'}</td>
+            <td class="manufacturer-cell">${f.brand_name || f.manufacturer || '-'}</td>
             <td class="weight-cell">
                 <div class="mobile-hidden"><div>${f.current_weight.toFixed(2)}g / ${f.initial_weight.toFixed(2)}g</div>
                 <div class="progress-container"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div></div>
@@ -658,7 +738,9 @@ function bindTableButtons() {
     document.querySelectorAll('.favorite-btn').forEach(btn => {
         btn.addEventListener('click', function () { toggleFavorite(this.dataset.id, !this.classList.contains('fas')); });
     });
-    document.querySelectorAll('.fa-edit').forEach(btn => { btn.addEventListener('click', function () { openEditModal(this.dataset.id); }); });
+    document.querySelectorAll('.fa-edit').forEach(btn => {
+        btn.addEventListener('click', function () { openEditModal(this.dataset.id); });
+    });
     document.querySelectorAll('.fa-eye').forEach(btn => { btn.addEventListener('click', function () { openDetailModal(this.dataset.id); }); });
     document.querySelectorAll('.fa-minus-circle').forEach(btn => { btn.addEventListener('click', function () { openUseModal(this.dataset.id); }); });
     document.querySelectorAll('.fa-trash').forEach(btn => {
@@ -822,7 +904,6 @@ function openAddModal() {
     document.getElementById('modalTitle').textContent = '添加新耗材';
     document.getElementById('filamentName').value = '';
     const mt = document.getElementById('materialType'); if (mt) mt.value = 'PLA Basic';
-    const mfr = document.getElementById('manufacturer'); if (mfr) mfr.value = '拓竹';
     document.getElementById('colorPicker').value = '#5b9bd5';
     document.getElementById('colorPreview').style.backgroundColor = '#5b9bd5';
     document.getElementById('location').value = '';
@@ -836,6 +917,13 @@ function openAddModal() {
     document.getElementById('openedAtGroup').style.display = 'none';
     document.getElementById('openedAt').value = '';
     document.getElementById('filamentRemark').value = '';
+    document.getElementById('brandSelect').value = '';
+    document.getElementById('spoolSelect').innerHTML = '<option value="">请选择盘型</option>';
+    document.querySelector('.spool-weight-display').value = '0.0';
+    document.querySelector('.gross-weight').value = '';
+    document.querySelector('.net-weight').value = '';
+    document.getElementById('enableWeighing').checked = false;
+    document.querySelector('.gross-weight').disabled = true;
     clearFilamentImage();
     document.getElementById('addModal').style.display = 'flex';
 }
@@ -857,35 +945,66 @@ function openBatchAddModal() {
     document.getElementById('batchAddModal').style.display = 'flex';
 }
 
-function openEditModal(filamentId) {
+function openEditModal(filamentId, brandId, brandName) {
     const f = filaments.find(f => f.id == filamentId);
     if (!f) return;
-    currentEditId = filamentId;
-    document.getElementById('modalTitle').textContent = '编辑耗材';
-    document.getElementById('filamentName').value = f.name;
-    document.getElementById('manufacturer').value = f.manufacturer || '';
-    document.getElementById('materialType').value = f.material_type;
-    document.getElementById('colorPicker').value = f.color;
-    document.getElementById('colorPreview').style.backgroundColor = f.color;
-    document.getElementById('location').value = f.location || '';
-    document.getElementById('filamentStatus').value = f.status || '闲置';
-    document.getElementById('initialWeight').value = f.initial_weight;
-    document.getElementById('currentWeight').value = f.current_weight;
-    document.getElementById('isFavorite').checked = f.is_favorite;
-    document.getElementById('purchaseDate').value = f.purchase_date || '';
-    document.getElementById('purchasePrice').value = f.purchase_price || '';
-    document.getElementById('purchaseChannel').value = f.channel_id || '';
-    if (f.opened_at) document.getElementById('openedAt').value = f.opened_at;
-    document.getElementById('openedAtGroup').style.display = (f.status && f.status !== '全新') ? 'block' : 'none';
-    document.getElementById('filamentRemark').value = f.remark || '';
-    selectedFilamentImageId = f.image_id || null;
-    if (f.image_id && f.image_file) {
-        document.getElementById('selectedFilamentImage').src = '/uploads/filaments/' + f.image_file;
-        document.getElementById('selectedImagePreview').style.display = 'flex';
-    } else {
-        document.getElementById('selectedImagePreview').style.display = 'none';
+
+    function _populate() {
+        currentEditId = filamentId;
+        document.getElementById('modalTitle').textContent = '编辑耗材';
+        document.getElementById('filamentName').value = f.name;
+        document.getElementById('materialType').value = f.material_type;
+        document.getElementById('colorPicker').value = f.color;
+        document.getElementById('colorPreview').style.backgroundColor = f.color;
+        document.getElementById('location').value = f.location || '';
+        document.getElementById('filamentStatus').value = f.status || '闲置';
+        document.getElementById('initialWeight').value = f.initial_weight;
+        document.getElementById('currentWeight').value = f.current_weight;
+        document.getElementById('isFavorite').checked = f.is_favorite;
+        document.getElementById('purchaseDate').value = f.purchase_date || '';
+        document.getElementById('purchasePrice').value = f.purchase_price || '';
+        document.getElementById('filamentRemark').value = f.remark || '';
+        document.getElementById('purchaseChannel').value = f.channel_id ? String(f.channel_id) : '';
+        selectedFilamentImageId = f.image_id || null;
+        if (f.image_id && f.image_file) {
+            document.getElementById('selectedFilamentImage').src = '/uploads/filaments/' + f.image_file;
+            document.getElementById('selectedImagePreview').style.display = 'flex';
+        } else {
+            document.getElementById('selectedImagePreview').style.display = 'none';
+        }
+        if (f.opened_at) document.getElementById('openedAt').value = f.opened_at;
+        document.getElementById('openedAtGroup').style.display = (f.status && f.status !== '全新') ? 'block' : 'none';
+
+        // Brand cascade: populate brand → spool → weight
+        const bid = f.brand_id;
+        const bname = f.brand_name || '';
+        if (bid && bname && brandSpoolMap[bname]) {
+            document.getElementById('brandSelect').value = bname;
+            onBrandChange('add');
+            document.getElementById('spoolSelect').value = String(bid);
+            onSpoolChange('add');
+            // Back-calc gross weight
+            const spoolW = parseFloat(document.querySelector('.spool-weight-display')?.value) || 0;
+            document.querySelector('.gross-weight').value = (f.current_weight + spoolW).toFixed(1);
+        } else {
+            document.getElementById('brandSelect').value = '';
+            document.getElementById('spoolSelect').innerHTML = '<option value="">请选择盘型</option>';
+            document.querySelector('.spool-weight-display').value = '0.0';
+            document.querySelector('.gross-weight').value = '';
+            document.querySelector('.net-weight').value = '';
+        }
+        document.getElementById('enableWeighing').checked = false;
+        document.querySelector('.gross-weight').disabled = true;
+
+        document.getElementById('addModal').style.display = 'flex';
     }
-    document.getElementById('addModal').style.display = 'flex';
+
+    // Ensure brand data is loaded before populating
+    if (Object.keys(brandSpoolMap).length === 0) {
+        loadBrandOptions().then(() => _populate());
+    } else {
+        _populate();
+    }
 }
 
 function openUseModal(filamentId) {
@@ -938,11 +1057,10 @@ function saveFilament() {
     if (!name || !mt || !color) { alert('请填写必填字段：耗材名称、材料类型和颜色'); return; }
     const data = {
         name, material_type: mt, color,
-        manufacturer: document.getElementById('manufacturer').value,
         location: document.getElementById('location').value,
         status: document.getElementById('filamentStatus').value,
-        initial_weight: parseFloat(document.getElementById('initialWeight').value),
-        current_weight: parseFloat(document.getElementById('currentWeight').value),
+        initial_weight: parseFloat(document.getElementById('initialWeight').value) || 0,
+        current_weight: parseFloat(document.getElementById('currentWeight').value) || 0,
         is_favorite: document.getElementById('isFavorite').checked,
         purchase_date: document.getElementById('purchaseDate').value || null,
         purchase_price: parseFloat(document.getElementById('purchasePrice').value) || null,
@@ -950,6 +1068,7 @@ function saveFilament() {
         opened_at: null,
         image_id: selectedFilamentImageId || null,
         remark: document.getElementById('filamentRemark').value.trim() || null,
+        brand_id: getSelectedBrandId('add'),
     };
     if (document.getElementById('openedAt').value) data.opened_at = document.getElementById('openedAt').value;
     const url = currentEditId ? '/api/filaments/'+currentEditId : '/api/filaments';
@@ -966,15 +1085,16 @@ function saveBatch() {
     if (!prefix || !mt || !color || qty < 1) { alert('请填写必填字段'); return; }
     const batch = [];
     for (let i=1; i<=qty; i++) batch.push({
-        name: prefix, manufacturer: document.getElementById('batchManufacturer').value, material_type: mt, color,
+        name: prefix, material_type: mt, color,
         location: document.getElementById('batchLocation').value, status: '全新',
-        initial_weight: parseFloat(document.getElementById('batchInitialWeight').value),
-        current_weight: parseFloat(document.getElementById('batchInitialWeight').value), is_favorite: false,
+        initial_weight: parseFloat(document.getElementById('batchInitialWeight').value) || 0,
+        current_weight: parseFloat(document.getElementById('batchInitialWeight').value) || 0, is_favorite: false,
         purchase_date: document.getElementById('batchPurchaseDate').value || null,
         purchase_price: parseFloat(document.getElementById('batchPurchasePrice').value) || null,
         channel_id: parseInt(document.getElementById('batchPurchaseChannel').value) || null,
         image_id: selectedBatchImageId || null,
         remark: document.getElementById('batchRemark').value.trim() || null,
+        brand_id: getSelectedBrandId('batch'),
     });
     fetch('/api/filaments/batch', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(batch) })
         .then(r=>r.json()).then(d=>{ if(d.status==='success'){closeAllModals();loadData();}else alert('批量添加失败: '+(d.error||'未知错误')); })

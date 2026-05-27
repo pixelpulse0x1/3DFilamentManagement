@@ -39,10 +39,14 @@ def api_printers():
                 for p in printers:
                     pd = _printer_to_dict(p)
                     slots = conn.execute(
-                        "SELECT ps.*, f.name AS f_name, f.manufacturer, f.material_type, "
-                        "f.color, f.current_weight, f.initial_weight, f.status "
+                        "SELECT ps.*, f.name AS f_name, f.material_type, "
+                        "f.color, f.current_weight, f.initial_weight, f.status, "
+                        "f.image_id, fi.file_name AS image_file, "
+                        "b.name AS brand_name, b.spool_type, b.spool_weight "
                         "FROM printer_slots ps "
                         "LEFT JOIN filaments f ON ps.current_filament_id = f.id "
+                        "LEFT JOIN filament_images fi ON f.image_id = fi.id "
+                        "LEFT JOIN brands b ON f.brand_id = b.id "
                         "WHERE ps.printer_id = ? "
                         "ORDER BY ps.id",
                         (p["id"],),
@@ -54,12 +58,16 @@ def api_printers():
                             sd["filament"] = {
                                 "id": s["current_filament_id"],
                                 "name": s["f_name"],
-                                "manufacturer": s["manufacturer"],
                                 "material_type": s["material_type"],
                                 "color": s["color"],
                                 "current_weight": s["current_weight"],
                                 "initial_weight": s["initial_weight"],
                                 "status": s["status"],
+                                "image_id": s["image_id"],
+                                "image_file": s["image_file"],
+                                "brand_name": s["brand_name"],
+                                "spool_type": s["spool_type"],
+                                "spool_weight": s["spool_weight"],
                             }
                         else:
                             sd["filament"] = None

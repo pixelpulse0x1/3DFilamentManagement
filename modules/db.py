@@ -7,7 +7,7 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-LATEST_VERSION = 4
+LATEST_VERSION = 5
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
@@ -32,6 +32,20 @@ DEFAULT_MANUFACTURERS = [
 
 DEFAULT_CHANNELS = [
     "拼多多", "京东", "淘宝", "小程序", "闲鱼", "实体店", "QQ", "微信", "拓竹官网", "其它",
+]
+
+BUILTIN_BRANDS = [
+    ("天瑞", "标准盘", 188.4), ("R3D", "塑盘", 126.5), ("R3D", "纸盘", 191.0),
+    ("Jayo", "标准盘", 126.0), ("Jayo", "新包装纸筒盘", 201.7),
+    ("启庞", "标准盘", 138.1), ("三绿", "黑塑盘", 135.0), ("三绿", "透明盘", 140.0),
+    ("三慈", "标准盘", 122.0), ("拓竹", "官方盘", 239.0),
+    ("彩格", "标准盘", 181.0), ("彩多屋", "标准盘", 180.0),
+    ("RMERME", "标准盘", 187.7), ("海螺号", "标准盘", 200.0),
+    ("必应", "标准盘", 150.0), ("点维", "标准盘", 182.9),
+    ("K家", "标准盘", 220.0), ("易生", "纸盘", 181.0),
+    ("蓝极光", "标准盘", 165.0), ("兰博", "标准盘", 170.0),
+    ("瑞本", "标准盘", 220.0), ("兰小度", "标准盘", 160.0),
+    ("起迪", "标准盘", 246.0), ("双第", "标准盘", 200.0),
 ]
 
 
@@ -122,18 +136,15 @@ def _create_all_tables(conn):
         CREATE TABLE IF NOT EXISTS filaments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            manufacturer TEXT,
             material_type TEXT NOT NULL,
             color TEXT NOT NULL,
             location TEXT,
-            is_opened BOOLEAN NOT NULL DEFAULT 0,
             initial_weight REAL NOT NULL DEFAULT 1000.0,
             current_weight REAL NOT NULL,
             is_favorite BOOLEAN NOT NULL DEFAULT 0,
             created_at TEXT DEFAULT (datetime('now', 'localtime')),
             purchase_date TEXT,
             purchase_price REAL,
-            purchase_channel TEXT,
             opened_at TEXT
         );
 
@@ -156,12 +167,6 @@ def _create_all_tables(conn):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE NOT NULL,
             description TEXT DEFAULT ''
-        );
-
-        CREATE TABLE IF NOT EXISTS manufacturers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL,
-            website TEXT DEFAULT ''
         );
 
         CREATE TABLE IF NOT EXISTS system_settings (
@@ -197,6 +202,15 @@ def _create_all_tables(conn):
             name TEXT UNIQUE NOT NULL,
             description TEXT DEFAULT ''
         );
+
+        CREATE TABLE IF NOT EXISTS brands (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            spool_type TEXT DEFAULT '标准盘',
+            spool_weight REAL NOT NULL DEFAULT 0.0,
+            remark TEXT DEFAULT '',
+            UNIQUE(name, spool_type)
+        );
     """)
 
 
@@ -224,6 +238,8 @@ def _run_migration(from_ver, to_ver, data_dir, conn):
         _migrate_v2_to_v3(data_dir, conn)
     elif from_ver == 3 and to_ver == 4:
         _migrate_v3_to_v4(conn)
+    elif from_ver == 4 and to_ver == 5:
+        _migrate_v4_to_v5(data_dir, conn)
     else:
         logger.warning("Unknown migration step: %d → %d", from_ver, to_ver)
 
@@ -233,13 +249,15 @@ def _migrate_v1_to_v2(conn):
     col_names = [c[1] for c in conn.execute("PRAGMA table_info(filaments)").fetchall()]
     if "status" not in col_names:
         conn.execute("ALTER TABLE filaments ADD COLUMN status TEXT NOT NULL DEFAULT '全新'")
-        conn.execute("""
-            UPDATE filaments SET status = CASE
-                WHEN current_weight = 0 THEN '用尽'
-                WHEN is_opened = 1 THEN '闲置'
-                ELSE '全新'
-            END
-        """)
+        # Only run legacy mapping if is_opened column still exists
+        if "is_opened" in col_names:
+            conn.execute("""
+                UPDATE filaments SET status = CASE
+                    WHEN current_weight = 0 THEN '用尽'
+                    WHEN is_opened = 1 THEN '闲置'
+                    ELSE '全新'
+                END
+            """)
         logger.info("  ✓ filaments.status column added and migrated.")
 
 
@@ -299,18 +317,61 @@ def _migrate_v3_to_v4(conn):
     """v0.3.1.0: channels table, filaments.channel_id FK, data extraction."""
     col_names = [c[1] for c in conn.execute("PRAGMA table_info(filaments)").fetchall()]
     if "channel_id" not in col_names:
-        conn.execute("""
-            INSERT OR IGNORE INTO channels (name)
-            SELECT DISTINCT purchase_channel FROM filaments
-            WHERE purchase_channel IS NOT NULL AND purchase_channel != ''
-        """)
+        if "purchase_channel" in col_names:
+            conn.execute("""
+                INSERT OR IGNORE INTO channels (name)
+                SELECT DISTINCT purchase_channel FROM filaments
+                WHERE purchase_channel IS NOT NULL AND purchase_channel != ''
+            """)
         conn.execute("ALTER TABLE filaments ADD COLUMN channel_id INTEGER REFERENCES channels(id) ON DELETE SET NULL")
-        conn.execute("""
-            UPDATE filaments SET channel_id = (
-                SELECT c.id FROM channels c WHERE c.name = filaments.purchase_channel
-            ) WHERE purchase_channel IS NOT NULL AND purchase_channel != ''
-        """)
+        if "purchase_channel" in col_names:
+            conn.execute("""
+                UPDATE filaments SET channel_id = (
+                    SELECT c.id FROM channels c WHERE c.name = filaments.purchase_channel
+                ) WHERE purchase_channel IS NOT NULL AND purchase_channel != ''
+            """)
         logger.info("  ✓ filaments.channel_id FK added and data mapped.")
+
+
+def _migrate_v4_to_v5(data_dir, conn):
+    """v0.4.0.0: brands table with spool weights, filaments.brand_id FK, data extraction."""
+    # 1. Seed built-in brand data
+    for name, spool_type, weight in BUILTIN_BRANDS:
+        conn.execute(
+            "INSERT OR IGNORE INTO brands (name, spool_type, spool_weight) VALUES (?, ?, ?)",
+            (name, spool_type, weight),
+        )
+
+    # 2. Scan old manufacturer texts only if column exists
+    if "manufacturer" in col_names:
+        old_mfrs = conn.execute(
+            """SELECT DISTINCT manufacturer FROM filaments
+               WHERE manufacturer IS NOT NULL AND manufacturer != ''
+               AND manufacturer NOT IN (SELECT name FROM brands)"""
+        ).fetchall()
+        for r in old_mfrs:
+            mfr = r[0]
+            conn.execute(
+                "INSERT OR IGNORE INTO brands (name, spool_type, spool_weight, remark) VALUES (?, '未知盘', 0.0, '旧数据自动迁移兜底')",
+                (mfr,),
+            )
+
+    # 3. Add brand_id FK column to filaments
+    col_names = [c[1] for c in conn.execute("PRAGMA table_info(filaments)").fetchall()]
+    if "brand_id" not in col_names:
+        conn.execute(
+            "ALTER TABLE filaments ADD COLUMN brand_id INTEGER REFERENCES brands(id) ON DELETE SET NULL"
+        )
+        # 4. Map old manufacturer text → brand_id if column exists
+        if "manufacturer" in col_names:
+            conn.execute("""
+                UPDATE filaments SET brand_id = (
+                    SELECT b.id FROM brands b
+                    WHERE b.name = filaments.manufacturer
+                    ORDER BY b.spool_weight DESC LIMIT 1
+                ) WHERE manufacturer IS NOT NULL AND manufacturer != ''
+            """)
+        logger.info("  ✓ filaments.brand_id FK added and old manufacturer data mapped.")
 
 
 # ─── Phase 5: Seed Data ───
@@ -338,16 +399,6 @@ def _seed_data(conn, data_dir):
         for name in items:
             try:
                 conn.execute("INSERT OR IGNORE INTO materials (name) VALUES (?)", (name,))
-            except sqlite3.Error:
-                pass
-
-    # Manufacturers
-    cur = conn.execute("SELECT COUNT(*) FROM manufacturers")
-    if cur.fetchone()[0] == 0:
-        items = _read_txt_list(os.path.join(data_dir, "database", "manufacturers.txt"), DEFAULT_MANUFACTURERS)
-        for name in items:
-            try:
-                conn.execute("INSERT OR IGNORE INTO manufacturers (name) VALUES (?)", (name,))
             except sqlite3.Error:
                 pass
 
