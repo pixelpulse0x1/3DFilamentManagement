@@ -12,7 +12,7 @@ function loadConfigAndData() {
         .then(r => r.json())
         .then(d => {
             if (d.status === 'success' && d.data) {
-                document.getElementById('marketPrice').value = d.data.market_price_per_gram ?? 0.2;
+                document.getElementById('marketPrice').value = d.data.market_price_per_gram ?? 0.15;
                 document.getElementById('elecDepreciation').value = d.data.cost_per_gram ?? 0.01;
             }
         })
@@ -29,7 +29,7 @@ function loadConfigAndData() {
 
 function onParamChange() {
     const payload = {
-        market_price_per_gram: parseFloat(document.getElementById('marketPrice').value) || 0.2,
+        market_price_per_gram: parseFloat(document.getElementById('marketPrice').value) || 0.15,
         cost_per_gram: parseFloat(document.getElementById('elecDepreciation').value) || 0.01,
     };
     fetch('/api/system/config', {
@@ -41,7 +41,7 @@ function onParamChange() {
 }
 
 function calcROI() {
-    const marketPrice = parseFloat(document.getElementById('marketPrice').value) || 0.2;
+    const marketPrice = parseFloat(document.getElementById('marketPrice').value) || 0.15;
     const elecDep = parseFloat(document.getElementById('elecDepreciation').value) || 0.01;
 
     let totalWeight = 0, actualCost = 0;

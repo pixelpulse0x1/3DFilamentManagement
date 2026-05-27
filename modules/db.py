@@ -517,7 +517,7 @@ def _migrate_v6_to_v7(conn):
 
 def _migrate_v7_to_v8(conn):
     """v0.4.3.0: system_configs table with ROI pricing defaults."""
-    conn.execute("INSERT OR IGNORE INTO system_configs (config_key, config_value) VALUES ('market_price_per_gram', '0.2')")
+    conn.execute("INSERT OR IGNORE INTO system_configs (config_key, config_value) VALUES ('market_price_per_gram', '0.15')")
     conn.execute("INSERT OR IGNORE INTO system_configs (config_key, config_value) VALUES ('cost_per_gram', '0.01')")
     logger.info("  ✓ system_configs seeded with ROI defaults.")
 
