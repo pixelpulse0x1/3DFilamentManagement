@@ -14,7 +14,13 @@ def _data_dir():
 
 
 def _printer_to_dict(row):
-    return {"id": row["id"], "name": row["name"], "model": row["model"]}
+    return {
+        "id": row["id"], "name": row["name"], "model": row["model"],
+        "model_id": row["model_id"] if "model_id" in row.keys() else None,
+        "pm_name": row["pm_name"] if "pm_name" in row.keys() else None,
+        "pm_brand": row["pm_brand"] if "pm_brand" in row.keys() else None,
+        "bed_size": row["bed_size"] if "bed_size" in row.keys() else None,
+    }
 
 
 def _slot_to_dict(row):
@@ -34,7 +40,12 @@ def api_printers():
     try:
         with get_db(data_dir) as conn:
             if request.method == "GET":
-                printers = conn.execute("SELECT * FROM printers ORDER BY id").fetchall()
+                printers = conn.execute("""
+                    SELECT p.*, pm.model_name AS pm_name, pm.brand AS pm_brand, pm.bed_size
+                    FROM printers p
+                    LEFT JOIN printer_models pm ON p.model_id = pm.id
+                    ORDER BY p.id
+                """).fetchall()
                 result = []
                 for p in printers:
                     pd = _printer_to_dict(p)
@@ -81,8 +92,10 @@ def api_printers():
                 if not name:
                     return jsonify({"status": "error", "error": "打印机名称不能为空"}), 400
                 model = data.get("model", "").strip()
+                model_id = data.get("model_id")
                 cursor = conn.execute(
-                    "INSERT INTO printers (name, model) VALUES (?, ?)", (name, model)
+                    "INSERT INTO printers (name, model, model_id) VALUES (?, ?, ?)",
+                    (name, model, model_id),
                 )
                 conn.commit()
                 return jsonify({"status": "success", "id": cursor.lastrowid})
@@ -248,6 +261,79 @@ def api_slot_unbind(slot_id):
             return jsonify({"status": "success"})
     except Exception as e:
         logger.error("Slot unbind error: %s", e)
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+# ─── Printer Models CRUD ───
+
+@printers_bp.route("/api/printer_models", methods=["GET", "POST", "PUT"])
+def api_printer_models():
+    data_dir = _data_dir()
+    try:
+        with get_db(data_dir) as conn:
+            if request.method == "GET":
+                rows = conn.execute(
+                    "SELECT * FROM printer_models ORDER BY brand, model_name"
+                ).fetchall()
+                return jsonify([{
+                    "id": r["id"], "brand": r["brand"], "model_name": r["model_name"],
+                    "technology": r["technology"], "bed_size": r["bed_size"],
+                    "remark": r["remark"],
+                } for r in rows])
+            elif request.method == "POST":
+                data = request.get_json() or {}
+                name = (data.get("model_name") or "").strip()
+                brand = (data.get("brand") or "").strip()
+                if not name or not brand:
+                    return jsonify({"status": "error", "error": "品牌和型号不能为空"}), 400
+                cursor = conn.execute(
+                    """INSERT INTO printer_models (brand, model_name, technology, bed_size, remark)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (brand, name, data.get("technology", "FDM"), data.get("bed_size", ""), data.get("remark", "")),
+                )
+                conn.commit()
+                return jsonify({"status": "success", "id": cursor.lastrowid})
+            else:  # PUT
+                data = request.get_json() or {}
+                mid = data.get("id")
+                if not mid:
+                    return jsonify({"status": "error", "error": "缺少型号ID"}), 400
+                conn.execute(
+                    """UPDATE printer_models SET brand=?, model_name=?, technology=?, bed_size=?, remark=?
+                       WHERE id=?""",
+                    (data.get("brand", ""), data.get("model_name", ""), data.get("technology", "FDM"),
+                     data.get("bed_size", ""), data.get("remark", ""), mid),
+                )
+                conn.commit()
+                return jsonify({"status": "success"})
+    except Exception as e:
+        logger.error("Printer models error: %s", e)
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@printers_bp.route("/api/printer_models/<int:model_id>", methods=["DELETE"])
+def api_printer_model_delete(model_id):
+    data_dir = _data_dir()
+    try:
+        with get_db(data_dir) as conn:
+            m = conn.execute(
+                "SELECT * FROM printer_models WHERE id = ?", (model_id,)
+            ).fetchone()
+            if not m:
+                return jsonify({"status": "error", "error": "型号不存在"}), 404
+            refs = conn.execute(
+                "SELECT COUNT(*) AS n FROM printers WHERE model_id = ?", (model_id,)
+            ).fetchone()
+            if refs and refs["n"] > 0:
+                return jsonify({
+                    "status": "error",
+                    "error": "该型号下已有正在绑定的打印机设备，无法删除！",
+                }), 400
+            conn.execute("DELETE FROM printer_models WHERE id = ?", (model_id,))
+            conn.commit()
+            return jsonify({"status": "success"})
+    except Exception as e:
+        logger.error("Printer model delete error: %s", e)
         return jsonify({"status": "error", "error": str(e)}), 500
 
 

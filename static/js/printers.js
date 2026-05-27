@@ -5,19 +5,36 @@ let allAvailableFilaments = [];
 
 document.addEventListener('DOMContentLoaded', function () {
     loadPrinters();
+    loadPrinterModels();
 
     document.getElementById('addPrinterBtn').addEventListener('click', openAddPrinter);
     document.getElementById('savePrinterBtn').addEventListener('click', savePrinter);
     document.getElementById('saveSlotBtn').addEventListener('click', saveSlot);
-    document.getElementById('printerModel').addEventListener('change', function () {
-        document.getElementById('customModelGroup').style.display = this.value === '自定义' ? 'block' : 'none';
-    });
 
     const searchInput = document.getElementById('bindSearchInput');
     if (searchInput) searchInput.addEventListener('input', filterBindList);
 
     document.querySelectorAll('.close-modal').forEach(b => b.addEventListener('click', closeDeviceModals));
 });
+
+function loadPrinterModels() {
+    fetch('/api/printer_models')
+        .then(r => r.json())
+        .then(data => {
+            const sel = document.getElementById('printerModel');
+            sel.innerHTML = '<option value="">请选择机型</option>';
+            const brands = {};
+            data.forEach(m => { if (!brands[m.brand]) brands[m.brand] = []; brands[m.brand].push(m); });
+            Object.keys(brands).sort().forEach(brand => {
+                const og = document.createElement('optgroup');
+                og.label = brand;
+                brands[brand].forEach(m => {
+                    og.innerHTML += `<option value="${m.id}">${m.model_name} (${m.bed_size})</option>`;
+                });
+                sel.appendChild(og);
+            });
+        });
+}
 
 // ─── Load Printers ───
 
@@ -139,20 +156,17 @@ function renderPrinterCard(grid, printer) {
 function openAddPrinter() {
     document.getElementById('printerName').value = '';
     document.getElementById('printerModel').value = '';
-    document.getElementById('customModel').value = '';
-    document.getElementById('customModelGroup').style.display = 'none';
     document.getElementById('addPrinterModal').style.display = 'flex';
 }
 
 function savePrinter() {
     const name = document.getElementById('printerName').value.trim();
     if (!name) { alert('请输入打印机名称'); return; }
-    let model = document.getElementById('printerModel').value;
-    if (model === '自定义') model = document.getElementById('customModel').value.trim();
+    const modelId = parseInt(document.getElementById('printerModel').value) || null;
     fetch('/api/printers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, model })
+        body: JSON.stringify({ name, model_id: modelId })
     })
         .then(r => r.json())
         .then(d => {

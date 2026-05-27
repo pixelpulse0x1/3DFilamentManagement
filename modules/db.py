@@ -7,7 +7,7 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-LATEST_VERSION = 5
+LATEST_VERSION = 6
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
@@ -46,6 +46,45 @@ BUILTIN_BRANDS = [
     ("蓝极光", "标准盘", 165.0), ("兰博", "标准盘", 170.0),
     ("瑞本", "标准盘", 220.0), ("兰小度", "标准盘", 160.0),
     ("起迪", "标准盘", 246.0), ("双第", "标准盘", 200.0),
+]
+
+BUILTIN_MODELS = [
+    ("Bambu Lab", "A1 mini", "FDM", "180x180x180", "入门首选，全自动校准，静音打印(≤48dB)，500mm/s，10000mm/s²"),
+    ("Bambu Lab", "A1", "FDM", "256x256x256", "A1 mini放大版，全自动校准，500mm/s，兼容AMS Lite多色系统"),
+    ("Bambu Lab", "P1P", "FDM", "256x256x256", "开放式CoreXY，500mm/s，20000mm/s²，支持16色打印"),
+    ("Bambu Lab", "P1S", "FDM", "256x256x256", "封闭式CoreXY，全封闭箱体，可打印ABS/ASA，被广泛用于打印农场"),
+    ("Bambu Lab", "P2S", "FDM", "256x256x256", "P1系列全面升级，2025年10月发布；5英寸触摸屏，1080P摄像头，AI检测，伺服挤出机"),
+    ("Bambu Lab", "X1", "FDM", "256x256x256", "首款消费级产品(2022)，CoreXY，集成微激光雷达与AI检测"),
+    ("Bambu Lab", "X1 Carbon", "FDM", "256x256x256", "铝+玻璃全封闭机身，300℃硬化钢喷嘴，AI激光雷达检测，16色(已停产)"),
+    ("Bambu Lab", "X1E", "FDM", "256x256x256", "商用版(2024)，主动腔体加热60℃，喷嘴最高320℃，有线以太网接口"),
+    ("Bambu Lab", "X2D", "FDM", "256x256x260", "2026年4月新旗舰，双喷嘴CoreXY，主动腔体加热60℃，最高1000mm/s"),
+    ("Bambu Lab", "H2S", "FDM", "340x320x340", "消费级大尺寸旗舰，单喷嘴，1000mm/s，比X1C体积大120%"),
+    ("Bambu Lab", "H2D", "FDM", "350x320x325", "个人制造中心，双喷嘴3D打印+激光雕刻切割+数字切割绘图，腔体65℃"),
+    ("Bambu Lab", "H2C", "FDM", "300x320x325", "真旗舰，Vortek多喷嘴系统(最多7种材料)，多材料优化"),
+    ("Creality", "K1C", "FDM", "220x220x250", ""),
+    ("Creality", "K1 Max", "FDM", "300x300x300", ""),
+    ("Creality", "K2", "FDM", "260x260x260", "CFS多色系统，16色打印，350°C喷嘴，CoreXY，2025年8月发布"),
+    ("Creality", "K2 Pro", "FDM", "300x300x300", "CFS多色系统，350°C喷嘴+60°C主动腔体，压铸铝合金机身"),
+    ("Creality", "K2 Plus", "FDM", "350x350x350", "CFS多色系统，准工业级旗舰，350°C喷嘴+60°C主动腔体"),
+    ("Creality", "Ender-3 V3", "FDM", "220x220x250", ""),
+    ("Creality", "Ender-3 V3 Plus", "FDM", "300x300x330", ""),
+    ("Creality", "SPARKX i7", "FDM", "260x260x255", "桌面级多色，500mm/s，AI照片转3D，45dB静音，2026年1月CES首发"),
+    ("Prusa", "i3 MK4", "FDM", "250x210x220", ""),
+    ("Prusa", "XL", "FDM", "360x360x360", "多工具头快换系统，2026年新增液态硅胶打印工具头"),
+    ("Prusa", "CORE One", "FDM", "250x220x220", "封闭式CoreXY，2025年发布"),
+    ("Prusa", "CORE One L", "FDM", "300x300x330", "封闭式CoreXY，铸铝热床，打印体积增200%，60°C腔体"),
+    ("Prusa", "Pro HT90", "FDM", "Φ300x400", "工业高温，Revo快拆喷嘴，支持PEEK/PEI，2026年发布"),
+    ("Flashforge", "Adventurer 5M Pro", "FDM", "220x220x220", ""),
+    ("Flashforge", "Creator 5", "FDM", "256x256x256", "4独立喷头FlashSwap，CoreXY，320°C喷嘴，2026年3月发布"),
+    ("Flashforge", "Creator 5 Pro", "FDM", "256x256x256", "全封闭，65°C主动腔体加热，HEPA+活性炭过滤"),
+    ("Flashforge", "CJ270", "Multi-jet+UV", "桌面级全彩", "7μm层厚，>1000万色，水溶性支撑，2026年3月TCT首展"),
+    ("Raise3D", "Pro3", "FDM", "300x300x300", "双喷头IDEX，专业级"),
+    ("Raise3D", "Pro3 Plus", "FDM", "300x300x605", "双喷头IDEX，大尺寸版"),
+    ("Raise3D", "Pro3 HS", "FDM", "300x300x300", "Hyper FFF高速打印，碳化硅喷嘴，500mm/s"),
+    ("Raise3D", "Pro3 HS Plus", "FDM", "300x300x605", "Hyper FFF高速打印大尺寸版，碳化硅喷嘴"),
+    ("Raise3D", "E3", "FDM", "330x240x240", "IDEX独立双喷头，FlexFeed柔性材料套件，TPU 200mm/s"),
+    ("Raise3D", "DF2", "DLP", "200x112x300", ""),
+    ("Raise3D", "RMS220", "SLS", "220x220x350", "75W光纤激光，日产>5kg，重复精度±0.05mm"),
 ]
 
 
@@ -211,6 +250,15 @@ def _create_all_tables(conn):
             remark TEXT DEFAULT '',
             UNIQUE(name, spool_type)
         );
+
+        CREATE TABLE IF NOT EXISTS printer_models (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            brand TEXT NOT NULL,
+            model_name TEXT NOT NULL UNIQUE,
+            technology TEXT DEFAULT 'FDM',
+            bed_size TEXT DEFAULT '',
+            remark TEXT DEFAULT ''
+        );
     """)
 
 
@@ -240,6 +288,8 @@ def _run_migration(from_ver, to_ver, data_dir, conn):
         _migrate_v3_to_v4(conn)
     elif from_ver == 4 and to_ver == 5:
         _migrate_v4_to_v5(data_dir, conn)
+    elif from_ver == 5 and to_ver == 6:
+        _migrate_v5_to_v6(conn)
     else:
         logger.warning("Unknown migration step: %d → %d", from_ver, to_ver)
 
@@ -372,6 +422,47 @@ def _migrate_v4_to_v5(data_dir, conn):
                 ) WHERE manufacturer IS NOT NULL AND manufacturer != ''
             """)
         logger.info("  ✓ filaments.brand_id FK added and old manufacturer data mapped.")
+
+
+def _migrate_v5_to_v6(conn):
+    """v0.4.1.0: printer_models table, seed built-in data, merge old printer model text."""
+    # 1. Seed built-in models
+    for brand, model_name, tech, bed, remark in BUILTIN_MODELS:
+        conn.execute(
+            "INSERT OR IGNORE INTO printer_models (brand, model_name, technology, bed_size, remark) VALUES (?, ?, ?, ?, ?)",
+            (brand, model_name, tech, bed, remark),
+        )
+
+    # 2. Scan old printers.model text, create fallback records
+    col_names = [c[1] for c in conn.execute("PRAGMA table_info(printers)").fetchall()]
+    if "model" in col_names:
+        old_models = conn.execute(
+            """SELECT DISTINCT model FROM printers
+               WHERE model IS NOT NULL AND model != ''
+               AND model NOT IN (SELECT model_name FROM printer_models)"""
+        ).fetchall()
+        for r in old_models:
+            m = r[0]
+            conn.execute(
+                "INSERT OR IGNORE INTO printer_models (brand, model_name, remark) VALUES ('自定义', ?, '历史数据迁移兜底')",
+                (m,),
+            )
+
+    # 3. Add model_id FK to printers
+    p_cols = [c[1] for c in conn.execute("PRAGMA table_info(printers)").fetchall()]
+    if "model_id" not in p_cols:
+        conn.execute(
+            "ALTER TABLE printers ADD COLUMN model_id INTEGER REFERENCES printer_models(id) ON DELETE SET NULL"
+        )
+        if "model" in col_names:
+            conn.execute("""
+                UPDATE printers SET model_id = (
+                    SELECT pm.id FROM printer_models pm
+                    WHERE pm.model_name = printers.model
+                    LIMIT 1
+                ) WHERE model IS NOT NULL AND model != ''
+            """)
+        logger.info("  ✓ printers.model_id FK added and old model text mapped.")
 
 
 # ─── Phase 5: Seed Data ───

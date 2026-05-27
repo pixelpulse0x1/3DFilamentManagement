@@ -335,7 +335,11 @@ def api_statistics():
     filter_status = request.args.get("filter", "all")  # all | remaining | used
     try:
         with get_db(data_dir) as conn:
-            all_filaments = conn.execute("SELECT * FROM filaments").fetchall()
+            all_filaments = conn.execute("""
+                SELECT f.*, b.name AS brand_name
+                FROM filaments f
+                LEFT JOIN brands b ON f.brand_id = b.id
+            """).fetchall()
             settings_row = conn.execute("SELECT * FROM settings WHERE id = 1").fetchone()
             threshold = settings_row["threshold"] if settings_row else 200
 
@@ -402,7 +406,7 @@ def api_statistics():
 
             manufacturer_stats = {}
             for f in filaments:
-                mfr = (f.get("brand_name") or f.get("manufacturer") or "Unknown")
+                mfr = (f["brand_name"] if "brand_name" in f.keys() else "Unknown")
                 if mfr not in manufacturer_stats:
                     manufacturer_stats[mfr] = {
                         "manufacturer": mfr,

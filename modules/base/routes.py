@@ -169,7 +169,16 @@ def roi_page():
 def devices_page():
     return render_template("device_management.html",
                            active_background=_bg_for_template(),
-                           active_nav="devices")
+                           active_nav="devices",
+                           active_sub="devices")
+
+
+@base_bp.route("/dashboard/printer-models")
+def printer_models_page():
+    return render_template("printer_models.html",
+                           active_background=_bg_for_template(),
+                           active_nav="devices",
+                           active_sub="printer_models")
 
 
 @base_bp.route("/images")
