@@ -93,20 +93,20 @@ def dashboard_logs():
                            active_sub="logs")
 
 
-@base_bp.route("/dashboard/stats")
-def dashboard_stats():
-    return render_template("dashboard/stats.html",
-                           active_background=_bg_for_template(),
-                           active_nav="dashboard",
-                           active_sub="stats")
-
-
 @base_bp.route("/dashboard/daily")
 def dashboard_daily():
     return render_template("dashboard/daily.html",
                            active_background=_bg_for_template(),
                            active_nav="dashboard",
                            active_sub="daily")
+
+
+@base_bp.route("/dashboard/filament-stats")
+def dashboard_filament_stats():
+    return render_template("dashboard/filament_stats.html",
+                           active_background=_bg_for_template(),
+                           active_nav="dashboard",
+                           active_sub="filament_stats")
 
 
 @base_bp.route("/materials")
@@ -189,6 +189,10 @@ def api_settings():
                 result["card_opacity"] = card_opacity
                 result["card_color"] = card_color
                 result["card_blur"] = card_blur
+                lt = conn.execute(
+                    "SELECT value FROM system_settings WHERE key = 'low_weight_threshold'"
+                ).fetchone()
+                result["low_weight_threshold"] = int(lt["value"]) if lt else 100
                 return jsonify(result)
             else:
                 data = request.get_json() or {}
@@ -229,6 +233,17 @@ def api_settings():
                     except (ValueError, TypeError):
                         pass
 
+                if "low_weight_threshold" in data:
+                    try:
+                        val = int(data["low_weight_threshold"])
+                        if val > 0:
+                            conn.execute(
+                                "INSERT OR REPLACE INTO system_settings (key, value) VALUES ('low_weight_threshold', ?)",
+                                (str(val),),
+                            )
+                    except (ValueError, TypeError):
+                        pass
+
                 conn.commit()
                 row = conn.execute("SELECT * FROM settings WHERE id = 1").fetchone()
                 result = dict(row)
@@ -236,6 +251,10 @@ def api_settings():
                 result["card_opacity"] = card_opacity
                 result["card_color"] = card_color
                 result["card_blur"] = card_blur
+                lt = conn.execute(
+                    "SELECT value FROM system_settings WHERE key = 'low_weight_threshold'"
+                ).fetchone()
+                result["low_weight_threshold"] = int(lt["value"]) if lt else 100
                 return jsonify({"status": "success", "settings": result})
     except Exception as e:
         logger.error("Settings error: %s", e)

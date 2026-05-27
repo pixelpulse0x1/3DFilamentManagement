@@ -17,11 +17,13 @@
             <input type="text" id="searchInput" placeholder="搜索耗材...">
         </div>
     </div>
-    <div class="filter-checkboxes" id="statusFilterCheckboxes">
-        <label class="filter-checkbox"><input type="checkbox" value="全新"> 全新</label>
-        <label class="filter-checkbox"><input type="checkbox" value="闲置" checked> 闲置</label>
-        <label class="filter-checkbox"><input type="checkbox" value="上机"> 上机</label>
-        <label class="filter-checkbox"><input type="checkbox" value="用尽"> 用尽</label>
+    <div class="status-radio-group" id="filamentFilterGroup">
+        <label class="status-radio active"><input type="radio" name="filamentFilter" value="all" checked> 全部</label>
+        <label class="status-radio"><input type="radio" name="filamentFilter" value="全新"> 全新</label>
+        <label class="status-radio"><input type="radio" name="filamentFilter" value="闲置"> 闲置</label>
+        <label class="status-radio"><input type="radio" name="filamentFilter" value="上机"> 上机</label>
+        <label class="status-radio"><input type="radio" name="filamentFilter" value="不足"> 不足</label>
+        <label class="status-radio"><input type="radio" name="filamentFilter" value="用尽"> 用尽</label>
     </div>
 
     <div class="table-container">

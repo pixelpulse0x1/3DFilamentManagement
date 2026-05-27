@@ -19,22 +19,22 @@
                 </a></li>
                 <!-- 记录报表（三级菜单） -->
                 <li class="nav-subgroup" data-subgroup="logs">
-                    <a class="nav-subparent {{ 'active' if active_sub in ('logs', 'daily') }}" data-target="logs">
+                    <a class="nav-subparent {{ 'active' if active_sub in ('logs', 'daily', 'filament_stats') }}" data-target="logs">
                         <i class="fa-solid fa-clipboard-list"></i> 记录报表
                         <i class="fa-solid fa-chevron-down accordion-arrow"></i>
                     </a>
-                    <ul class="nav-grandchildren {{ 'open' if active_sub in ('logs', 'daily') }}" id="logsGrandchildren">
+                    <ul class="nav-grandchildren {{ 'open' if active_sub in ('logs', 'daily', 'filament_stats') }}" id="logsGrandchildren">
                         <li><a href="/dashboard/logs" class="{{ 'active' if active_sub == 'logs' }}">
                             <i class="fa-solid fa-list-ul"></i> 使用记录
                         </a></li>
                         <li><a href="/dashboard/daily" class="{{ 'active' if active_sub == 'daily' }}">
-                            <i class="fa-solid fa-chart-bar"></i> 每日统计
+                            <i class="fa-solid fa-chart-bar"></i> 使用图表
+                        </a></li>
+                        <li><a href="/dashboard/filament-stats" class="{{ 'active' if active_sub == 'filament_stats' }}">
+                            <i class="fa-solid fa-table-cells"></i> 耗材统计
                         </a></li>
                     </ul>
                 </li>
-                <li><a href="/dashboard/stats" class="{{ 'active' if active_sub == 'stats' }}">
-                    <i class="fa-solid fa-chart-line"></i> 统计报表
-                </a></li>
             </ul>
         </li>
 
@@ -87,7 +87,7 @@
         </li>
     </ul>
     <div class="sidebar-footer">
-        <span>v0.3.3.0</span>
+        <span>v0.3.4.1</span>
         <a href="https://github.com/pixelpulse0x1" target="_blank" rel="noopener noreferrer" class="github-link" title="GitHub">
             <i class="fab fa-github"></i>
         </a>

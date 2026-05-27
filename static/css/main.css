@@ -1413,35 +1413,6 @@ input, select, textarea { font-size: 16px; }
 
 .status-radio:last-child { border-right: none; }
 
-/* ─── Filter Checkboxes ─── */
-
-.filter-checkboxes {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-}
-
-.filter-checkbox {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    cursor: pointer;
-    font-size: 0.9rem;
-    color: var(--ha-card-color);
-    padding: 0.3rem 0.8rem;
-    border-radius: 6px;
-    background: rgba(0, 0, 0, 0.03);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    transition: all 0.2s;
-}
-
-.filter-checkbox:hover { background: rgba(0, 0, 0, 0.06); }
-
-.filter-checkbox input[type="checkbox"] {
-    accent-color: var(--primary);
-}
-
 .status-radio input { display: none; }
 
 .status-radio:hover { background: rgba(0, 0, 0, 0.04); }

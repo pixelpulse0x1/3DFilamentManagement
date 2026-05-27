@@ -14,7 +14,7 @@ let settings = {};
 let longPressTimer = null;
 let currentSort = { field: null, direction: 'none' };
 let currentSearchTerm = '';
-let currentStatusFilters = new Set(['闲置']);
+let currentFilamentFilter = 'all';
 
 const presetColors = [
     '#000000','#FFFFFF','#808080','#C0C0C0','#FF0000','#0000FF','#008000','#FFFF00','#FFA500','#FFC0CB',
@@ -48,6 +48,9 @@ document.addEventListener('DOMContentLoaded', function () {
         card.addEventListener('click', toggleWeightUnit);
     });
 
+    // Filament stats matrix page
+    if (document.getElementById('matrixTableBody')) loadMatrixStats();
+
     // Status filter radio buttons on overview page
     document.querySelectorAll('input[name="filterStatus"]').forEach(radio => {
         radio.addEventListener('change', function () {
@@ -71,11 +74,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// Status helpers
+// Status helpers (5 mutually exclusive states: 全新/闲置/上机/不足/用尽)
 function getStatusClass(filament) {
     const s = filament.status || '全新';
-    if (s === '用尽') return 'status-used-up';
-    if (filament.current_weight < settings.threshold && s !== '用尽') return 'status-warning';
+    const low = settings.low_weight_threshold || 100;
+    if (s === '用尽' || filament.current_weight === 0) return 'status-used-up';
+    if (filament.current_weight > 0 && filament.current_weight <= low) return 'status-warning';
     if (s === '上机') return 'status-in-use';
     if (s === '闲置') return 'status-unopened';
     return 'status-new';
@@ -83,7 +87,9 @@ function getStatusClass(filament) {
 
 function getStatusText(filament) {
     const s = filament.status || '全新';
-    if (filament.current_weight > 0 && filament.current_weight < settings.threshold && s !== '用尽') return '库存不足';
+    const low = settings.low_weight_threshold || 100;
+    if (filament.current_weight === 0) return '用尽';
+    if (filament.current_weight > 0 && filament.current_weight <= low) return '不足';
     return s;
 }
 
@@ -225,8 +231,19 @@ function applyFilters(filamentsList) {
             (f.color && f.color.toLowerCase().includes(term))
         );
     }
-    if (currentStatusFilters.size > 0 && currentStatusFilters.size < 4) {
-        filtered = filtered.filter(f => currentStatusFilters.has(f.status || '全新'));
+    if (currentFilamentFilter !== 'all') {
+        const low = settings.low_weight_threshold || 100;
+        if (currentFilamentFilter === '不足') {
+            filtered = filtered.filter(f => f.current_weight > 0 && f.current_weight <= low);
+        } else if (currentFilamentFilter === '用尽') {
+            filtered = filtered.filter(f => f.current_weight === 0);
+        } else {
+            // 全新/闲置/上机: mutual exclusion with 不足
+            filtered = filtered.filter(f => {
+                if (f.current_weight > 0 && f.current_weight <= low) return false;
+                return f.status === currentFilamentFilter;
+            });
+        }
     }
     return filtered;
 }
@@ -291,12 +308,15 @@ function bindEvents() {
     const si = document.getElementById('searchInput');
     if (si) si.addEventListener('input', function () { currentSearchTerm = this.value.toLowerCase(); renderFilamentTable(applyFilters(filaments)); });
 
-    // Status filter checkboxes
-    document.querySelectorAll('#statusFilterCheckboxes input[type="checkbox"]').forEach(cb => {
-        cb.addEventListener('change', function () {
-            if (this.checked) currentStatusFilters.add(this.value);
-            else currentStatusFilters.delete(this.value);
-            renderFilamentTable(applyFilters(filaments));
+    // Status filter radio buttons
+    document.querySelectorAll('input[name="filamentFilter"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            if (this.checked) {
+                currentFilamentFilter = this.value;
+                document.querySelectorAll('#filamentFilterGroup .status-radio').forEach(l => l.classList.remove('active'));
+                this.parentElement.classList.add('active');
+                renderFilamentTable(applyFilters(filaments));
+            }
         });
     });
 
@@ -536,22 +556,77 @@ function withdrawUsageRecord(recordId) {
 // Render usage summary (daily stats page only)
 function renderUsageSummary(records) {
     const dailyTable = document.getElementById('dailySummaryTable');
-    if (!dailyTable) return;
     const daily = {};
     records.forEach(r => {
         const date = new Date(r.used_at).toISOString().split('T')[0];
         if (!daily[date]) daily[date] = { weight: 0, cost: 0 };
         daily[date].weight += r.used_weight; daily[date].cost += r.used_cost || 0;
     });
-    dailyTable.innerHTML = '';
-    if (records.length === 0) {
-        dailyTable.innerHTML = '<tr><td colspan="3" style="text-align:center;">暂无使用数据</td></tr>';
-    } else {
-        Object.keys(daily).sort().reverse().forEach(date => {
-            dailyTable.innerHTML += '<tr><td>'+date+'</td><td>'+daily[date].weight.toFixed(2)+'</td><td>¥'+daily[date].cost.toFixed(2)+'</td></tr>';
-        });
+
+    if (dailyTable) {
+        dailyTable.innerHTML = '';
+        if (records.length === 0) {
+            dailyTable.innerHTML = '<tr><td colspan="3" style="text-align:center;">暂无使用数据</td></tr>';
+        } else {
+            Object.keys(daily).sort().reverse().forEach(date => {
+                dailyTable.innerHTML += '<tr><td>'+date+'</td><td>'+daily[date].weight.toFixed(2)+'</td><td>¥'+daily[date].cost.toFixed(2)+'</td></tr>';
+            });
+        }
     }
+
     updateDailyUsageChart(daily);
+    updateMonthlyUsageChart(records);
+    updateCumulativeStats(records);
+}
+
+let monthlyUsageChart = null;
+
+function updateMonthlyUsageChart(records) {
+    const ctx = document.getElementById('monthlyUsageChart');
+    if (!ctx) return;
+    if (monthlyUsageChart) monthlyUsageChart.destroy();
+
+    const monthly = {};
+    records.forEach(r => {
+        const m = new Date(r.used_at).toISOString().slice(0, 7);
+        if (!monthly[m]) monthly[m] = 0;
+        monthly[m] += r.used_weight;
+    });
+    const months = Object.keys(monthly).sort();
+
+    monthlyUsageChart = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [{
+                label: '耗材使用量 (g)', data: months.map(m => monthly[m].toFixed(2)),
+                borderColor: '#f72585', backgroundColor: 'rgba(247,37,133,0.1)',
+                tension: 0.3, fill: true,
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+    });
+}
+
+function updateCumulativeStats(records) {
+    const tbody = document.getElementById('cumulativeStatsTable');
+    if (!tbody) return;
+    const byType = {};
+    records.forEach(r => {
+        const t = r.material_type || '未知';
+        if (!byType[t]) byType[t] = { weight: 0, cost: 0 };
+        byType[t].weight += r.used_weight;
+        byType[t].cost += r.used_cost || 0;
+    });
+    const sorted = Object.entries(byType).sort((a, b) => b[1].weight - a[1].weight);
+    tbody.innerHTML = '';
+    if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">暂无使用数据</td></tr>';
+        return;
+    }
+    sorted.forEach(([type, data]) => {
+        tbody.innerHTML += '<tr><td>'+type+'</td><td>'+data.weight.toFixed(2)+'</td><td>¥'+data.cost.toFixed(2)+'</td></tr>';
+    });
 }
 
 function updateDailyUsageChart(dailySummary) {
@@ -944,6 +1019,92 @@ function batchDelete() {
 
 function deleteFilament(id) {
     fetch('/api/filaments/'+id, { method:'DELETE' }).then(r=>r.json()).then(d=>{if(d.status==='success')loadData();});
+}
+
+// ─── Filament Stats Matrix ───
+
+let matrixPie = null;
+let currentMatrixFilter = 'all';
+
+function loadMatrixStats() {
+    document.querySelectorAll('input[name="matrixFilter"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            if (this.checked) {
+                currentMatrixFilter = this.value;
+                document.querySelectorAll('#matrixFilterGroup .status-radio').forEach(l => l.classList.remove('active'));
+                this.parentElement.classList.add('active');
+                fetchMatrixStats();
+            }
+        });
+    });
+    fetchMatrixStats();
+}
+
+function fetchMatrixStats() {
+    fetch('/api/stats/matrix?filter=' + currentMatrixFilter)
+        .then(r => r.json())
+        .then(data => {
+            renderMatrixTable(data.matrix);
+            renderMatrixPie(data.pie_data, data.filter);
+        })
+        .catch(err => console.error('矩阵加载失败:', err));
+}
+
+function renderMatrixTable(matrix) {
+    const tbody = document.getElementById('matrixTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (!matrix || matrix.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">暂无数据</td></tr>';
+        return;
+    }
+    matrix.forEach(r => {
+        tbody.innerHTML += `<tr>
+            <td><strong>${r.material_type}</strong></td>
+            <td>${r['全新'] || '-'}</td><td>${r['闲置'] || '-'}</td>
+            <td>${r['上机'] || '-'}</td><td>${r['不足'] || '-'}</td>
+            <td>${r['用尽'] || '-'}</td><td>${r.total}</td></tr>`;
+    });
+}
+
+function renderMatrixPie(pieData, filter) {
+    const ctx = document.getElementById('matrixPieChart');
+    if (!ctx) return;
+    if (matrixPie) matrixPie.destroy();
+
+    const title = document.getElementById('pieChartTitle');
+    const statusNames = { all: '耗材类型分布', '全新': '全新 — 类型分布', '闲置': '闲置 — 类型分布',
+                          '上机': '上机 — 类型分布', '不足': '不足 — 类型分布', '用尽': '用尽 — 类型分布' };
+    if (title) title.textContent = statusNames[filter] || '耗材类型分布';
+
+    const labels = pieData.map(d => d.material_type);
+    const values = pieData.map(d => d.count);
+    const colors = ['#5b9bd5','#3a0ca3','#4cc9f0','#f72585','#7209b7','#20b2aa','#ff8c00',
+                    '#556b2f','#8b0000','#4682b4','#daa520','#9acd32','#cd5c5c','#6495ed'];
+
+    matrixPie = new Chart(ctx.getContext('2d'), {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{ data: values, backgroundColor: colors.slice(0, labels.length) }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--ha-card-color').trim() } },
+                datalabels: {
+                    color: '#fff',
+                    font: { weight: 'bold', size: 11 },
+                    formatter: (value, ctx) => {
+                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                        const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                        return value > 0 ? `${pct}%` : '';
+                    },
+                }
+            }
+        },
+        plugins: [ChartDataLabels]
+    });
 }
 
 // ─── Lightbox ───

@@ -260,7 +260,8 @@ def api_usage_records():
     try:
         with get_db(data_dir) as conn:
             rows = conn.execute("""
-                SELECT ur.*, f.name AS filament_name, f.purchase_price, f.initial_weight
+                SELECT ur.*, f.name AS filament_name, f.material_type,
+                       f.purchase_price, f.initial_weight
                 FROM usage_records ur
                 JOIN filaments f ON ur.filament_id = f.id
                 ORDER BY ur.id DESC
@@ -276,6 +277,7 @@ def api_usage_records():
                     "id": r["id"],
                     "filament_id": r["filament_id"],
                     "filament_name": r["filament_name"],
+                    "material_type": r["material_type"],
                     "used_weight": r["used_weight"],
                     "note": r["note"],
                     "used_at": r["used_at"],
@@ -483,6 +485,67 @@ def api_statistics():
             })
     except Exception as e:
         logger.error("Statistics error: %s", e)
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+# ─── Cross Matrix Statistics ───
+
+@filaments_bp.route("/api/stats/matrix", methods=["GET"])
+def api_stats_matrix():
+    """Return material_type × 5-state cross matrix with mutually exclusive statuses."""
+    data_dir = _data_dir()
+    matrix_filter = request.args.get("filter", "all")
+    try:
+        with get_db(data_dir) as conn:
+            t_row = conn.execute(
+                "SELECT CAST(value AS INTEGER) FROM system_settings WHERE key = 'low_weight_threshold'"
+            ).fetchone()
+            threshold = t_row[0] if t_row else 100
+
+            rows = conn.execute("""
+                SELECT
+                    f.material_type,
+                    SUM(CASE WHEN f.current_weight > :thresh AND f.status = '全新' THEN 1 ELSE 0 END) AS 全新,
+                    SUM(CASE WHEN f.current_weight > :thresh AND f.status = '闲置' THEN 1 ELSE 0 END) AS 闲置,
+                    SUM(CASE WHEN f.current_weight > :thresh AND f.status = '上机' THEN 1 ELSE 0 END) AS 上机,
+                    SUM(CASE WHEN f.current_weight > 0 AND f.current_weight <= :thresh THEN 1 ELSE 0 END) AS 不足,
+                    SUM(CASE WHEN f.current_weight = 0 THEN 1 ELSE 0 END) AS 用尽
+                FROM filaments f
+                GROUP BY f.material_type
+                ORDER BY f.material_type
+            """, {"thresh": threshold}).fetchall()
+
+            matrix = []
+            for r in rows:
+                entry = {
+                    "material_type": r["material_type"],
+                    "全新": r["全新"], "闲置": r["闲置"], "上机": r["上机"],
+                    "不足": r["不足"], "用尽": r["用尽"],
+                }
+                entry["total"] = entry["全新"] + entry["闲置"] + entry["上机"] + entry["不足"] + entry["用尽"]
+                matrix.append(entry)
+
+            # For pie chart: aggregate by filter
+            statuses = ["全新", "闲置", "上机", "不足", "用尽"]
+            if matrix_filter != "all" and matrix_filter in statuses:
+                pie_data = [
+                    {"material_type": m["material_type"], "count": m[matrix_filter]}
+                    for m in matrix if m[matrix_filter] > 0
+                ]
+            else:
+                pie_data = [
+                    {"material_type": m["material_type"], "count": m["total"]}
+                    for m in matrix if m["total"] > 0
+                ]
+
+            return jsonify({
+                "matrix": matrix,
+                "pie_data": pie_data,
+                "threshold": threshold,
+                "filter": matrix_filter,
+            })
+    except Exception as e:
+        logger.error("Matrix stats error: %s", e)
         return jsonify({"status": "error", "error": str(e)}), 500
 
 

@@ -327,6 +327,7 @@ def _seed_data(conn, data_dir):
         ("card_opacity", "0.05"),
         ("card_color", "#ffffff"),
         ("card_blur", "2"),
+        ("low_weight_threshold", "100"),
     ]:
         conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES (?, ?)", (k, v))
 
