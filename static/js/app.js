@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initColorPickers();
     loadMaterialOptions();
     loadManufacturerOptions();
+    loadChannelOptions();
 
     // Handle search query param from manufacturer card click
     const urlParams = new URLSearchParams(window.location.search);
@@ -152,6 +153,25 @@ function loadMaterialOptions() {
                     const opt = document.createElement('option');
                     opt.value = name;
                     opt.textContent = name;
+                    el.appendChild(opt);
+                });
+            });
+        });
+}
+
+function loadChannelOptions() {
+    fetch('/api/channels')
+        .then(r => r.json())
+        .then(data => {
+            const selects = ['purchaseChannel', 'batchPurchaseChannel'];
+            selects.forEach(sid => {
+                const el = document.getElementById(sid);
+                if (!el) return;
+                el.innerHTML = '<option value="">请选择</option>';
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
                     el.appendChild(opt);
                 });
             });
@@ -683,6 +703,8 @@ function openBatchAddModal() {
     document.getElementById('batchPurchaseDate').value = '';
     document.getElementById('batchPurchasePrice').value = '';
     document.getElementById('batchPurchaseChannel').value = '';
+    document.getElementById('batchRemark').value = '';
+    clearBatchFilamentImage();
     document.getElementById('batchAddModal').style.display = 'flex';
 }
 
@@ -703,7 +725,7 @@ function openEditModal(filamentId) {
     document.getElementById('isFavorite').checked = f.is_favorite;
     document.getElementById('purchaseDate').value = f.purchase_date || '';
     document.getElementById('purchasePrice').value = f.purchase_price || '';
-    document.getElementById('purchaseChannel').value = f.purchase_channel || '';
+    document.getElementById('purchaseChannel').value = f.channel_id || '';
     if (f.opened_at) document.getElementById('openedAt').value = f.opened_at;
     document.getElementById('openedAtGroup').style.display = (f.status && f.status !== '全新') ? 'block' : 'none';
     document.getElementById('filamentRemark').value = f.remark || '';
@@ -739,7 +761,7 @@ function openDetailModal(filamentId) {
     document.getElementById('detailInitialWeight').textContent = f.initial_weight != null ? f.initial_weight.toFixed(2)+'g' : '-';
     document.getElementById('detailPurchaseDate').textContent = f.purchase_date || '-';
     document.getElementById('detailPurchasePrice').textContent = f.purchase_price ? '¥'+f.purchase_price.toFixed(2) : '-';
-    document.getElementById('detailPurchaseChannel').textContent = f.purchase_channel || '-';
+    document.getElementById('detailPurchaseChannel').textContent = f.channel_name || f.purchase_channel || '-';
     document.getElementById('detailOpenedStatus').textContent = f.status || '全新';
     document.getElementById('detailOpenedDate').textContent = f.opened_at || '-';
     document.getElementById('detailLocation').textContent = f.location || '-';
@@ -775,7 +797,7 @@ function saveFilament() {
         is_favorite: document.getElementById('isFavorite').checked,
         purchase_date: document.getElementById('purchaseDate').value || null,
         purchase_price: parseFloat(document.getElementById('purchasePrice').value) || null,
-        purchase_channel: document.getElementById('purchaseChannel').value || null,
+        channel_id: parseInt(document.getElementById('purchaseChannel').value) || null,
         opened_at: null,
         image_id: selectedFilamentImageId || null,
         remark: document.getElementById('filamentRemark').value.trim() || null,
@@ -801,7 +823,9 @@ function saveBatch() {
         current_weight: parseFloat(document.getElementById('batchInitialWeight').value), is_favorite: false,
         purchase_date: document.getElementById('batchPurchaseDate').value || null,
         purchase_price: parseFloat(document.getElementById('batchPurchasePrice').value) || null,
-        purchase_channel: document.getElementById('batchPurchaseChannel').value || null
+        channel_id: parseInt(document.getElementById('batchPurchaseChannel').value) || null,
+        image_id: selectedBatchImageId || null,
+        remark: document.getElementById('batchRemark').value.trim() || null,
     });
     fetch('/api/filaments/batch', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(batch) })
         .then(r=>r.json()).then(d=>{ if(d.status==='success'){closeAllModals();loadData();}else alert('批量添加失败: '+(d.error||'未知错误')); })
@@ -814,7 +838,7 @@ function confirmUseFilament() {
     fetch('/api/filaments/'+currentUseId+'/use', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body:JSON.stringify({used_weight:w, note:document.getElementById('useNote').value})
-    }).then(r=>r.json()).then(d=>{if(d.status==='success'){closeAllModals();loadData();loadUsageRecords();}else alert('操作失败: '+(d.error||'未知错误'));})
+    }).then(r=>r.json()).then(d=>{if(d.status==='success'){closeAllModals();loadData();loadUsageRecords();if(typeof loadPrinters==='function')loadPrinters();}else alert('操作失败: '+(d.error||'未知错误'));})
       .catch(err=>{alert('操作失败: '+err.message);});
 }
 
@@ -908,5 +932,47 @@ function selectFilamentImage(imageId, file_name) {
 function clearFilamentImage() {
     selectedFilamentImageId = null;
     document.getElementById('selectedImagePreview').style.display = 'none';
+}
+
+// ─── Batch Image Picker ───
+
+let selectedBatchImageId = null;
+
+function openBatchImagePicker() {
+    fetch('/api/images')
+        .then(r => r.json())
+        .then(images => {
+            const grid = document.getElementById('imagePickerGrid');
+            grid.innerHTML = `<div class="image-picker-item" data-image-id="" onclick="selectBatchImage(null)">
+                <div class="picker-no-image"><i class="fas fa-times"></i></div>
+                <small>无实物图</small>
+            </div>`;
+            images.forEach(img => {
+                const item = document.createElement('div');
+                item.className = 'image-picker-item' + (img.id === selectedBatchImageId ? ' selected' : '');
+                item.dataset.imageId = img.id;
+                item.innerHTML = `<img src="/uploads/filaments/${img.file_name}" alt="${img.name}" /><small>${img.name}</small>`;
+                item.addEventListener('click', function () { selectBatchImage(img.id, img.file_name); });
+                grid.appendChild(item);
+            });
+            document.getElementById('imagePickerModal').style.display = 'flex';
+        });
+}
+
+function selectBatchImage(imageId, file_name) {
+    selectedBatchImageId = imageId;
+    document.getElementById('imagePickerModal').style.display = 'none';
+    const preview = document.getElementById('batchSelectedImagePreview');
+    if (imageId && file_name) {
+        document.getElementById('batchSelectedFilamentImage').src = '/uploads/filaments/' + file_name;
+        preview.style.display = 'flex';
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+function clearBatchFilamentImage() {
+    selectedBatchImageId = null;
+    document.getElementById('batchSelectedImagePreview').style.display = 'none';
 }
 

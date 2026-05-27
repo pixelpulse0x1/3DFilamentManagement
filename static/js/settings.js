@@ -20,10 +20,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Advanced page
-    if (document.getElementById('migrateDbBtn')) {
-        document.getElementById('migrateDbBtn').addEventListener('click', migrateDb);
-        document.getElementById('migrateMaterialsBtn').addEventListener('click', migrateMaterials);
-        document.getElementById('migrateManufacturersBtn').addEventListener('click', migrateManufacturers);
+    if (document.getElementById('systemStatus')) {
+        loadSystemStatus();
     }
     if (document.getElementById('backupBtn')) {
         document.getElementById('backupBtn').addEventListener('click', triggerBackup);
@@ -319,90 +317,21 @@ function triggerExcelExport() {
         });
 }
 
-// ─── Data Migration ───
+// ─── System Status ───
 
-function migrateDb() {
-    const fileInput = document.getElementById('migrateDbFile');
-    if (!fileInput.files.length) { showMigrateMsg('migrateDbMsg', '请选择 .db 数据库文件', 'error'); return; }
-    const file = fileInput.files[0];
-    if (!file.name.endsWith('.db')) { showMigrateMsg('migrateDbMsg', '请选择 .db 格式的数据库文件', 'error'); return; }
-
-    const formData = new FormData();
-    formData.append('file', file);
-    const btn = document.getElementById('migrateDbBtn');
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 导入中...'; btn.disabled = true;
-
-    fetch('/api/settings/migrate/db', { method: 'POST', body: formData })
+function loadSystemStatus() {
+    fetch('/api/system/status')
         .then(r => r.json())
         .then(d => {
-            if (d.status === 'success') {
-                let msg = '导入完成：' + d.added_filaments + ' 卷耗材';
-                if (d.added_records > 0) msg += '，' + d.added_records + ' 条使用记录';
-                if (d.updated_settings > 0) msg += '，已更新系统设置';
-                if (d.errors && d.errors.length > 0) msg += '。错误: ' + d.errors.join('; ');
-                showMigrateMsg('migrateDbMsg', msg, d.errors && d.errors.length > 0 ? 'error' : 'success');
-                fileInput.value = '';
-            } else {
-                showMigrateMsg('migrateDbMsg', d.error || '导入失败', 'error');
-            }
+            document.getElementById('statusProgramVersion').textContent = d.program_version;
+            document.getElementById('statusSchemaVersion').textContent = d.schema_version;
+            document.getElementById('statusDataHealth').textContent = d.data_status;
+            document.getElementById('statusDataHealth').style.color =
+                d.data_status.includes('正常') ? 'var(--success)' : 'var(--warning)';
         })
-        .catch(err => { showMigrateMsg('migrateDbMsg', '导入失败: ' + err.message, 'error'); })
-        .finally(() => { btn.innerHTML = '<i class="fas fa-upload"></i> 导入数据库'; btn.disabled = false; });
-}
-
-function migrateMaterials() {
-    const fileInput = document.getElementById('migrateMaterialsFile');
-    if (!fileInput.files.length) { showMigrateMsg('migrateMaterialsMsg', '请选择 materials.txt 文件', 'error'); return; }
-
-    const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-    const btn = document.getElementById('migrateMaterialsBtn');
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 导入中...'; btn.disabled = true;
-
-    fetch('/api/settings/migrate/materials', { method: 'POST', body: formData })
-        .then(r => r.json())
-        .then(d => {
-            if (d.status === 'success') {
-                let msg = '导入完成：' + d.added + ' 个新增，' + d.skipped + ' 个已存在跳过';
-                if (d.errors && d.errors.length > 0) msg += '。错误: ' + d.errors.join('; ');
-                showMigrateMsg('migrateMaterialsMsg', msg, d.errors && d.errors.length > 0 ? 'error' : 'success');
-                fileInput.value = '';
-            } else {
-                showMigrateMsg('migrateMaterialsMsg', d.error || '导入失败', 'error');
-            }
-        })
-        .catch(err => { showMigrateMsg('migrateMaterialsMsg', '导入失败: ' + err.message, 'error'); })
-        .finally(() => { btn.innerHTML = '<i class="fas fa-upload"></i> 导入材料'; btn.disabled = false; });
-}
-
-function migrateManufacturers() {
-    const fileInput = document.getElementById('migrateManufacturersFile');
-    if (!fileInput.files.length) { showMigrateMsg('migrateManufacturersMsg', '请选择 manufacturers.txt 文件', 'error'); return; }
-
-    const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-    const btn = document.getElementById('migrateManufacturersBtn');
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 导入中...'; btn.disabled = true;
-
-    fetch('/api/settings/migrate/manufacturers', { method: 'POST', body: formData })
-        .then(r => r.json())
-        .then(d => {
-            if (d.status === 'success') {
-                let msg = '导入完成：' + d.added + ' 个新增，' + d.skipped + ' 个已存在跳过';
-                if (d.errors && d.errors.length > 0) msg += '。错误: ' + d.errors.join('; ');
-                showMigrateMsg('migrateManufacturersMsg', msg, d.errors && d.errors.length > 0 ? 'error' : 'success');
-                fileInput.value = '';
-            } else {
-                showMigrateMsg('migrateManufacturersMsg', d.error || '导入失败', 'error');
-            }
-        })
-        .catch(err => { showMigrateMsg('migrateManufacturersMsg', '导入失败: ' + err.message, 'error'); })
-        .finally(() => { btn.innerHTML = '<i class="fas fa-upload"></i> 导入品牌'; btn.disabled = false; });
-}
-
-function showMigrateMsg(elId, msg, type) {
-    const el = document.getElementById(elId);
-    if (!el) return;
-    el.textContent = msg; el.style.display = 'block';
-    el.style.color = type === 'error' ? '#f72585' : '#4cc9f0';
+        .catch(() => {
+            document.getElementById('statusProgramVersion').textContent = '—';
+            document.getElementById('statusSchemaVersion').textContent = '—';
+            document.getElementById('statusDataHealth').textContent = '无法获取状态';
+        });
 }

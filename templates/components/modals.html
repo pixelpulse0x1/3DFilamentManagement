@@ -68,9 +68,6 @@
                 <label>购买渠道</label>
                 <select class="form-control" id="purchaseChannel">
                     <option value="">请选择</option>
-                    <option value="京东">京东</option><option value="淘宝">淘宝</option>
-                    <option value="拼多多">拼多多</option><option value="小程序">小程序</option>
-                    <option value="咸鱼">咸鱼</option><option value="其他">其他</option>
                 </select>
             </div>
             <div class="form-group" id="openedAtGroup" style="display:none;">
@@ -165,10 +162,25 @@
                 <label>购买渠道</label>
                 <select class="form-control" id="batchPurchaseChannel">
                     <option value="">请选择</option>
-                    <option value="京东">京东</option><option value="淘宝">淘宝</option>
-                    <option value="拼多多">拼多多</option><option value="小程序">小程序</option>
-                    <option value="咸鱼">咸鱼</option><option value="其他">其他</option>
                 </select>
+            </div>
+            <div class="form-group">
+                <label>实物图</label>
+                <div class="image-selector">
+                    <div class="selected-image-preview" id="batchSelectedImagePreview" style="display:none;">
+                        <img id="batchSelectedFilamentImage" src="" alt="" style="width:48px;height:48px;border-radius:6px;object-fit:cover;">
+                        <button type="button" class="btn btn-cancel" onclick="clearBatchFilamentImage()" style="padding:0.3rem 0.6rem;font-size:0.8rem;height:auto;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-outline" id="batchPickImageBtn" onclick="openBatchImagePicker()">
+                        <i class="fas fa-images"></i> 选择实物图
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                <input type="text" class="form-control" id="batchRemark" placeholder="输入统一备注信息">
             </div>
             <div style="display:flex;gap:1rem;margin-top:1.2rem;">
                 <button class="btn btn-primary" id="saveBatchBtn" style="flex:1;"><i class="fas fa-save"></i> 批量添加</button>

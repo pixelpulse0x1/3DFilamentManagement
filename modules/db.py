@@ -1,10 +1,15 @@
-"""Database layer: connection management, initialization, and data migration."""
+"""Database layer: connection management, versioned migration engine, and data seeding."""
 import os
+import shutil
 import sqlite3
 import logging
 from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
+
+LATEST_VERSION = 4
+
+ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
 DEFAULT_MATERIALS = [
     "PLA Basic", "PLA +", "PLA Matte", "PLA Lite", "PLA Metal", "PLA Silk",
@@ -23,6 +28,10 @@ DEFAULT_MANUFACTURERS = [
     "优线", "彩格", "邦通诺", "兰度", "叁生万物", "彩多屋", "聚材", "方途",
     "锦胜", "海创", "丝工坊", "蓝小度", "元洋", "闪铸", "造物新材料",
     "爱乐酷", "创想三维", "纵维立方", "启庞", "余师兄",
+]
+
+DEFAULT_CHANNELS = [
+    "拼多多", "京东", "淘宝", "小程序", "闲鱼", "实体店", "QQ", "微信", "拓竹官网", "其它",
 ]
 
 
@@ -45,159 +54,310 @@ def get_db(data_dir: str):
         conn.close()
 
 
-def init_db(data_dir: str):
-    """Initialize database schema and run migrations.
+# ─── Database Initialization & Migration Engine ───
 
-    Creates all tables if they don't exist and migrates data from legacy
-    materials.txt / manufacturers.txt into the new SQL tables.
-    """
+def init_db(data_dir: str):
+    """Orchestrate database creation, cold backup, step-loop migration, and seeding."""
     db_path = get_db_path(data_dir)
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA foreign_keys=ON")
+
     try:
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA foreign_keys=ON")
+        # Phase 1: Ensure all tables exist (idempotent CREATE IF NOT EXISTS)
+        _create_all_tables(conn)
 
-        conn.executescript("""
-            CREATE TABLE IF NOT EXISTS filaments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                manufacturer TEXT,
-                material_type TEXT NOT NULL,
-                color TEXT NOT NULL,
-                location TEXT,
-                is_opened BOOLEAN NOT NULL DEFAULT 0,
-                initial_weight REAL NOT NULL DEFAULT 1000.0,
-                current_weight REAL NOT NULL,
-                is_favorite BOOLEAN NOT NULL DEFAULT 0,
-                created_at TEXT DEFAULT (datetime('now', 'localtime')),
-                purchase_date TEXT,
-                purchase_price REAL,
-                purchase_channel TEXT,
-                opened_at TEXT
-            );
+        # Phase 2: Cold backup
+        _cold_backup(db_path)
 
-            CREATE TABLE IF NOT EXISTS usage_records (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                filament_id INTEGER NOT NULL,
-                used_weight REAL NOT NULL,
-                note TEXT,
-                used_at TEXT DEFAULT (datetime('now', 'localtime'))
-            );
+        # Phase 3: Read current schema version
+        conn.execute(
+            "INSERT OR IGNORE INTO system_settings (key, value) VALUES ('database_version', '1')"
+        )
+        row = conn.execute(
+            "SELECT value FROM system_settings WHERE key = 'database_version'"
+        ).fetchone()
+        current = int(row["value"]) if row else 1
 
-            CREATE TABLE IF NOT EXISTS settings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                threshold INTEGER DEFAULT 200,
-                default_weight REAL DEFAULT 1000.0,
-                auto_update BOOLEAN DEFAULT 1
-            );
+        if current > LATEST_VERSION:
+            logger.error(
+                "Database version %d is newer than latest %d — cannot downgrade.",
+                current, LATEST_VERSION,
+            )
+            conn.close()
+            raise RuntimeError("Database version is ahead of software. Downgrade not supported.")
 
-            CREATE TABLE IF NOT EXISTS materials (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL,
-                description TEXT DEFAULT ''
-            );
+        # Phase 4: Step-loop migration
+        while current < LATEST_VERSION:
+            _run_migration(current, current + 1, data_dir, conn)
+            current += 1
+            conn.execute(
+                "UPDATE system_settings SET value = ? WHERE key = 'database_version'",
+                (str(current),),
+            )
+            conn.commit()
+            logger.info("Database migrated to version %d.", current)
 
-            CREATE TABLE IF NOT EXISTS manufacturers (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL,
-                website TEXT DEFAULT ''
-            );
-
-            CREATE TABLE IF NOT EXISTS system_settings (
-                key TEXT UNIQUE NOT NULL,
-                value TEXT DEFAULT ''
-            );
-
-            CREATE TABLE IF NOT EXISTS printers (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL,
-                model TEXT DEFAULT '',
-                created_at TEXT DEFAULT (datetime('now', 'localtime'))
-            );
-
-            CREATE TABLE IF NOT EXISTS printer_slots (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                printer_id INTEGER NOT NULL,
-                slot_name TEXT NOT NULL,
-                current_filament_id INTEGER UNIQUE,
-                FOREIGN KEY (printer_id) REFERENCES printers(id) ON DELETE CASCADE,
-                FOREIGN KEY (current_filament_id) REFERENCES filaments(id) ON DELETE SET NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS filament_images (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                file_name TEXT NOT NULL,
-                created_at TEXT DEFAULT (datetime('now', 'localtime'))
-            );
-        """)
-
-        # --- Schema migration: v0.2.4.0 status column ---
-        col_check = conn.execute("PRAGMA table_info(filaments)").fetchall()
-        col_names = [c[1] for c in col_check]
-        if "status" not in col_names:
-            conn.execute("ALTER TABLE filaments ADD COLUMN status TEXT NOT NULL DEFAULT '全新'")
-            # One-shot migration: map old is_opened to new 4-state model
-            # Order matters: 用尽 first (catches weight=0 regardless of is_opened)
-            conn.execute("""
-                UPDATE filaments SET status = CASE
-                    WHEN current_weight = 0 THEN '用尽'
-                    WHEN is_opened = 1 THEN '闲置'
-                    ELSE '全新'
-                END
-            """)
-            logger.info("Migrated filaments to v0.2.4.0 4-state status model.")
-
-        # --- Schema migration: v0.3.0.0 image_id + remark columns ---
-        if "image_id" not in col_names:
-            conn.execute("ALTER TABLE filaments ADD COLUMN image_id INTEGER REFERENCES filament_images(id) ON DELETE SET NULL")
-            conn.execute("ALTER TABLE filaments ADD COLUMN remark TEXT")
-            logger.info("Migrated filaments to v0.3.0.0: image_id + remark columns.")
-
-        # Seed settings singleton
-        cur = conn.execute("SELECT COUNT(*) FROM settings")
-        if cur.fetchone()[0] == 0:
-            conn.execute("INSERT INTO settings (threshold, default_weight) VALUES (200, 1000.0)")
-
-        # Seed system_settings defaults
-        conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('active_background', '')")
-        conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('card_opacity', '0.05')")
-        conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('card_color', '#ffffff')")
-        conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('card_blur', '2')")
-
-        # Migrate materials from txt to DB
-        cur = conn.execute("SELECT COUNT(*) FROM materials")
-        if cur.fetchone()[0] == 0:
-            materials_path = os.path.join(data_dir, "database", "materials.txt")
-            items = _read_txt_list(materials_path, DEFAULT_MATERIALS)
-            for name in items:
-                try:
-                    conn.execute("INSERT OR IGNORE INTO materials (name) VALUES (?)", (name,))
-                except sqlite3.Error:
-                    pass
-
-        # Migrate manufacturers from txt to DB
-        cur = conn.execute("SELECT COUNT(*) FROM manufacturers")
-        if cur.fetchone()[0] == 0:
-            manufacturers_path = os.path.join(data_dir, "database", "manufacturers.txt")
-            items = _read_txt_list(manufacturers_path, DEFAULT_MANUFACTURERS)
-            for name in items:
-                try:
-                    conn.execute("INSERT OR IGNORE INTO manufacturers (name) VALUES (?)", (name,))
-                except sqlite3.Error:
-                    pass
+        # Phase 5: Seed default data
+        _seed_data(conn, data_dir)
 
         conn.commit()
-        conn.close()
-        logger.info("Database initialized and migrated successfully.")
+        logger.info("Database initialized and migrated successfully (version %d).", current)
 
-    except sqlite3.Error as e:
+    except Exception as e:
         logger.error("Database initialization failed: %s", e)
+        conn.close()
         raise
 
+    conn.close()
+
+
+# ─── Phase 1: Table Creation ───
+
+def _create_all_tables(conn):
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS filaments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            manufacturer TEXT,
+            material_type TEXT NOT NULL,
+            color TEXT NOT NULL,
+            location TEXT,
+            is_opened BOOLEAN NOT NULL DEFAULT 0,
+            initial_weight REAL NOT NULL DEFAULT 1000.0,
+            current_weight REAL NOT NULL,
+            is_favorite BOOLEAN NOT NULL DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            purchase_date TEXT,
+            purchase_price REAL,
+            purchase_channel TEXT,
+            opened_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS usage_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            filament_id INTEGER NOT NULL,
+            used_weight REAL NOT NULL,
+            note TEXT,
+            used_at TEXT DEFAULT (datetime('now', 'localtime'))
+        );
+
+        CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            threshold INTEGER DEFAULT 200,
+            default_weight REAL DEFAULT 1000.0,
+            auto_update BOOLEAN DEFAULT 1
+        );
+
+        CREATE TABLE IF NOT EXISTS materials (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            description TEXT DEFAULT ''
+        );
+
+        CREATE TABLE IF NOT EXISTS manufacturers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            website TEXT DEFAULT ''
+        );
+
+        CREATE TABLE IF NOT EXISTS system_settings (
+            key TEXT UNIQUE NOT NULL,
+            value TEXT DEFAULT ''
+        );
+
+        CREATE TABLE IF NOT EXISTS printers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            model TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now', 'localtime'))
+        );
+
+        CREATE TABLE IF NOT EXISTS printer_slots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            printer_id INTEGER NOT NULL,
+            slot_name TEXT NOT NULL,
+            current_filament_id INTEGER UNIQUE,
+            FOREIGN KEY (printer_id) REFERENCES printers(id) ON DELETE CASCADE,
+            FOREIGN KEY (current_filament_id) REFERENCES filaments(id) ON DELETE SET NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS filament_images (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            file_name TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now', 'localtime'))
+        );
+
+        CREATE TABLE IF NOT EXISTS channels (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            description TEXT DEFAULT ''
+        );
+    """)
+
+
+# ─── Phase 2: Cold Backup ───
+
+def _cold_backup(db_path):
+    if not os.path.isfile(db_path):
+        return
+    try:
+        bak_path = db_path + ".v" + str(LATEST_VERSION) + ".bak"
+        if not os.path.exists(bak_path):
+            shutil.copy2(db_path, bak_path)
+            logger.info("Cold backup created: %s", bak_path)
+    except OSError as e:
+        logger.warning("Cold backup skipped (non-fatal): %s", e)
+
+
+# ─── Phase 4: Step Migrations ───
+
+def _run_migration(from_ver, to_ver, data_dir, conn):
+    logger.info("Migrating database v%d → v%d ...", from_ver, to_ver)
+    if from_ver == 1 and to_ver == 2:
+        _migrate_v1_to_v2(conn)
+    elif from_ver == 2 and to_ver == 3:
+        _migrate_v2_to_v3(data_dir, conn)
+    elif from_ver == 3 and to_ver == 4:
+        _migrate_v3_to_v4(conn)
+    else:
+        logger.warning("Unknown migration step: %d → %d", from_ver, to_ver)
+
+
+def _migrate_v1_to_v2(conn):
+    """v0.2.4.0: printers, printer_slots, filaments.status 4-state model."""
+    col_names = [c[1] for c in conn.execute("PRAGMA table_info(filaments)").fetchall()]
+    if "status" not in col_names:
+        conn.execute("ALTER TABLE filaments ADD COLUMN status TEXT NOT NULL DEFAULT '全新'")
+        conn.execute("""
+            UPDATE filaments SET status = CASE
+                WHEN current_weight = 0 THEN '用尽'
+                WHEN is_opened = 1 THEN '闲置'
+                ELSE '全新'
+            END
+        """)
+        logger.info("  ✓ filaments.status column added and migrated.")
+
+
+def _migrate_v2_to_v3(data_dir, conn):
+    """v0.3.0.0: filament_images table, filaments.image_id/remark, file reorganization."""
+    col_names = [c[1] for c in conn.execute("PRAGMA table_info(filaments)").fetchall()]
+    if "image_id" not in col_names:
+        conn.execute("ALTER TABLE filaments ADD COLUMN image_id INTEGER REFERENCES filament_images(id) ON DELETE SET NULL")
+    if "remark" not in col_names:
+        conn.execute("ALTER TABLE filaments ADD COLUMN remark TEXT")
+    conn.commit()
+
+    # Physical file migration: scatter → subdirectories
+    uploads = os.path.join(data_dir, "uploads")
+    filaments_dir = os.path.join(uploads, "filaments")
+    backgrounds_dir = os.path.join(uploads, "backgrounds")
+
+    os.makedirs(filaments_dir, exist_ok=True)
+    os.makedirs(backgrounds_dir, exist_ok=True)
+
+    if not os.path.isdir(uploads):
+        logger.info("  ✓ /data/uploads/ not found, skipping file migration.")
+        return
+
+    # Determine active background for routing
+    bg_row = conn.execute(
+        "SELECT value FROM system_settings WHERE key = 'active_background'"
+    ).fetchone()
+    active_bg = bg_row["value"] if bg_row else ""
+
+    for filename in os.listdir(uploads):
+        src = os.path.join(uploads, filename)
+        if not os.path.isfile(src):
+            continue
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        if ext not in ALLOWED_IMAGE_EXTENSIONS:
+            continue
+
+        target = backgrounds_dir if filename == active_bg else filaments_dir
+        dst = os.path.join(target, filename)
+
+        if os.path.exists(dst):
+            logger.debug("  ⏭ skip (exists): %s", filename)
+            continue
+
+        try:
+            shutil.move(src, dst)
+            logger.info("  ✓ migrated file: %s → %s/", filename,
+                        "backgrounds" if target == backgrounds_dir else "filaments")
+        except OSError as e:
+            logger.error("  ✗ move failed (non-fatal): %s — %s", filename, e)
+
+    logger.info("  ✓ V2→V3 file migration complete.")
+
+
+def _migrate_v3_to_v4(conn):
+    """v0.3.1.0: channels table, filaments.channel_id FK, data extraction."""
+    col_names = [c[1] for c in conn.execute("PRAGMA table_info(filaments)").fetchall()]
+    if "channel_id" not in col_names:
+        conn.execute("""
+            INSERT OR IGNORE INTO channels (name)
+            SELECT DISTINCT purchase_channel FROM filaments
+            WHERE purchase_channel IS NOT NULL AND purchase_channel != ''
+        """)
+        conn.execute("ALTER TABLE filaments ADD COLUMN channel_id INTEGER REFERENCES channels(id) ON DELETE SET NULL")
+        conn.execute("""
+            UPDATE filaments SET channel_id = (
+                SELECT c.id FROM channels c WHERE c.name = filaments.purchase_channel
+            ) WHERE purchase_channel IS NOT NULL AND purchase_channel != ''
+        """)
+        logger.info("  ✓ filaments.channel_id FK added and data mapped.")
+
+
+# ─── Phase 5: Seed Data ───
+
+def _seed_data(conn, data_dir):
+    # Settings singleton
+    cur = conn.execute("SELECT COUNT(*) FROM settings")
+    if cur.fetchone()[0] == 0:
+        conn.execute("INSERT INTO settings (threshold, default_weight) VALUES (200, 1000.0)")
+
+    # System settings defaults
+    for k, v in [
+        ("active_background", ""),
+        ("card_opacity", "0.05"),
+        ("card_color", "#ffffff"),
+        ("card_blur", "2"),
+    ]:
+        conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES (?, ?)", (k, v))
+
+    # Materials
+    cur = conn.execute("SELECT COUNT(*) FROM materials")
+    if cur.fetchone()[0] == 0:
+        items = _read_txt_list(os.path.join(data_dir, "database", "materials.txt"), DEFAULT_MATERIALS)
+        for name in items:
+            try:
+                conn.execute("INSERT OR IGNORE INTO materials (name) VALUES (?)", (name,))
+            except sqlite3.Error:
+                pass
+
+    # Manufacturers
+    cur = conn.execute("SELECT COUNT(*) FROM manufacturers")
+    if cur.fetchone()[0] == 0:
+        items = _read_txt_list(os.path.join(data_dir, "database", "manufacturers.txt"), DEFAULT_MANUFACTURERS)
+        for name in items:
+            try:
+                conn.execute("INSERT OR IGNORE INTO manufacturers (name) VALUES (?)", (name,))
+            except sqlite3.Error:
+                pass
+
+    # Channels
+    cur = conn.execute("SELECT COUNT(*) FROM channels")
+    if cur.fetchone()[0] == 0:
+        for name in DEFAULT_CHANNELS:
+            conn.execute("INSERT OR IGNORE INTO channels (name) VALUES (?)", (name,))
+
+
+# ─── Helpers ───
 
 def _read_txt_list(path, defaults):
     """Read a line-delimited text file, falling back to defaults."""

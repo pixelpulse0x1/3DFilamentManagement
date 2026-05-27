@@ -49,15 +49,17 @@ def api_filaments():
         with get_db(data_dir) as conn:
             if request.method == "GET":
                 rows = conn.execute("""
-                    SELECT f.*, fi.file_name AS image_file
+                    SELECT f.*, fi.file_name AS image_file, ch.name AS channel_name
                     FROM filaments f
                     LEFT JOIN filament_images fi ON f.image_id = fi.id
+                    LEFT JOIN channels ch ON f.channel_id = ch.id
                     ORDER BY f.id DESC
                 """).fetchall()
                 result = []
                 for r in rows:
                     d = _filament_to_dict(r)
                     d["image_file"] = r["image_file"] if "image_file" in r.keys() else None
+                    d["channel_name"] = r["channel_name"] if "channel_name" in r.keys() else None
                     result.append(d)
                 return jsonify(result)
             else:
@@ -70,8 +72,8 @@ def api_filaments():
                     """INSERT INTO filaments
                        (name, manufacturer, material_type, color, location, is_opened,
                         initial_weight, current_weight, is_favorite, purchase_date,
-                        purchase_price, purchase_channel, opened_at, status, image_id, remark)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        purchase_price, purchase_channel, opened_at, status, image_id, remark, channel_id)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         data["name"], data.get("manufacturer", ""),
                         data["material_type"], data["color"],
@@ -85,6 +87,7 @@ def api_filaments():
                         status,
                         data.get("image_id"),
                         data.get("remark"),
+                        data.get("channel_id"),
                     ),
                 )
                 conn.commit()
@@ -105,7 +108,7 @@ def api_filament_single(filament_id):
                     "name", "manufacturer", "material_type", "color", "location",
                     "is_opened", "initial_weight", "current_weight", "is_favorite",
                     "purchase_date", "purchase_price", "purchase_channel", "opened_at",
-                    "status", "image_id", "remark",
+                    "status", "image_id", "remark", "channel_id",
                 ]
                 updates = {k: v for k, v in data.items() if k in allowed}
                 if "is_opened" in updates:
@@ -151,8 +154,8 @@ def api_filaments_batch():
                     """INSERT INTO filaments
                        (name, manufacturer, material_type, color, location, is_opened,
                         initial_weight, current_weight, is_favorite, purchase_date,
-                        purchase_price, purchase_channel, status)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        purchase_price, purchase_channel, status, image_id, remark)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         data["name"], data.get("manufacturer", ""),
                         data["material_type"], data["color"],
@@ -164,6 +167,8 @@ def api_filaments_batch():
                         data.get("purchase_date"), data.get("purchase_price"),
                         data.get("purchase_channel"),
                         "全新",
+                        data.get("image_id"),
+                        data.get("remark"),
                     ),
                 )
             conn.commit()
@@ -230,8 +235,18 @@ def api_filament_use(filament_id):
                 "INSERT INTO usage_records (filament_id, used_weight, note) VALUES (?, ?, ?)",
                 (filament_id, used_weight, note),
             )
+            # Auto-unbind from printer slot when depleted
+            if new_weight == 0:
+                conn.execute(
+                    "UPDATE printer_slots SET current_filament_id = NULL WHERE current_filament_id = ?",
+                    (filament_id,),
+                )
             conn.commit()
-            return jsonify({"status": "success", "current_weight": round(new_weight, 2)})
+            return jsonify({
+                "status": "success",
+                "current_weight": round(new_weight, 2),
+                "auto_unbound": new_weight == 0,
+            })
     except Exception as e:
         logger.error("Filament use error: %s", e)
         return jsonify({"status": "error", "error": str(e)}), 500

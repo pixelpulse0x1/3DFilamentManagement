@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}渠道管理 — 3D耗材库存管理系统{% endblock %}
+
+{% block content %}
+<header class="content-header">
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">购买渠道管理</h2>
+</header>
+<div class="content-body">
+    <div class="mgmt-header">
+        <span style="color:var(--text-secondary);">管理所有耗材购买渠道</span>
+        <button class="btn btn-primary" id="addChannelBtn"><i class="fas fa-plus"></i> 添加渠道</button>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>ID</th><th>渠道名称</th><th>描述</th><th style="width:160px;">操作</th></tr>
+            </thead>
+            <tbody id="channelsTableBody">
+                <tr><td colspan="4"><div class="empty-state"><i class="fas fa-store"></i><p>加载中...</p></div></td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div id="channelError" style="display:none;margin-top:1rem;" class="alert alert-warning"></div>
+</div>
+
+<div class="modal" id="channelModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title" id="channelModalTitle">添加渠道</div>
+            <div class="close-modal">&times;</div>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>渠道名称 *</label>
+                <input type="text" class="form-control" id="channelName" placeholder="例如: 淘宝-拓竹旗舰店">
+            </div>
+            <div class="form-group">
+                <label>描述</label>
+                <input type="text" class="form-control" id="channelDescription" placeholder="可选的描述信息">
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1.2rem;">
+                <button class="btn btn-primary" id="saveChannelBtn" style="flex:1;"><i class="fas fa-save"></i> 保存</button>
+                <button class="btn btn-cancel" id="cancelChannelBtn" style="flex:1;">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="/static/js/channels.js"></script>
+{% endblock %}

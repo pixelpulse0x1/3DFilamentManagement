@@ -179,7 +179,18 @@ body.has-background::before {
     font-size: 0.8rem;
     color: var(--ha-card-color);
     opacity: 0.6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
+
+.github-link {
+    color: var(--ha-card-color);
+    font-size: 1.2rem;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+.github-link:hover { opacity: 1; color: var(--primary); }
 
 /* ─── Accordion Navigation ─── */
 
@@ -1043,9 +1054,32 @@ input, select, textarea { font-size: 16px; }
 
 .slot-occupied .unbind-btn {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    bottom: 6px;
+    right: 6px;
 }
+
+.use-slot-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    height: 28px !important; width: 28px !important; min-width: 28px !important;
+    border-radius: 50% !important; display: inline-flex !important;
+    align-items: center !important; justify-content: center !important;
+    padding: 0 !important; margin: 0 !important;
+    background-color: var(--warning) !important; color: #fff !important;
+    border: none !important; box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+    cursor: pointer; font-size: 12px;
+}
+
+.use-slot-btn:hover { opacity: 0.85; }
+
+.slot-filament-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.slot-filament-detail { flex: 1; min-width: 0; }
 
 .slot-hint {
     grid-column: 1 / -1;
@@ -1206,6 +1240,28 @@ input, select, textarea { font-size: 16px; }
     display: flex; gap: 0.4rem; padding: 0 0.8rem 0.8rem;
 }
 .image-card-actions .btn { flex: 1; padding: 0.3rem 0.5rem; font-size: 0.8rem; height: auto; }
+
+/* ─── System Status Dashboard ─── */
+
+.status-dashboard {
+    display: grid; gap: 1rem;
+}
+
+.status-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1rem; border-radius: 8px;
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.status-label {
+    font-weight: 500; color: var(--ha-card-color); font-size: 0.95rem;
+}
+
+.status-value {
+    font-weight: 600; font-size: 1rem; color: var(--ha-card-color);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+}
 
 /* ─── Mobile Visibility ─── */
 .mobile-hidden { display: table-cell; }

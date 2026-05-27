@@ -10,6 +10,7 @@ from flask import current_app, render_template, jsonify, request, send_file, sen
 
 from modules.base import base_bp
 from modules.db import get_db
+from modules.db import LATEST_VERSION
 from modules.base.bg_utils import (
     get_active_background, list_backgrounds, upload_background, set_active_background, get_background_dir,
 )
@@ -153,6 +154,14 @@ def images_page():
                            active_background=_bg_for_template(),
                            active_nav="manage",
                            active_sub="images")
+
+
+@base_bp.route("/channels")
+def channels_page():
+    return render_template("channel_management.html",
+                           active_background=_bg_for_template(),
+                           active_nav="manage",
+                           active_sub="channels")
 
 
 # ─── Uploads File Serving ───
@@ -355,6 +364,37 @@ def serve_filament_image(filename):
     return send_from_directory(img_dir, filename)
 
 
+# ─── System Status ───
+
+@base_bp.route("/api/system/status", methods=["GET"])
+def api_system_status():
+    """Return system health and version info."""
+    data_dir = _data_dir()
+    try:
+        with get_db(data_dir) as conn:
+            row = conn.execute(
+                "SELECT value FROM system_settings WHERE key = 'database_version'"
+            ).fetchone()
+            schema_version = int(row["value"]) if row else 1
+
+        data_ok = os.path.isdir(data_dir) and os.access(data_dir, os.R_OK | os.W_OK)
+
+        return jsonify({
+            "program_version": "v0.3.2.0",
+            "schema_version": f"Version {schema_version}",
+            "schema_latest": LATEST_VERSION >= schema_version,
+            "data_status": "正常 (/data 读写就绪)" if data_ok else "异常 (/data 不可读写)",
+        })
+    except Exception as e:
+        logger.error("System status error: %s", e)
+        return jsonify({
+            "program_version": "v0.3.2.0",
+            "schema_version": "Unknown",
+            "schema_latest": False,
+            "data_status": f"异常: {str(e)}",
+        }), 500
+
+
 # ─── System Backup ───
 
 @base_bp.route("/api/settings/backup", methods=["GET"])
@@ -406,15 +446,16 @@ def api_export_excel():
         headers_f = [
             "id", "name", "manufacturer", "material_type", "color", "location",
             "is_opened", "status", "initial_weight", "current_weight", "is_favorite",
-            "created_at", "purchase_date", "purchase_price", "purchase_channel", "opened_at",
+            "created_at", "purchase_date", "purchase_price", "购买渠道", "opened_at",
             "实物图名称", "备注",
         ]
         ws1.append(headers_f)
         with get_db(data_dir) as conn:
             rows = conn.execute("""
-                SELECT f.*, fi.name AS image_name
+                SELECT f.*, fi.name AS image_name, ch.name AS channel_name
                 FROM filaments f
                 LEFT JOIN filament_images fi ON f.image_id = fi.id
+                LEFT JOIN channels ch ON f.channel_id = ch.id
                 ORDER BY f.id
             """).fetchall()
             for r in rows:
@@ -423,7 +464,7 @@ def api_export_excel():
                     r["color"], r["location"], r["is_opened"], r["status"],
                     r["initial_weight"], r["current_weight"], r["is_favorite"],
                     r["created_at"], r["purchase_date"], r["purchase_price"],
-                    r["purchase_channel"], r["opened_at"],
+                    r["channel_name"] or "", r["opened_at"],
                     r["image_name"] or "", r["remark"] or "",
                 ])
 
@@ -474,6 +515,12 @@ def api_export_excel():
             for r in slot_rows:
                 ws6.append([r["id"], r["printer_id"], r["printer_name"], r["slot_name"],
                            r["current_filament_id"], r["filament_name"], r["filament_status"]])
+
+            # Sheet 7: channels
+            ws7 = wb.create_sheet("购买渠道管理")
+            ws7.append(["id", "name", "description"])
+            for r in conn.execute("SELECT * FROM channels ORDER BY id").fetchall():
+                ws7.append([r["id"], r["name"], r["description"]])
 
         output = io.BytesIO()
         wb.save(output)

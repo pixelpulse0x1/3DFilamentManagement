@@ -22,56 +22,22 @@
         <div id="exportExcelMsg" style="margin-top:0.8rem;display:none;"></div>
     </div>
 
-    <!-- 数据迁移 -->
-    <div class="settings-card" style="border: 1px solid rgba(247, 37, 133, 0.3);">
-        <h3><i class="fas fa-tools"></i> 数据迁移</h3>
-        <p style="color:var(--text-muted);margin-bottom:1.2rem;font-size:0.9rem;">
-            从旧版系统的 filament_inventory.db、materials.txt、manufacturers.txt 文件导入数据。同名耗材/类型/品牌会自动跳过。
-        </p>
-
-        <!-- 迁移数据库 -->
-        <div style="margin-bottom:1.5rem;padding:1rem;background:rgba(255,255,255,0.03);border-radius:8px;">
-            <h4 style="color:var(--text-primary);margin-bottom:0.5rem;">
-                <i class="fas fa-database"></i> 迁移旧数据库
-            </h4>
-            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.8rem;">
-                上传旧版 filament_inventory.db，将导入耗材、使用记录和设置数据
-            </p>
-            <div style="display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;">
-                <input type="file" id="migrateDbFile" accept=".db" style="color:var(--text-primary);">
-                <button class="btn btn-primary" id="migrateDbBtn"><i class="fas fa-upload"></i> 导入数据库</button>
+    <!-- 系统运行状态 -->
+    <div class="settings-card">
+        <h3><i class="fas fa-heart-pulse"></i> 系统运行状态</h3>
+        <div class="status-dashboard" id="systemStatus">
+            <div class="status-item">
+                <div class="status-label">系统程序版本</div>
+                <div class="status-value" id="statusProgramVersion">—</div>
             </div>
-            <div id="migrateDbMsg" style="margin-top:0.5rem;display:none;font-size:0.9rem;"></div>
-        </div>
-
-        <!-- 迁移材料类型 -->
-        <div style="margin-bottom:1.5rem;padding:1rem;background:rgba(255,255,255,0.03);border-radius:8px;">
-            <h4 style="color:var(--text-primary);margin-bottom:0.5rem;">
-                <i class="fas fa-layer-group"></i> 迁移材料类型
-            </h4>
-            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.8rem;">
-                上传旧版 materials.txt，每行一个材料类型名称
-            </p>
-            <div style="display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;">
-                <input type="file" id="migrateMaterialsFile" accept=".txt" style="color:var(--text-primary);">
-                <button class="btn btn-primary" id="migrateMaterialsBtn"><i class="fas fa-upload"></i> 导入材料</button>
+            <div class="status-item">
+                <div class="status-label">核心数据版本</div>
+                <div class="status-value" id="statusSchemaVersion">—</div>
             </div>
-            <div id="migrateMaterialsMsg" style="margin-top:0.5rem;display:none;font-size:0.9rem;"></div>
-        </div>
-
-        <!-- 迁移品牌 -->
-        <div style="margin-bottom:0;padding:1rem;background:rgba(255,255,255,0.03);border-radius:8px;">
-            <h4 style="color:var(--text-primary);margin-bottom:0.5rem;">
-                <i class="fas fa-tag"></i> 迁移品牌
-            </h4>
-            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.8rem;">
-                上传旧版 manufacturers.txt，每行一个品牌名称
-            </p>
-            <div style="display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;">
-                <input type="file" id="migrateManufacturersFile" accept=".txt" style="color:var(--text-primary);">
-                <button class="btn btn-primary" id="migrateManufacturersBtn"><i class="fas fa-upload"></i> 导入品牌</button>
+            <div class="status-item">
+                <div class="status-label">物理持久化状态</div>
+                <div class="status-value" id="statusDataHealth">—</div>
             </div>
-            <div id="migrateManufacturersMsg" style="margin-top:0.5rem;display:none;font-size:0.9rem;"></div>
         </div>
     </div>
 </div>

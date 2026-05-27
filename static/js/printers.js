@@ -52,20 +52,33 @@ function renderPrinterCard(grid, printer) {
         if (slot.filament) {
             const f = slot.filament;
             const pct = f.initial_weight > 0 ? Math.round((f.current_weight / f.initial_weight) * 100) : 0;
+            const imageHtml = f.image_id && f.image_file
+                ? `<img src="/uploads/filaments/${f.image_file}" class="filament-thumb"
+                       onclick="event.stopPropagation();openLightbox('/uploads/filaments/${f.image_file}')" />`
+                : '<div class="no-image-placeholder"><i class="fas fa-image"></i></div>';
             slotsHtml += `
                 <div class="slot-card slot-occupied" data-slot-id="${slot.id}" style="border-left: 4px solid ${f.color};">
                     <div class="slot-filament-color" style="background:${f.color};"></div>
                     <div class="slot-filament-info">
-                        <div class="slot-filament-name">${f.manufacturer || ''} ${f.material_type || ''}</div>
-                        <div class="slot-filament-weight">
-                            <span>${f.current_weight.toFixed(2)}g / ${f.initial_weight.toFixed(2)}g</span>
-                            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+                        <div class="slot-filament-row">
+                            ${imageHtml}
+                            <div class="slot-filament-detail">
+                                <div class="slot-filament-name">${f.manufacturer || ''} ${f.material_type || ''}</div>
+                                <div class="slot-filament-weight">
+                                    <span>${f.current_weight.toFixed(2)}g / ${f.initial_weight.toFixed(2)}g</span>
+                                    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    <button class="btn use-slot-btn" data-filament-id="${f.id}" title="使用耗材">
+                        <i class="fas fa-minus-circle"></i>
+                    </button>
                     <button class="btn btn-withdraw unbind-btn" data-slot-id="${slot.id}" title="下机解绑">
                         <i class="fas fa-eject"></i>
                     </button>
                 </div>`;
+        } else {
         } else {
             slotsHtml += `
                 <div class="slot-card slot-empty" data-slot-id="${slot.id}">
@@ -115,6 +128,12 @@ function renderPrinterCard(grid, printer) {
         btn.addEventListener('click', function (e) {
             e.stopPropagation();
             unbindFilament(this.dataset.slotId);
+        });
+    });
+    card.querySelectorAll('.use-slot-btn').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            openUseFromSlot(this.dataset.filamentId);
         });
     });
 }
@@ -258,6 +277,13 @@ function unbindFilament(slotId) {
             else alert(d.error || '解绑失败');
         })
         .catch(err => alert('解绑失败: ' + err.message));
+}
+
+function openUseFromSlot(filamentId) {
+    // Reuse the global openUseModal from app.js
+    if (typeof openUseModal === 'function') {
+        openUseModal(filamentId);
+    }
 }
 
 function closeAllModals() {
