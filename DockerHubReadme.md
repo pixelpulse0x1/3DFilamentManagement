@@ -35,7 +35,7 @@ A full-featured consumable asset management tool for 3D printing enthusiasts, sm
 
 ### 📸 Screenshots
 
-![Overview Dashboard](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014709888.png)
+![Overview Dashboard](https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/Database/image-20260529014709888.png)
 
 ### 🚀 Quick Start
 
@@ -166,29 +166,29 @@ MIT License. See [LICENSE](https://github.com/pixelpulse0x1/3DFilamentManagement
 
 ### 📸 系统截图
 
-![库存总览](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014241070.png)
+![库存总览](https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/Database/image-20260529014241070.png)
 
-![耗材管理](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014251994.png)
+![耗材管理](https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/Database/image-20260529014251994.png)
 
-![使用记录](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014304014.png)
+![使用记录](https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/Database/image-20260529014304014.png)
 
-![使用图表](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014340149.png)
+![使用图表](https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/Database/image-20260529014340149.png)
 
-![交叉矩阵](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014349655.png)
+![交叉矩阵](https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/Database/image-20260529014349655.png)
 
-![设备管理](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014359278.png)
+![设备管理](https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/Database/image-20260529014359278.png)
 
-![打印机型号](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014407540.png)
+![打印机型号](https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/Database/image-20260529014407540.png)
 
-![成本计算器](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014424305.png)
+![成本计算器](https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/Database/image-20260529014424305.png)
 
-![品牌管理](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014434600.png)
+![品牌管理](https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/Database/image-20260529014434600.png)
 
-![常规设置](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014547782.png)
+![常规设置](https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/Database/image-20260529014547782.png)
 
-![外观设置](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014615833.png)
+![外观设置](https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/Database/image-20260529014615833.png)
 
-![高级设置](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014644943.png)
+![高级设置](https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/Database/image-20260529014644943.png)
 
 ### 🚀 快速开始
 
