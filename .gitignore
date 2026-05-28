@@ -25,7 +25,7 @@ plans/
 v*.md
 
 # ─── 技术白皮书 (内部文档) ───
-TECHNICAL_REFERENCE.md
+#TECHNICAL_REFERENCE.md
 
 # ─── 调试日志 ───
 app.log

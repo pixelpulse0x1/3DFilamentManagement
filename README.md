@@ -23,7 +23,7 @@
 
 **3D 打印耗材库存管理系统** 是一款面向 3D 打印爱好者、小型工作室和打印农场的全功能耗材资产管理工具。系统提供耗材全生命周期追踪（从购买、开封、上机使用到耗尽）、多维度统计看板、设备与槽位管理、以及内置的商业成本计算器——帮助用户精确核算每个打印项目的材料成本、设备折旧和利润报价。
 
-系统基于 Flask 构建，采用玻璃拟态（Glassmorphism）深色 UI 主题，支持中英双语无缝切换。提供 Docker 一键部署和 Windows 绿色便携版两种交付形态。
+系统基于 Flask 构建，采用玻璃拟态（Glassmorphism）深色 UI 主题，支持中英双语无缝切换。提供 **Docker 一键部署** 和 **Windows 绿色便携版** 两种交付形态。
 
 ### ✨ 核心功能
 
@@ -67,10 +67,11 @@
 
 #### ⚙️ 系统管理
 - **外观定制**：卡片透明度、颜色、模糊度实时预览
-- **背景图管理**：上传/切换/删除系统背景
+- **背景图管理**：上传/切换/删除系统背景（默认暗色抽象纹理背景）
 - **一键备份**：数据库 + 全部上传文件打包为 ZIP 下载
 - **热还原**：上传备份 ZIP，自动覆盖并执行数据库迁移
 - **数据迁移**：支持从旧版 `.db` / `.txt` 导入
+- **调试模式**：CMD 窗口日志级别可控（日常清爽 / 排错全量）
 
 #### 🌐 国际化 (i18n)
 - **624 键中英双语字典**：覆盖全部 UI 文本、提示、图表标签
@@ -92,7 +93,7 @@
 
 ### 🚀 快速开始
 
-#### Docker 部署（推荐）
+#### Docker 部署（推荐服务器/NAS）
 
 ```bash
 # 克隆项目
@@ -106,16 +107,64 @@ docker compose up -d
 # http://<你的服务器IP>:9055
 ```
 
-数据持久化在 `/opt/docker-stacks/3D-Consumables-Inventory-Management-System`，可在 `docker-compose.yml` 中修改挂载路径。
+数据持久化在 `/opt/docker-stacks/3dfilamentmanagement`，可在 `docker-compose.yml` 中修改挂载路径。
 
-#### Windows 绿色便携版
+#### Windows 绿色便携版（推荐桌面用户）
 
-1. 下载 `v0.6.2.2-portable.zip` 并解压到任意目录
-2. 双击 `运行系统.bat` 启动
-3. 浏览器自动打开 `http://127.0.0.1:9055`
-4. 关闭 CMD 窗口即退出系统
+##### 下载与解压
 
-> 所有数据（数据库、上传图片）均存储在解压目录的 `data/` 文件夹内，实现完全便携。
+1. 下载 `3D_Inventory_Management_v0.6.2.2.zip`（约 30MB）
+2. 解压到任意目录（如 `D:\3DInventory\` 或桌面）
+3. **不需要安装 Python 或任何依赖**，解压即用
+
+##### 解压后的目录结构
+
+```
+3D_Inventory_Management_v0.6.2.2/
+├── 运行系统.bat                  # ← 双击这个启动
+├── static/                       # 前端静态资源 (CSS/JS/背景图)
+├── templates/                    # 页面模板
+└── backend/                      # 核心引擎
+    ├── server.exe                # 编译好的主程序
+    └── _internal/                # Python 运行时与依赖库
+```
+
+首次运行后会自动创建 `data/` 目录：
+
+```
+data/                             # 【自动创建】所有数据都在这里
+├── database/
+│   └── filament_inventory.db     # SQLite 数据库
+└── uploads/
+    ├── backgrounds/              # 背景图（含默认 Background.png）
+    └── filaments/                # 耗材实物图
+```
+
+##### 启动与使用
+
+1. **双击 `运行系统.bat`** — 弹出黑色运维看板窗口
+2. 浏览器自动打开 `http://127.0.0.1:9055`
+3. 开始使用系统
+4. **关闭 CMD 窗口** 或按 `Ctrl+C` 即可安全退出
+
+> **数据完全便携**：所有数据库、上传图片均存储在解压目录的 `data/` 文件夹内。如需迁移到另一台电脑，直接将整个文件夹复制过去即可，数据不会丢失。
+
+##### 调试模式说明
+
+启动脚本头部有一行：
+
+```batch
+set DEBUG_MODE=false
+```
+
+- **`false`（默认）**：控制台仅显示错误/警告，日常使用时窗口清爽安静
+- **`true`**：恢复全量 HTTP 请求日志滚动输出，用于排查问题
+
+修改后重新双击 `运行系统.bat` 生效。
+
+##### 从源码自行编译
+
+如果想自行编译，可在项目目录下运行 `Windows一键编译exe程序.bat`，自动完成虚拟环境创建 → 依赖安装 → PyInstaller 编译 → 发布包组装全流程。详见 [TECHNICAL_REFERENCE.md §9.3](TECHNICAL_REFERENCE.md)。
 
 #### 开发环境
 
@@ -129,50 +178,38 @@ python app.py
 ### 📁 项目结构
 
 ```
-总根目录/
-├── app.py                     # 应用入口（多环境自适应路径）
-├── modules/                   # Flask Blueprint 模块
-│   ├── db.py                  # 数据库层（版本化迁移引擎）
-│   ├── i18n.py                # 中英双语字典 (624 键)
-│   ├── base/                  # 基础路由、设置、备份
-│   ├── filaments/             # 耗材 CRUD、统计、矩阵
-│   ├── materials/             # 材料类型管理
-│   ├── brands/                # 品牌与盘重管理
-│   ├── channels/              # 购买渠道
-│   ├── images/                # 实物图管理
-│   ├── printers/              # 打印机、槽位、上机/下机
-│   └── tools/                 # 成本计算器
+workspace/
+├── app.py                       # 应用入口（多环境自适应路径 + 日志引擎）
+├── modules/                     # Flask Blueprint 模块
+│   ├── db.py                    # 数据库层（版本化迁移引擎, V1→V11）
+│   ├── i18n.py                  # 中英双语字典 (624 键)
+│   ├── base/                    # 基础路由、设置、背景管理、备份、旧数据导入
+│   ├── filaments/               # 耗材 CRUD、使用记录、统计、交叉矩阵
+│   ├── materials/               # 材料类型管理
+│   ├── brands/                  # 品牌与盘重管理
+│   ├── channels/                # 购买渠道管理
+│   ├── images/                  # 实物图管理
+│   ├── printers/                # 打印机、槽位、上机/下机、型号库
+│   └── tools/                   # 成本计算器与历史记录
 ├── static/
-│   ├── css/                   # 玻璃拟态主题样式
-│   └── js/                    # 前端业务逻辑 (10 个模块)
-├── templates/                 # Jinja2 模板 (18 个页面)
-├── data/                      # 运行时数据（自动创建）
-├── 运行系统.bat                # Windows 启动脚本
-├── docker-compose.yml         # Docker 编排
-├── test_suite.py              # E2E 测试套件
-└── TECHNICAL_REFERENCE.md     # 技术参考文档
+│   ├── css/                     # 玻璃拟态主题样式 + 响应式
+│   └── js/                      # 前端业务逻辑 (10 个模块)
+├── templates/                   # Jinja2 模板 (18 个页面/组件)
+├── 运行系统.bat                  # Windows 便携版启动脚本
+├── Windows一键编译exe程序.bat     # Windows 一键编译打包工具
+├── docker-compose.yml           # Docker 编排
+├── Dockerfile                   # Docker 镜像构建
+├── entrypoint.sh                # 容器入口脚本
+├── test_suite.py                # E2E 集成测试套件 (24 项)
+├── requirements.txt             # Python 依赖
+└── TECHNICAL_REFERENCE.md       # 完整技术参考文档
 ```
 
 ### 📖 文档
 
-- [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md) — 完整技术参考（数据库结构、API 文档、迁移引擎、报价公式、部署指南）
+- [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md) — 完整技术参考（数据库结构 · API 文档 · 迁移引擎 · 报价公式 · 打包编译 · 部署指南）
 
-### 🔄 版本历史
 
-| 版本 | 日期 | 主要变更 |
-|------|------|---------|
-| v0.6.2.2 | 2026-05 | DEBUG_MODE 调试开关、werkzeug 日志静音 |
-| v0.6.2.0 | 2026-05 | Windows 绿色便携版、多环境自适应路径底座 |
-| v0.6.1.2 | 2026-05 | i18n 完备性审计、状态枚举通信防灾 |
-| v0.6.1.1 | 2026-05 | 地毯式 i18n 全面补完 (533→612 键) |
-| v0.6.1.0 | 2026-05 | i18n 多语言框架上线 |
-| v0.5.2.2 | 2026-04 | 全线 502 修复、计算器分母防崩溃 |
-| v0.5.1.0 | 2026-04 | 成本计算器全量上线 |
-| v0.5.0.0 | 2026-04 | 打印机型号参数扩展 |
-| v0.4.x | 2026-03 | 品牌树、双轨上机、ROI 账单、备份热还原 |
-| v0.3.x | 2026-02 | 5 态状态机、实物图、渠道、Excel 导出 |
-| v0.2.x | 2026-01 | 设备看板、玻璃拟态 UI、Docker 容器化 |
-| v0.1.0 | 2025-12 | Blueprint 模块化架构初始版本 |
 
 ### 📄 License
 
@@ -186,7 +223,7 @@ MIT License. 详见 [LICENSE](LICENSE) 文件。
 
 **3D Filament Inventory Management System** is a full-featured consumable asset management tool designed for 3D printing enthusiasts, small studios, and print farms. It provides full lifecycle tracking of filaments (from purchase, opening, loading onto printers, to depletion), multi-dimensional statistics dashboards, device & slot management, and a built-in commercial cost calculator — helping users accurately calculate material costs, equipment depreciation, and profit pricing for each print project.
 
-Built on Flask with a Glassmorphism dark UI theme, the system supports seamless Chinese/English bilingual switching. Available in two deployment forms: Docker one-click deployment and Windows portable edition.
+Built on Flask with a Glassmorphism dark UI theme, the system supports seamless Chinese/English bilingual switching. Available in two deployment forms: **Docker one-click deployment** and **Windows portable edition**.
 
 ### ✨ Key Features
 
@@ -230,10 +267,11 @@ Built on Flask with a Glassmorphism dark UI theme, the system supports seamless 
 
 #### ⚙️ System Management
 - **Appearance**: Real-time preview of card opacity, color, blur
-- **Background**: Upload/switch/delete system backgrounds
+- **Background**: Upload/switch/delete system backgrounds (dark abstract texture default)
 - **One-Click Backup**: Database + all uploaded files packaged as ZIP download
 - **Hot Restore**: Upload backup ZIP, auto-overwrite + run DB migrations
 - **Data Migration**: Import from legacy `.db` / `.txt` files
+- **Debug Mode**: Console log level controllable (clean daily use / verbose troubleshooting)
 
 #### 🌐 Internationalization (i18n)
 - **624-Key Bilingual Dictionary**: Covers all UI text, prompts, chart labels
@@ -255,7 +293,7 @@ Built on Flask with a Glassmorphism dark UI theme, the system supports seamless 
 
 ### 🚀 Quick Start
 
-#### Docker (Recommended)
+#### Docker (Recommended for Server/NAS)
 
 ```bash
 git clone https://github.com/pixelpulse0x1/3D-Consumables-Inventory-Management-System.git
@@ -264,14 +302,64 @@ docker compose up -d
 # Visit http://<your-server-ip>:9055
 ```
 
-#### Windows Portable
+Data persists at `/opt/docker-stacks/3dfilamentmanagement`. Modify the mount path in `docker-compose.yml` if needed.
 
-1. Download `v0.6.2.2-portable.zip` and extract anywhere
-2. Double-click `运行系统.bat` to launch
-3. Browser auto-opens `http://127.0.0.1:9055`
-4. Close the CMD window to exit
+#### Windows Portable (Recommended for Desktop)
 
-> All data (database, uploads) resides in the `data/` folder — fully portable.
+##### Download & Extract
+
+1. Download `3D_Inventory_Management_v0.6.2.2.zip` (~30 MB)
+2. Extract to any folder (e.g. `D:\3DInventory\` or Desktop)
+3. **No Python or dependencies required** — ready to run
+
+##### Extracted Structure
+
+```
+3D_Inventory_Management_v0.6.2.2/
+├── 运行系统.bat                  # ← Double-click to launch
+├── static/                       # Frontend assets (CSS/JS/backgrounds)
+├── templates/                    # Page templates
+└── backend/                      # Core engine
+    ├── server.exe                # Compiled main executable
+    └── _internal/                # Python runtime & dependency libraries
+```
+
+On first run, a `data/` directory is auto-created:
+
+```
+data/                             # [Auto-created] All data lives here
+├── database/
+│   └── filament_inventory.db     # SQLite database
+└── uploads/
+    ├── backgrounds/              # Background images (incl. default Background.png)
+    └── filaments/                # Filament photos
+```
+
+##### Launch & Use
+
+1. **Double-click `运行系统.bat`** — a black console window opens
+2. Browser auto-opens `http://127.0.0.1:9055`
+3. Start using the system
+4. **Close the CMD window** or press `Ctrl+C` to safely exit
+
+> **Fully Portable**: All data (database, uploads) resides in the `data/` folder. To migrate to another PC, simply copy the entire folder — data will not be lost.
+
+##### Debug Mode
+
+At the top of the launcher script:
+
+```batch
+set DEBUG_MODE=false
+```
+
+- **`false` (default)**: Console shows only errors/warnings — clean and quiet for daily use
+- **`true`**: Full HTTP request logs scroll in the console — useful for troubleshooting
+
+Change the value and relaunch `运行系统.bat` for it to take effect.
+
+##### Build from Source
+
+To compile your own build, run `Windows一键编译exe程序.bat` in the project directory. It automates the full pipeline: venv → deps → PyInstaller → flatten → assemble. See [TECHNICAL_REFERENCE.md §9.3](TECHNICAL_REFERENCE.md) for details.
 
 #### Development
 
@@ -282,26 +370,39 @@ python app.py
 # Visit http://127.0.0.1:9055
 ```
 
+### 📁 Project Structure
+
+```
+workspace/
+├── app.py                       # App factory (multi-env adaptive paths + log engine)
+├── modules/                     # Flask Blueprint modules
+│   ├── db.py                    # Versioned migration engine (V1→V11)
+│   ├── i18n.py                  # Bilingual dictionary (624 keys)
+│   ├── base/                    # Core routes, settings, backgrounds, backup, migration
+│   ├── filaments/               # Filament CRUD, usage records, stats, matrix
+│   ├── materials/               # Material type management
+│   ├── brands/                  # Brand & spool management
+│   ├── channels/                # Purchase channel management
+│   ├── images/                  # Filament image management
+│   ├── printers/                # Printers, slots, load/unload, model library
+│   └── tools/                   # Cost calculator & history
+├── static/
+│   ├── css/                     # Glassmorphism theme + responsive
+│   └── js/                      # Frontend logic (10 modules)
+├── templates/                   # Jinja2 templates (18 pages/components)
+├── 运行系统.bat                  # Windows portable launcher
+├── Windows一键编译exe程序.bat     # Windows one-click build tool
+├── docker-compose.yml           # Docker Compose config
+├── Dockerfile                   # Docker image build
+├── entrypoint.sh                # Container entrypoint
+├── test_suite.py                # E2E test suite (24 cases)
+├── requirements.txt             # Python dependencies
+└── TECHNICAL_REFERENCE.md       # Full technical reference
+```
+
 ### 📖 Documentation
 
-- [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md) — Complete technical reference (DB schema, API docs, migration engine, pricing formulas, deployment guide) — *in Chinese*
-
-### 🔄 Version History
-
-| Version | Date | Highlights |
-|---------|------|------------|
-| v0.6.2.2 | May 2026 | DEBUG_MODE switch, werkzeug log suppression |
-| v0.6.2.0 | May 2026 | Windows portable edition, multi-environment adaptive paths |
-| v0.6.1.2 | May 2026 | i18n completeness audit, status enum disaster prevention |
-| v0.6.1.1 | May 2026 | Full i18n sweep (533→612 keys) |
-| v0.6.1.0 | May 2026 | i18n multilingual framework launched |
-| v0.5.2.2 | Apr 2026 | 502 fixes, zero-denominator protection |
-| v0.5.1.0 | Apr 2026 | Cost calculator full launch |
-| v0.5.0.0 | Apr 2026 | Printer model spec expansion |
-| v0.4.x | Mar 2026 | Brand tree, dual-track loading, ROI billing, hot restore |
-| v0.3.x | Feb 2026 | 5-state machine, filament images, channels, Excel export |
-| v0.2.x | Jan 2026 | Device dashboard, glassmorphism UI, Docker |
-| v0.1.0 | Dec 2025 | Initial Blueprint modular architecture |
+- [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md) — Complete technical reference (DB schema · API docs · migration engine · pricing formulas · build & packaging · deployment guide) — *in Chinese*
 
 ### 📄 License
 
