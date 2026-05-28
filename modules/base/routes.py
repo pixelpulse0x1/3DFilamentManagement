@@ -500,7 +500,7 @@ def api_system_status():
         data_ok = os.path.isdir(data_dir) and os.access(data_dir, os.R_OK | os.W_OK)
 
         return jsonify({
-            "program_version": "v0.6.1.2",
+            "program_version": "v0.6.2.0",
             "schema_version": f"Version {schema_version}",
             "schema_latest": LATEST_VERSION >= schema_version,
             "data_status": "Normal (/data read/write ready)" if data_ok else "Error (/data not accessible)",
@@ -508,7 +508,7 @@ def api_system_status():
     except Exception as e:
         logger.error("System status error: %s", e)
         return jsonify({
-            "program_version": "v0.6.1.2",
+            "program_version": "v0.6.2.0",
             "schema_version": "Unknown",
             "schema_latest": False,
             "data_status": f"Error: {str(e)}",
