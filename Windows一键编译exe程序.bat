@@ -151,11 +151,11 @@ echo [组装] 扁平化 backend 目录结构...
 set BACKEND_DIR=%~dp0backend\server
 
 if exist "%BACKEND_DIR%" (
-    :: 将 backend/server/ 下所有内容提取到 backend/ 根
-    move "%BACKEND_DIR%\*" "%~dp0backend\" >nul 2>&1
-    :: 删除空壳 server/ 目录
+    :: 强力递归复制整个文件夹内容（含 _internal/ 子目录依赖树）到 backend/ 根
+    xcopy "%BACKEND_DIR%" "%~dp0backend\" /e /i /q /y >nul
+    :: 彻底删除已被掏空的旧 server/ 目录
     rmdir /s /q "%BACKEND_DIR%" >nul 2>&1
-    echo [组装] backend 目录已扁平化 (server/ 内文件提取至 backend/ 根)
+    echo [组装] backend 目录已完美扁平化 (含 _internal 依赖树)
 ) else (
     echo [警告] 未找到 backend\server\ 目录，跳过扁平化
 )
