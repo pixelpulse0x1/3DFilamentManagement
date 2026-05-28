@@ -873,6 +873,14 @@ DB (中文状态值) → API (中文 JSON) → JS _statusI18n() → UI 显示（
 
 ---
 
+## 13.docker构建
+
+```dockerfile
+sudo docker compose down && sudo docker compose build --no-cache && sudo docker compose up -d
+```
+
+
+
 ## 12. 更新日志
 
 ### v0.6.2.2
