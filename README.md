@@ -1,0 +1,312 @@
+# 3D 打印耗材库存管理系统
+
+<p align="center">
+  <img src="static/favicon-96x96.png" alt="logo" width="96" />
+</p>
+
+<p align="center">
+  <strong>🌐 中英双语 · 🐳 Docker 容器化 · 🪟 Windows 绿色便携 · 📊 商业报价引擎</strong>
+</p>
+
+<p align="center">
+  <a href="#-快速开始"><img src="https://img.shields.io/badge/版本-v0.6.2.0-blue" alt="version" /></a>
+  <a href="#license"><img src="https://img.shields.io/badge/许可证-MIT-green" alt="license" /></a>
+  <img src="https://img.shields.io/badge/平台-Linux%20%7C%20Windows%20%7C%20Docker-orange" alt="platform" />
+  <img src="https://img.shields.io/badge/i18n-中英双语-ff69b4" alt="i18n" />
+</p>
+
+---
+
+## 📖 中文
+
+### 项目简介
+
+**3D 打印耗材库存管理系统** 是一款面向 3D 打印爱好者、小型工作室和打印农场的全功能耗材资产管理工具。系统提供耗材全生命周期追踪（从购买、开封、上机使用到耗尽）、多维度统计看板、设备与槽位管理、以及内置的商业成本计算器——帮助用户精确核算每个打印项目的材料成本、设备折旧和利润报价。
+
+系统基于 Flask 构建，采用玻璃拟态（Glassmorphism）深色 UI 主题，支持中英双语无缝切换。提供 Docker 一键部署和 Windows 绿色便携版两种交付形态。
+
+### ✨ 核心功能
+
+#### 📊 仪表板与统计
+- **库存总览看板**：总耗材数量、累计购入价值、库存预警、常用耗材标记
+- **使用重量追踪**：历史累计消耗与全量剩余净重实时统计
+- **低库存预警**：动态阈值告警条，低于设定克数自动提醒
+- **厂商耗材统计**：按品牌聚合的耗材数量、材料类型、颜色、总价值
+- **交叉状态矩阵**：材料类型 × 5 态（全新/闲置/上机/不足/用尽）交叉统计 + 联动扇形图
+
+#### 🧵 耗材管理
+- **全生命周期追踪**：购买日期、价格、渠道、初始重量、当前重量、开封日期
+- **5 态状态机**：全新 → 闲置 → 上机 → 不足（动态判定）→ 用尽
+- **双轨上机机制**：`is_loaded` 独立布尔字段，与基础状态解耦
+- **称重计算器**：秤测总重 − 空盘重量 = 当前净重，自动填入
+- **品牌/盘型级联**：品牌下拉 → 盘型下拉 → 自动获取空盘重量
+- **实物图管理**：上传/替换/预览，耗材卡片绑定显示
+- **批量操作**：批量添加、批量设为闲置/全新、批量删除、批量收藏
+- **克隆已有耗材**：快速复制已有耗材配置，减少重复录入
+
+#### 🖨️ 设备管理
+- **打印机集群**：多台打印机 + 多槽位（AMS）管理
+- **上机/下机**：槽位绑定耗材（自动标记 `is_loaded`）+ 一键解绑
+- **耗材使用**：从设备槽位直接记录使用重量，自动扣减
+- **打印机型号库**：36 款内置型号（拓竹/创想三维/Prusa 等），含功率/价值/寿命参数
+- **一键拥有**：从型号库快速创建设备实例
+
+#### 💰 商业报价引擎
+- **成本计算器**：多行耗材 + 多台设备 + 后处理工序动态增行
+- **核心定价公式**：`建议报价 = (总成本 + 辛苦费) / (1 − 利润率% − 平台抽成% − 税率%)`
+- **分母为零防崩溃**：前置拦截，防止除零导致 502 错误
+- **实时看板**：生产总成本、建议报价、纯利润 + Chart.js 饼图
+- **历史账单中心**：保存/载入编辑/克隆/删除，支持 50 条历史记录
+
+#### 📝 使用记录与报表
+- **使用日志**：每次耗材使用的时间、重量、金额、备注
+- **撤回机制**：误操作可撤回，重量自动加回
+- **使用图表**：月度趋势折线图 + 每日柱状图 + 累计统计表
+- **ROI 效能账单**：代打市场价 vs 自制实际成本对比，月度回本趋势
+- **Excel 导出**：7 个工作表全量导出（耗材/材料/记录/打印机/槽位/渠道/品牌）
+
+#### ⚙️ 系统管理
+- **外观定制**：卡片透明度、颜色、模糊度实时预览
+- **背景图管理**：上传/切换/删除系统背景
+- **一键备份**：数据库 + 全部上传文件打包为 ZIP 下载
+- **热还原**：上传备份 ZIP，自动覆盖并执行数据库迁移
+- **数据迁移**：支持从旧版 `.db` / `.txt` 导入
+
+#### 🌐 国际化 (i18n)
+- **624 键中英双语字典**：覆盖全部 UI 文本、提示、图表标签
+- **语言切换**：设置页面即时切换，全系统无死角
+- **前后端双辅助函数**：Jinja2 `{{ i18n.key }}` + JS `_i('key', 'fallback')`
+- **状态枚举防灾**：DB 存中文，UI 显示 i18n，API 校验守卫，三层防御
+
+### 🛠️ 技术栈
+
+| 层级 | 技术 |
+|------|------|
+| 后端 | Python 3 + Flask (Blueprint 模块化架构) |
+| 数据库 | SQLite3 (版本化迁移引擎, 11 步增量升级) |
+| 前端 | Vanilla JS + Jinja2 模板 + Chart.js |
+| UI 主题 | 玻璃拟态 (Glassmorphism) 深色主题 |
+| 容器化 | Docker + docker-compose |
+| 桌面端 | PyInstaller `--onedir` + 批处理启动脚本 |
+| 测试 | E2E 集成测试套件 (24 项) |
+
+### 🚀 快速开始
+
+#### Docker 部署（推荐）
+
+```bash
+# 克隆项目
+git clone https://github.com/pixelpulse0x1/3D-Consumables-Inventory-Management-System.git
+cd 3D-Consumables-Inventory-Management-System/workspace
+
+# 启动容器
+docker compose up -d
+
+# 访问系统
+# http://<你的服务器IP>:9055
+```
+
+数据持久化在 `/opt/docker-stacks/3D-Consumables-Inventory-Management-System`，可在 `docker-compose.yml` 中修改挂载路径。
+
+#### Windows 绿色便携版
+
+1. 下载 `v0.6.2.0-portable.zip` 并解压到任意目录
+2. 双击 `运行系统.bat` 启动
+3. 浏览器自动打开 `http://127.0.0.1:9055`
+4. 关闭 CMD 窗口即退出系统
+
+> 所有数据（数据库、上传图片）均存储在解压目录的 `data/` 文件夹内，实现完全便携。
+
+#### 开发环境
+
+```bash
+cd workspace
+pip install -r requirements.txt
+python app.py
+# 访问 http://127.0.0.1:9055
+```
+
+### 📁 项目结构
+
+```
+总根目录/
+├── app.py                     # 应用入口（多环境自适应路径）
+├── modules/                   # Flask Blueprint 模块
+│   ├── db.py                  # 数据库层（版本化迁移引擎）
+│   ├── i18n.py                # 中英双语字典 (624 键)
+│   ├── base/                  # 基础路由、设置、备份
+│   ├── filaments/             # 耗材 CRUD、统计、矩阵
+│   ├── materials/             # 材料类型管理
+│   ├── brands/                # 品牌与盘重管理
+│   ├── channels/              # 购买渠道
+│   ├── images/                # 实物图管理
+│   ├── printers/              # 打印机、槽位、上机/下机
+│   └── tools/                 # 成本计算器
+├── static/
+│   ├── css/                   # 玻璃拟态主题样式
+│   └── js/                    # 前端业务逻辑 (10 个模块)
+├── templates/                 # Jinja2 模板 (18 个页面)
+├── data/                      # 运行时数据（自动创建）
+├── 运行系统.bat                # Windows 启动脚本
+├── docker-compose.yml         # Docker 编排
+├── test_suite.py              # E2E 测试套件
+└── TECHNICAL_REFERENCE.md     # 技术参考文档
+```
+
+### 📖 文档
+
+- [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md) — 完整技术参考（数据库结构、API 文档、迁移引擎、报价公式、部署指南）
+
+### 🔄 版本历史
+
+| 版本 | 日期 | 主要变更 |
+|------|------|---------|
+| v0.6.2.0 | 2026-05 | Windows 绿色便携版、多环境自适应路径底座 |
+| v0.6.1.2 | 2026-05 | i18n 完备性审计、状态枚举通信防灾 |
+| v0.6.1.1 | 2026-05 | 地毯式 i18n 全面补完 (533→612 键) |
+| v0.6.1.0 | 2026-05 | i18n 多语言框架上线 |
+| v0.5.2.2 | 2026-04 | 全线 502 修复、计算器分母防崩溃 |
+| v0.5.1.0 | 2026-04 | 成本计算器全量上线 |
+| v0.5.0.0 | 2026-04 | 打印机型号参数扩展 |
+| v0.4.x | 2026-03 | 品牌树、双轨上机、ROI 账单、备份热还原 |
+| v0.3.x | 2026-02 | 5 态状态机、实物图、渠道、Excel 导出 |
+| v0.2.x | 2026-01 | 设备看板、玻璃拟态 UI、Docker 容器化 |
+| v0.1.0 | 2025-12 | Blueprint 模块化架构初始版本 |
+
+### 📄 License
+
+MIT License. 详见 [LICENSE](LICENSE) 文件。
+
+---
+
+## 📖 English
+
+### Overview
+
+**3D Filament Inventory Management System** is a full-featured consumable asset management tool designed for 3D printing enthusiasts, small studios, and print farms. It provides full lifecycle tracking of filaments (from purchase, opening, loading onto printers, to depletion), multi-dimensional statistics dashboards, device & slot management, and a built-in commercial cost calculator — helping users accurately calculate material costs, equipment depreciation, and profit pricing for each print project.
+
+Built on Flask with a Glassmorphism dark UI theme, the system supports seamless Chinese/English bilingual switching. Available in two deployment forms: Docker one-click deployment and Windows portable edition.
+
+### ✨ Key Features
+
+#### 📊 Dashboard & Statistics
+- **Inventory Overview**: Total filament count, cumulative purchase value, low-stock alerts, favorites
+- **Weight Tracking**: Historical total consumption + remaining net weight (real-time)
+- **Low Stock Alert**: Dynamic threshold warning bar, auto-alert when below configured grams
+- **Manufacturer Stats**: Per-brand aggregation of filament count, material types, colors, total value
+- **Cross Status Matrix**: Material Type × 5-state (New/Idle/Loaded/Low/Depleted) with linked donut chart
+
+#### 🧵 Filament Management
+- **Full Lifecycle**: Purchase date/price/channel, initial weight, current weight, opened date
+- **5-State Machine**: New → Idle → Loaded → Low (dynamic) → Depleted
+- **Dual-Track Loading**: `is_loaded` independent boolean, decoupled from base status
+- **Weighing Calculator**: Gross weight − Spool weight = Net weight, auto-fill
+- **Brand/Spool Cascade**: Brand dropdown → Spool dropdown → auto-fetch spool weight
+- **Image Management**: Upload/replace/preview filament images
+- **Batch Operations**: Batch add, batch set status, batch delete, batch favorite
+- **Clone Filament**: Quick-copy existing filament config to reduce repeat entry
+
+#### 🖨️ Device Management
+- **Printer Fleet**: Multiple printers + multiple slots (AMS) management
+- **Load/Unload**: Slot-filament binding (auto-mark `is_loaded`) + one-click unbind
+- **Filament Usage**: Record usage weight directly from device slot, auto-deduct
+- **Printer Model Library**: 36 built-in models (Bambu Lab/Creality/Prusa etc.), with power/value/lifespan specs
+- **Quick Own**: One-click create printer instance from model library
+
+#### 💰 Commercial Pricing Engine
+- **Cost Calculator**: Dynamic multi-row filaments + printers + post-processing
+- **Core Formula**: `Suggested Price = (Total Cost + Labor) / (1 − Profit% − Platform% − Tax%)`
+- **Zero-Denominator Protection**: Pre-guard prevents division-by-zero (502 errors)
+- **Live Dashboard**: Total cost, suggested price, pure profit + Chart.js pie chart
+- **History Center**: Save / Load & Edit / Clone / Delete, up to 50 records
+
+#### 📝 Usage Records & Reports
+- **Usage Logs**: Time, weight, cost, remark for each filament usage
+- **Withdraw Mechanism**: Undo mistaken usage, weight auto-restored
+- **Usage Charts**: Monthly trend line + daily bar chart + cumulative stats table
+- **ROI Billing**: Market price vs actual DIY cost comparison, monthly ROI trend
+- **Excel Export**: 7-sheet comprehensive export (filaments/materials/records/printers/slots/channels/brands)
+
+#### ⚙️ System Management
+- **Appearance**: Real-time preview of card opacity, color, blur
+- **Background**: Upload/switch/delete system backgrounds
+- **One-Click Backup**: Database + all uploaded files packaged as ZIP download
+- **Hot Restore**: Upload backup ZIP, auto-overwrite + run DB migrations
+- **Data Migration**: Import from legacy `.db` / `.txt` files
+
+#### 🌐 Internationalization (i18n)
+- **624-Key Bilingual Dictionary**: Covers all UI text, prompts, chart labels
+- **Language Switch**: Instant toggle on settings page, zero dead spots
+- **Dual Helper Functions**: Jinja2 `{{ i18n.key }}` + JS `_i('key', 'fallback')`
+- **Status Enum Disaster Prevention**: DB stores Chinese, UI displays i18n, API validates — triple-layer defense
+
+### 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Backend | Python 3 + Flask (Blueprint modular architecture) |
+| Database | SQLite3 (versioned migration engine, 11-step incremental) |
+| Frontend | Vanilla JS + Jinja2 templates + Chart.js |
+| UI Theme | Glassmorphism dark theme |
+| Container | Docker + docker-compose |
+| Desktop | PyInstaller `--onedir` + batch launcher |
+| Testing | E2E integration test suite (24 cases) |
+
+### 🚀 Quick Start
+
+#### Docker (Recommended)
+
+```bash
+git clone https://github.com/pixelpulse0x1/3D-Consumables-Inventory-Management-System.git
+cd 3D-Consumables-Inventory-Management-System/workspace
+docker compose up -d
+# Visit http://<your-server-ip>:9055
+```
+
+#### Windows Portable
+
+1. Download `v0.6.2.0-portable.zip` and extract anywhere
+2. Double-click `运行系统.bat` to launch
+3. Browser auto-opens `http://127.0.0.1:9055`
+4. Close the CMD window to exit
+
+> All data (database, uploads) resides in the `data/` folder — fully portable.
+
+#### Development
+
+```bash
+cd workspace
+pip install -r requirements.txt
+python app.py
+# Visit http://127.0.0.1:9055
+```
+
+### 📖 Documentation
+
+- [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md) — Complete technical reference (DB schema, API docs, migration engine, pricing formulas, deployment guide) — *in Chinese*
+
+### 🔄 Version History
+
+| Version | Date | Highlights |
+|---------|------|------------|
+| v0.6.2.0 | May 2026 | Windows portable edition, multi-environment adaptive paths |
+| v0.6.1.2 | May 2026 | i18n completeness audit, status enum disaster prevention |
+| v0.6.1.1 | May 2026 | Full i18n sweep (533→612 keys) |
+| v0.6.1.0 | May 2026 | i18n multilingual framework launched |
+| v0.5.2.2 | Apr 2026 | 502 fixes, zero-denominator protection |
+| v0.5.1.0 | Apr 2026 | Cost calculator full launch |
+| v0.5.0.0 | Apr 2026 | Printer model spec expansion |
+| v0.4.x | Mar 2026 | Brand tree, dual-track loading, ROI billing, hot restore |
+| v0.3.x | Feb 2026 | 5-state machine, filament images, channels, Excel export |
+| v0.2.x | Jan 2026 | Device dashboard, glassmorphism UI, Docker |
+| v0.1.0 | Dec 2025 | Initial Blueprint modular architecture |
+
+### 📄 License
+
+MIT License. See [LICENSE](LICENSE) file.
+
+---
+
+<p align="center">
+  <sub>Built with ❤️ by <a href="https://github.com/pixelpulse0x1">pixelpulse0x1</a></sub>
+</p>
