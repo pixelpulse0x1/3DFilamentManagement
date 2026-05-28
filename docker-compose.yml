@@ -1,7 +1,7 @@
 services:
   3dfilamentmanagement:
     build: .
-    image: pixelpulse01/3dfilamentmanagement:v0.6.2.0
+    image: pixelpulse01/3dfilamentmanagement:v0.6.2.2
     container_name: 3dfilamentmanagement
     restart: unless-stopped
 
@@ -14,4 +14,4 @@ services:
       - "9055:3155"
 
     volumes:
-      - /opt/docker-stacks/3D-Consumables-Inventory-Management-System:/data
+      - /opt/docker-stacks/3dfilamentmanagement:/data

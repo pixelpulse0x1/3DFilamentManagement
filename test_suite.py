@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v0.6.2.0 — Automated E2E Integration Test Suite for 3DFilamentManagement.
+"""v0.6.2.2 — Automated E2E Integration Test Suite for 3DFilamentManagement.
 
 Usage:
     python test_suite.py [--base-url http://192.168.37.132:9055]
