@@ -79,6 +79,30 @@
 - **前后端双辅助函数**：Jinja2 `{{ i18n.key }}` + JS `_i('key', 'fallback')`
 - **状态枚举防灾**：DB 存中文，UI 显示 i18n，API 校验守卫，三层防御
 
+![image-20260529014241070](./Database/image-20260529014241070.png)
+
+![image-20260529014251994](./Database/image-20260529014251994.png)
+
+![image-20260529014304014](./Database/image-20260529014304014.png)
+
+![image-20260529014340149](./Database/image-20260529014340149.png)
+
+![image-20260529014349655](./Database/image-20260529014349655.png)
+
+![image-20260529014359278](./Database/image-20260529014359278.png)
+
+![image-20260529014407540](./Database/image-20260529014407540.png)
+
+![image-20260529014424305](./Database/image-20260529014424305.png)
+
+![image-20260529014434600](./Database/image-20260529014434600.png)
+
+![image-20260529014547782](./Database/image-20260529014547782.png)
+
+![image-20260529014615833](./Database/image-20260529014615833.png)
+
+![image-20260529014644943](./Database/image-20260529014644943.png)
+
 ### 🛠️ 技术栈
 
 | 层级 | 技术 |
@@ -95,19 +119,66 @@
 
 #### Docker 部署（推荐服务器/NAS）
 
+**Docker Hub:** [pixelpulse01/3dfilamentmanagement](https://hub.docker.com/r/pixelpulse01/3dfilamentmanagement)
+
+##### 方式一：直接拉取镜像
+
 ```bash
-# 克隆项目
-git clone https://github.com/pixelpulse0x1/3D-Consumables-Inventory-Management-System.git
-cd 3D-Consumables-Inventory-Management-System/workspace
+docker pull pixelpulse01/3dfilamentmanagement:latest
 
-# 启动容器
-docker compose up -d
-
-# 访问系统
-# http://<你的服务器IP>:9055
+docker run -d \
+  --name 3dfilament \
+  -p 9055:3155 \
+  -v /opt/docker-stacks/3dfilamentmanagement:/data \
+  -e SECRET_KEY=your-random-secret-key \
+  -e TZ=Asia/Shanghai \
+  pixelpulse01/3dfilamentmanagement:latest
 ```
 
-数据持久化在 `/opt/docker-stacks/3dfilamentmanagement`，可在 `docker-compose.yml` 中修改挂载路径。
+访问 `http://<你的服务器IP>:9055`
+
+##### 方式二：Docker Compose（推荐）
+
+创建 `docker-compose.yml`：
+
+```yaml
+services:
+  3dfilamentmanagement:
+    image: pixelpulse01/3dfilamentmanagement:latest
+    container_name: 3dfilamentmanagement
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+      - SECRET_KEY=change-me-to-random-string
+      - DATA_DIR=/data
+    ports:
+      - "9055:3155"
+    volumes:
+      - /opt/docker-stacks/3dfilamentmanagement:/data
+```
+
+```bash
+docker compose up -d
+```
+
+##### 配置参数说明
+
+| 参数 | 默认值 | 说明 |
+|-----------|---------|-------------|
+| `-p 9055:3155` | `9055:3155` | 宿主机端口 : 容器端口（容器内固定监听 3155） |
+| `-v ...:/data` | — | 数据持久化卷（数据库 + 上传文件） |
+| `SECRET_KEY` | `change-me-to-random-string` | Flask 密钥 — **生产环境请务必修改** |
+| `TZ` | `Asia/Shanghai` | 时区（影响 SQLite 时间函数） |
+| `DATA_DIR` | `/data` | 容器内数据目录（通常无需修改） |
+
+##### 从源码构建
+
+```bash
+git clone https://github.com/pixelpulse0x1/3DFilamentManagement.git
+cd 3DFilamentManagement/workspace
+docker compose build --no-cache
+docker compose up -d
+```
 
 #### Windows 绿色便携版（推荐桌面用户）
 
@@ -279,6 +350,10 @@ Built on Flask with a Glassmorphism dark UI theme, the system supports seamless 
 - **Dual Helper Functions**: Jinja2 `{{ i18n.key }}` + JS `_i('key', 'fallback')`
 - **Status Enum Disaster Prevention**: DB stores Chinese, UI displays i18n, API validates — triple-layer defense
 
+![image-20260529014709888](./Database/image-20260529014709888.png)
+
+
+
 ### 🛠️ Tech Stack
 
 | Layer | Technology |
@@ -295,14 +370,66 @@ Built on Flask with a Glassmorphism dark UI theme, the system supports seamless 
 
 #### Docker (Recommended for Server/NAS)
 
+**Docker Hub:** [pixelpulse01/3dfilamentmanagement](https://hub.docker.com/r/pixelpulse01/3dfilamentmanagement)
+
+##### Option 1: Pull from Docker Hub
+
 ```bash
-git clone https://github.com/pixelpulse0x1/3D-Consumables-Inventory-Management-System.git
-cd 3D-Consumables-Inventory-Management-System/workspace
-docker compose up -d
-# Visit http://<your-server-ip>:9055
+docker pull pixelpulse01/3dfilamentmanagement:latest
+
+docker run -d \
+  --name 3dfilament \
+  -p 9055:3155 \
+  -v /opt/docker-stacks/3dfilamentmanagement:/data \
+  -e SECRET_KEY=your-random-secret-key \
+  -e TZ=Asia/Shanghai \
+  pixelpulse01/3dfilamentmanagement:latest
 ```
 
-Data persists at `/opt/docker-stacks/3dfilamentmanagement`. Modify the mount path in `docker-compose.yml` if needed.
+Then visit `http://<your-server-ip>:9055`
+
+##### Option 2: Docker Compose (Recommended)
+
+Create a `docker-compose.yml`:
+
+```yaml
+services:
+  3dfilamentmanagement:
+    image: pixelpulse01/3dfilamentmanagement:latest
+    container_name: 3dfilamentmanagement
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+      - SECRET_KEY=change-me-to-random-string
+      - DATA_DIR=/data
+    ports:
+      - "9055:3155"
+    volumes:
+      - /opt/docker-stacks/3dfilamentmanagement:/data
+```
+
+```bash
+docker compose up -d
+```
+
+##### Configuration
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `-p 9055:3155` | `9055:3155` | Host port : Container port (container listens on 3155) |
+| `-v ...:/data` | — | Persistent data volume (database + uploads) |
+| `SECRET_KEY` | `change-me-to-random-string` | Flask secret key — **change in production** |
+| `TZ` | `Asia/Shanghai` | Timezone (affects SQLite datetime functions) |
+| `DATA_DIR` | `/data` | Data directory inside container (usually leave as default) |
+
+##### Build from Source
+
+```bash
+git clone https://github.com/pixelpulse0x1/3DFilamentManagement.git
+cd 3DFilamentManagement/workspace
+docker compose build --no-cache
+docker compose up -d
+```
 
 #### Windows Portable (Recommended for Desktop)
 

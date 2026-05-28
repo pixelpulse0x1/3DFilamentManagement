@@ -33,6 +33,10 @@ A full-featured consumable asset management tool for 3D printing enthusiasts, sm
 - **System** — Glassmorphism dark UI, background customization, one-click backup & hot restore, data migration from legacy DB
 - **i18n** — 624-key Chinese/English bilingual dictionary, instant language switch, status enum disaster prevention (triple-layer defense)
 
+### 📸 Screenshots
+
+![Overview Dashboard](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014709888.png)
+
 ### 🚀 Quick Start
 
 #### Option 1: Docker Pull
@@ -159,6 +163,32 @@ MIT License. See [LICENSE](https://github.com/pixelpulse0x1/3DFilamentManagement
 - **使用记录与报表** — 撤回机制、月度/每日图表 (Chart.js)、ROI 效能账单、Excel 7 表导出
 - **系统管理** — 玻璃拟态深色 UI、外观定制、一键备份与热还原、旧版数据迁移
 - **国际化** — 624 键中英双语字典、即时语言切换、状态枚举通信防灾（三层防御）
+
+### 📸 系统截图
+
+![库存总览](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014241070.png)
+
+![耗材管理](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014251994.png)
+
+![使用记录](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014304014.png)
+
+![使用图表](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014340149.png)
+
+![交叉矩阵](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014349655.png)
+
+![设备管理](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014359278.png)
+
+![打印机型号](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014407540.png)
+
+![成本计算器](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014424305.png)
+
+![品牌管理](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014434600.png)
+
+![常规设置](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014547782.png)
+
+![外观设置](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014615833.png)
+
+![高级设置](https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/Database/image-20260529014644943.png)
 
 ### 🚀 快速开始
 
