@@ -58,7 +58,7 @@ function calcROI() {
         if (!monthly[m]) monthly[m] = { weight: 0, cost: 0 };
         monthly[m].weight += w;
         monthly[m].cost += cost;
-        const t = r.material_type || '未知';
+        const t = r.material_type || _i('unknown', '未知');
         if (!byType[t]) byType[t] = { weight: 0, cost: 0 };
         byType[t].weight += w;
         byType[t].cost += cost;
@@ -71,7 +71,7 @@ function calcROI() {
     document.getElementById('actualCost').textContent = '¥' + actualCost.toFixed(2);
     document.getElementById('netSaving').textContent = '¥' + netSaving.toFixed(2);
     document.getElementById('totalThroughput').textContent = totalWeight.toFixed(0) + 'g';
-    document.getElementById('roiNote').textContent = '净收益: ¥' + netSaving.toFixed(2);
+    document.getElementById('roiNote').textContent = _i('roi_net_profit_note', '净收益: ¥') + netSaving.toFixed(2);
 
     const months = Object.keys(monthly).sort();
     const ctx = document.getElementById('monthlyROIChart');
@@ -85,9 +85,9 @@ function calcROI() {
             data: {
                 labels: months,
                 datasets: [
-                    { label: '代打市场价 (¥)', data: marketVals, backgroundColor: '#5b9bd5', yAxisID: 'y' },
-                    { label: '自制实际成本 (¥)', data: actualVals, backgroundColor: '#f72585', yAxisID: 'y' },
-                    { label: '当月净省 (¥)', data: savings, type: 'line', borderColor: '#4cc9f0', backgroundColor: 'rgba(76,201,240,0.1)', yAxisID: 'y', tension: 0.3, fill: true },
+                    { label: _i('chart_market_value_label', '代打市场价 (¥)'), data: marketVals, backgroundColor: '#5b9bd5', yAxisID: 'y' },
+                    { label: _i('chart_actual_cost_label', '自制实际成本 (¥)'), data: actualVals, backgroundColor: '#f72585', yAxisID: 'y' },
+                    { label: _i('chart_monthly_saving_label', '当月净省 (¥)'), data: savings, type: 'line', borderColor: '#4cc9f0', backgroundColor: 'rgba(76,201,240,0.1)', yAxisID: 'y', tension: 0.3, fill: true },
                 ]
             },
             options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }

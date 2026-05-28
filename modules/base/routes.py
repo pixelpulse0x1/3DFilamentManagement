@@ -308,7 +308,7 @@ def api_background_upload():
     data_dir = _data_dir()
     try:
         if "file" not in request.files:
-            return jsonify({"status": "error", "error": "未选择文件"}), 400
+            return jsonify({"status": "error", "error": "No file selected"}), 400
         ok, msg, filename = upload_background(request.files["file"], data_dir)
         if not ok:
             return jsonify({"status": "error", "error": msg}), 400
@@ -339,14 +339,14 @@ def api_background_delete():
         data = request.get_json() or {}
         filename = data.get("filename", "")
         if not filename:
-            return jsonify({"status": "error", "error": "未指定文件名"}), 400
+            return jsonify({"status": "error", "error": "No filename specified"}), 400
         if filename == "Background.png":
-            return jsonify({"status": "error", "error": "系统默认背景不可删除"}), 400
+            return jsonify({"status": "error", "error": "System default background cannot be deleted"}), 400
 
         bg_dir = get_background_dir(data_dir)
         file_path = os.path.join(bg_dir, filename)
         if not os.path.isfile(file_path):
-            return jsonify({"status": "error", "error": "文件不存在"}), 404
+            return jsonify({"status": "error", "error": "File not found"}), 404
 
         # If this is the active background, reset to default
         active = get_active_background(data_dir)
@@ -461,9 +461,15 @@ def api_system_config():
                         configs[r["config_key"]] = float(r["config_value"])
                     except (ValueError, TypeError):
                         configs[r["config_key"]] = r["config_value"]
+                lang_row = conn.execute("SELECT value FROM system_settings WHERE key='system_language'").fetchone()
+                configs["system_language"] = lang_row["value"] if lang_row else "zh"
                 return jsonify({"status": "success", "data": configs})
             else:
                 data = request.get_json() or {}
+                # Handle language separately (string value)
+                if "system_language" in data:
+                    lang = data.pop("system_language")
+                    conn.execute("INSERT OR REPLACE INTO system_settings (key, value) VALUES ('system_language', ?)", (lang,))
                 for key, value in data.items():
                     conn.execute(
                         """INSERT INTO system_configs (config_key, config_value)
@@ -472,7 +478,7 @@ def api_system_config():
                         (key, str(value)),
                     )
                 conn.commit()
-                return jsonify({"status": "success", "message": "配置保存成功"})
+                return jsonify({"status": "success", "message": "Configuration saved successfully"})
     except Exception as e:
         logger.error("System config error: %s", e)
         return jsonify({"status": "error", "error": str(e)}), 500
@@ -494,18 +500,18 @@ def api_system_status():
         data_ok = os.path.isdir(data_dir) and os.access(data_dir, os.R_OK | os.W_OK)
 
         return jsonify({
-            "program_version": "v0.3.2.0",
+            "program_version": "v0.6.1.2",
             "schema_version": f"Version {schema_version}",
             "schema_latest": LATEST_VERSION >= schema_version,
-            "data_status": "正常 (/data 读写就绪)" if data_ok else "异常 (/data 不可读写)",
+            "data_status": "Normal (/data read/write ready)" if data_ok else "Error (/data not accessible)",
         })
     except Exception as e:
         logger.error("System status error: %s", e)
         return jsonify({
-            "program_version": "v0.3.2.0",
+            "program_version": "v0.6.1.2",
             "schema_version": "Unknown",
             "schema_latest": False,
-            "data_status": f"异常: {str(e)}",
+            "data_status": f"Error: {str(e)}",
         }), 500
 
 
@@ -517,7 +523,7 @@ def api_backup():
     data_dir = _data_dir()
     try:
         if not os.path.isdir(data_dir):
-            return jsonify({"status": "error", "error": "数据目录不存在"}), 500
+            return jsonify({"status": "error", "error": "Data directory not found"}), 500
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         zip_name = f"3d_inventory_backup_{timestamp}.zip"
@@ -556,12 +562,12 @@ def api_export_excel():
 
         # Sheet 1: filaments
         ws1 = wb.active
-        ws1.title = "耗材库存列表"
+        ws1.title = "Filaments"
         headers_f = [
             "id", "name", "material_type", "color", "location",
             "status", "initial_weight", "current_weight", "is_favorite",
-            "created_at", "purchase_date", "purchase_price", "购买渠道", "opened_at",
-            "实物图名称", "备注",
+            "created_at", "purchase_date", "purchase_price", "Channel", "opened_at",
+            "Image Name", "Remark",
         ]
         ws1.append(headers_f)
         with get_db(data_dir) as conn:
@@ -583,13 +589,13 @@ def api_export_excel():
                 ])
 
             # Sheet 2: materials
-            ws2 = wb.create_sheet("耗材类型管理")
+            ws2 = wb.create_sheet("Materials")
             ws2.append(["id", "name", "description"])
             for r in conn.execute("SELECT * FROM materials ORDER BY id").fetchall():
                 ws2.append([r["id"], r["name"], r["description"]])
 
             # Sheet 3: usage_records
-            ws3 = wb.create_sheet("耗材使用日志")
+            ws3 = wb.create_sheet("Usage Records")
             ws3.append(["id", "filament_id", "filament_name", "used_weight", "note", "used_at"])
             usage_rows = conn.execute("""
                 SELECT ur.id, ur.filament_id, f.name AS filament_name,
@@ -603,13 +609,13 @@ def api_export_excel():
                            r["used_weight"], r["note"], r["used_at"]])
 
             # Sheet 4: printers
-            ws4 = wb.create_sheet("打印机设备集群")
+            ws4 = wb.create_sheet("Printers")
             ws4.append(["id", "name", "model", "created_at"])
             for r in conn.execute("SELECT * FROM printers ORDER BY id").fetchall():
                 ws4.append([r["id"], r["name"], r["model"], r["created_at"]])
 
             # Sheet 5: printer_slots
-            ws5 = wb.create_sheet("仓位挂载实时快照")
+            ws5 = wb.create_sheet("Printer Slots")
             ws5.append(["id", "printer_id", "printer_name", "slot_name",
                        "current_filament_id", "filament_name", "filament_status"])
             slot_rows = conn.execute("""
@@ -625,13 +631,13 @@ def api_export_excel():
                            r["current_filament_id"], r["filament_name"], r["filament_status"]])
 
             # Sheet 6: channels
-            ws6 = wb.create_sheet("购买渠道管理")
+            ws6 = wb.create_sheet("Channels")
             ws6.append(["id", "name", "description"])
             for r in conn.execute("SELECT * FROM channels ORDER BY id").fetchall():
                 ws6.append([r["id"], r["name"], r["description"]])
 
             # Sheet 7: brands
-            ws7 = wb.create_sheet("品牌与盘重管理")
+            ws7 = wb.create_sheet("Brands & Spools")
             ws7.append(["id", "name", "spool_type", "spool_weight", "remark"])
             for r in conn.execute("SELECT * FROM brands ORDER BY name, spool_type").fetchall():
                 ws7.append([r["id"], r["name"], r["spool_type"], r["spool_weight"], r["remark"]])
@@ -661,10 +667,10 @@ def api_backup_restore():
     data_dir = _data_dir()
     try:
         if "file" not in request.files:
-            return jsonify({"status": "error", "error": "未选择备份文件"}), 400
+            return jsonify({"status": "error", "error": "No backup file selected"}), 400
         file = request.files["file"]
         if not file.filename or not file.filename.endswith('.zip'):
-            return jsonify({"status": "error", "error": "请上传 .zip 格式的备份文件"}), 400
+            return jsonify({"status": "error", "error": "Please upload a .zip backup file"}), 400
 
         tmp_dir = tempfile.mkdtemp()
         zip_path = os.path.join(tmp_dir, "backup.zip")
@@ -685,7 +691,7 @@ def api_backup_restore():
                     break
         if not db_file:
             shutil.rmtree(tmp_dir)
-            return jsonify({"status": "error", "error": "备份包中未找到数据库文件"}), 400
+            return jsonify({"status": "error", "error": "No database file found in backup archive"}), 400
 
         # Close all DB connections via get_db context manager pattern
         # Copy new DB over
@@ -710,7 +716,7 @@ def api_backup_restore():
         init_db(data_dir)
 
         shutil.rmtree(tmp_dir)
-        return jsonify({"status": "success", "message": "系统数据热还原成功，页面即将刷新"})
+        return jsonify({"status": "success", "message": "System data restored successfully. Page will refresh."})
     except Exception as e:
         logger.error("Backup restore error: %s", e)
         return jsonify({"status": "error", "error": str(e)}), 500
@@ -723,10 +729,10 @@ def api_migrate_db():
     """Import data from a legacy filament_inventory.db file."""
     data_dir = _data_dir()
     if "file" not in request.files:
-        return jsonify({"status": "error", "error": "未选择文件"}), 400
+        return jsonify({"status": "error", "error": "No file selected"}), 400
     file = request.files["file"]
     if not file.filename:
-        return jsonify({"status": "error", "error": "文件名为空"}), 400
+        return jsonify({"status": "error", "error": "Filename is empty"}), 400
 
     import tempfile
     tmp_path = None
@@ -760,10 +766,10 @@ def api_migrate_materials():
     """Import material types from a legacy materials.txt file."""
     data_dir = _data_dir()
     if "file" not in request.files:
-        return jsonify({"status": "error", "error": "未选择文件"}), 400
+        return jsonify({"status": "error", "error": "No file selected"}), 400
     file = request.files["file"]
     if not file.filename:
-        return jsonify({"status": "error", "error": "文件名为空"}), 400
+        return jsonify({"status": "error", "error": "Filename is empty"}), 400
 
     try:
         added, skipped, errors = migrate_from_txt(file, "materials", data_dir)
@@ -783,10 +789,10 @@ def api_migrate_manufacturers():
     """Import manufacturer brands from a legacy manufacturers.txt file."""
     data_dir = _data_dir()
     if "file" not in request.files:
-        return jsonify({"status": "error", "error": "未选择文件"}), 400
+        return jsonify({"status": "error", "error": "No file selected"}), 400
     file = request.files["file"]
     if not file.filename:
-        return jsonify({"status": "error", "error": "文件名为空"}), 400
+        return jsonify({"status": "error", "error": "Filename is empty"}), 400
 
     try:
         added, skipped, errors = migrate_from_txt(file, "manufacturers", data_dir)

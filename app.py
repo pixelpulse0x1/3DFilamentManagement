@@ -1,7 +1,7 @@
 """3DFilamentManagement — Application entry point."""
 import os
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, g
 
 from modules.db import init_db
 from modules.base import base_bp
@@ -33,20 +33,34 @@ def create_app():
 
     @app.errorhandler(404)
     def not_found(error):
-        return jsonify({"status": "error", "error": "接口不存在"}), 404
+        return jsonify({"status": "error", "error": "Endpoint not found"}), 404
 
     @app.errorhandler(500)
     def internal_error(error):
-        return jsonify({"status": "error", "error": "服务器内部错误"}), 500
+        return jsonify({"status": "error", "error": "Internal server error"}), 500
 
     @app.teardown_appcontext
     def close_db(error):
         """Force-close any lingering DB connection after each request."""
-        from flask import g
         db = g.pop('db', None)
         if db is not None:
             try: db.close()
             except Exception: pass
+
+    @app.context_processor
+    def inject_i18n():
+        from modules.i18n import I18N
+        try:
+            import sqlite3, os
+            db_path = os.path.join(app.config["DATA_DIR"], "database", "filament_inventory.db")
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
+            row = conn.execute("SELECT value FROM system_settings WHERE key='system_language'").fetchone()
+            conn.close()
+            lang = row["value"] if row and row["value"] in I18N else "zh"
+        except Exception:
+            lang = "zh"
+        return {'i18n': I18N.get(lang, I18N['zh']), 'current_lang': lang}
 
     return app
 

@@ -15,7 +15,7 @@ function loadMaterials() {
         .then(data => {
             const tbody = document.getElementById('materialsTableBody');
             if (!Array.isArray(data) || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><i class="fas fa-layer-group"></i><p>暂无耗材类型，点击上方按钮添加</p></div></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><i class="fas fa-layer-group"></i><p>' + _i('no_materials_hint', '暂无耗材类型，点击上方按钮添加') + '</p></div></td></tr>';
                 return;
             }
             tbody.innerHTML = '';
@@ -29,12 +29,12 @@ function loadMaterials() {
             document.querySelectorAll('.edit-mat-btn').forEach(b => b.addEventListener('click', function () { openEditMaterial(this.dataset.id, this.dataset.name, this.dataset.desc); }));
             document.querySelectorAll('.del-mat-btn').forEach(b => b.addEventListener('click', function () { deleteMaterial(this.dataset.id, this.dataset.name); }));
         })
-        .catch(err => { showError('加载数据失败: ' + err.message); });
+        .catch(err => { showError(_i('msg_load_data_failed', '加载数据失败') + ': ' + err.message); });
 }
 
 function openAddMaterial() {
     currentMaterialId = null;
-    document.getElementById('materialModalTitle').textContent = '添加材料类型';
+    document.getElementById('materialModalTitle').textContent = _i('material_add', '添加材料类型');
     document.getElementById('materialName').value = '';
     document.getElementById('materialDescription').value = '';
     document.getElementById('materialModal').style.display = 'flex';
@@ -42,7 +42,7 @@ function openAddMaterial() {
 
 function openEditMaterial(id, name, desc) {
     currentMaterialId = id;
-    document.getElementById('materialModalTitle').textContent = '编辑材料类型';
+    document.getElementById('materialModalTitle').textContent = _i('material_edit', '编辑材料类型');
     document.getElementById('materialName').value = name;
     document.getElementById('materialDescription').value = desc;
     document.getElementById('materialModal').style.display = 'flex';
@@ -55,7 +55,7 @@ function closeMaterialModal() {
 
 function saveMaterial() {
     const name = document.getElementById('materialName').value.trim();
-    if (!name) { alert('请输入材料名称'); return; }
+    if (!name) { alert(_i('msg_enter_material_name', '请输入材料名称')); return; }
     const desc = document.getElementById('materialDescription').value.trim();
     const url = currentMaterialId ? '/api/materials/' + currentMaterialId : '/api/materials';
     const method = currentMaterialId ? 'PUT' : 'POST';
@@ -63,20 +63,20 @@ function saveMaterial() {
         .then(r => r.json())
         .then(d => {
             if (d.status === 'success') { closeMaterialModal(); loadMaterials(); }
-            else { showError(d.error || '保存失败'); }
+            else { showError(d.error || _i('msg_save_failed', '保存失败')); }
         })
-        .catch(err => { showError('保存失败: ' + err.message); });
+        .catch(err => { showError(_i('msg_save_failed', '保存失败') + ': ' + err.message); });
 }
 
 function deleteMaterial(id, name) {
-    if (!confirm('确定要删除材料类型 "' + name + '" 吗？')) return;
+    if (!confirm(_i('confirm_delete_material', '确定要删除材料类型 "{name}" 吗？').replace('{name}', name))) return;
     fetch('/api/materials/' + id, { method: 'DELETE' })
         .then(r => r.json())
         .then(d => {
             if (d.status === 'success') { loadMaterials(); }
-            else { showError(d.error || '删除失败'); }
+            else { showError(d.error || _i('msg_delete_failed', '删除失败')); }
         })
-        .catch(err => { showError('删除失败: ' + err.message); });
+        .catch(err => { showError(_i('msg_delete_failed', '删除失败') + ': ' + err.message); });
 }
 
 function showError(msg) {

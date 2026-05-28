@@ -2,7 +2,6 @@ let costPieChart = null;
 
 document.addEventListener('DOMContentLoaded', function () {
     loadHistory();
-    // Load data first, then create initial rows
     Promise.all([loadFilamentOptions(), loadPrinterOptions()]).then(() => {
         addFilamentRow();
         addPrinterRow();
@@ -12,7 +11,6 @@ document.addEventListener('DOMContentLoaded', function () {
 function loadFilamentOptions() {
     return fetch('/api/filaments').then(r => r.json()).then(data => {
         window._allFilaments = data;
-        // Populate any already-created filament selects
     });
 }
 function loadPrinterOptions() {
@@ -22,24 +20,23 @@ function loadPrinterOptions() {
     });
 }
 
-// ─── Dynamic Rows ───
 function addFilamentRow() {
     const c = document.getElementById('filamentsContainer');
     const row = document.createElement('div'); row.className = 'calc-row';
-    row.innerHTML = `<button type="button" class="btn btn-outline filament-pick-btn" onclick="openFilamentPicker(this)" style="width:35%;text-align:left;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">点击选择耗材</button>
-        <input type="hidden" class="filament-id" value="">
-        <input type="hidden" class="filament-price" value="">
-        <input type="hidden" class="filament-init" value="">
-        <input type="hidden" class="filament-current" value="">
-        <input type="hidden" class="filament-name" value="">
-        <input type="number" class="form-control weight-input" placeholder="g" step="0.1" oninput="recalc()" style="width:10%">
-        <input type="number" class="form-control purge-input" placeholder="0" value="0" step="0.1" oninput="recalc()" style="width:10%">
-        <span class="unit-price" style="font-size:0.8rem;width:10%">¥0/g</span>
-        <label style="font-size:0.75rem;width:10%"><input type="checkbox" class="is-support"> 支撑</label>
-        <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();recalc();"><i class="fas fa-times"></i></button>`;
+    row.innerHTML = '<button type="button" class="btn btn-outline filament-pick-btn" onclick="openFilamentPicker(this)" style="width:35%;text-align:left;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + _i('pick_filament_btn', '点击选择耗材') + '</button>' +
+        '<input type="hidden" class="filament-id" value="">' +
+        '<input type="hidden" class="filament-price" value="">' +
+        '<input type="hidden" class="filament-init" value="">' +
+        '<input type="hidden" class="filament-current" value="">' +
+        '<input type="hidden" class="filament-name" value="">' +
+        '<input type="number" class="form-control weight-input" placeholder="g" step="0.1" oninput="recalc()" style="width:10%">' +
+        '<input type="number" class="form-control purge-input" placeholder="0" value="0" step="0.1" oninput="recalc()" style="width:10%">' +
+        '<span class="unit-price" style="font-size:0.8rem;width:10%">¥0/g</span>' +
+        '<label style="font-size:0.75rem;width:10%"><input type="checkbox" class="is-support"> ' + _i('support_label_short', '支撑') + '</label>' +
+        '<button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();recalc();"><i class="fas fa-times"></i></button>';
     c.appendChild(row);
 }
-// ─── Filament Picker Modal ───
+
 let currentPickerRow = null;
 
 function openFilamentPicker(btn) {
@@ -71,32 +68,34 @@ function renderPickerTable() {
     document.querySelectorAll('#pickerStatusFilters input:checked').forEach(cb => statusFilters.add(cb.value));
 
     let data = window._allFilaments || [];
-    if (term) data = data.filter(f => `${f.brand_name||''} ${f.material_type||''} ${f.name||''}`.toLowerCase().includes(term));
-    // is_loaded matches "上机", status matches "闲置"/"全新", weight-based "不足"
+    if (term) data = data.filter(f => (f.brand_name||'') + ' ' + (f.material_type||'') + ' ' + (f.name||'') .toLowerCase().includes(term));
     const low = 100;
+    // Map DB Chinese status → i18n display value to match checkbox filters
+    const _fi18n = function(dbStatus) {
+        const m = { '全新': _i('status_new', '全新'), '闲置': _i('status_idle', '闲置'), '不足': _i('status_insufficient', '不足'), '用尽': _i('status_used_up', '用尽'), '上机': _i('status_loaded', '上机') };
+        return m[dbStatus] || dbStatus;
+    };
     data = data.filter(f => {
-        const s = f.current_weight > 0 && f.current_weight <= low ? '不足' : (f.is_loaded ? '上机' : f.status);
+        const s = f.current_weight > 0 && f.current_weight <= low ? _fi18n('不足') : (f.is_loaded ? _fi18n('上机') : _fi18n(f.status));
         return statusFilters.has(s);
     });
-    // Sort favorites first
     data.sort((a, b) => (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0));
 
     tbody.innerHTML = '';
-    if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">无匹配耗材</td></tr>'; return; }
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">' + _i('no_matching_filaments_msg', '无匹配耗材') + '</td></tr>'; return; }
     data.forEach(f => {
-        const s = f.current_weight > 0 && f.current_weight <= low ? '不足' : (f.is_loaded ? '上机' : f.status);
-        tbody.innerHTML += `<tr style="cursor:pointer;" onclick="selectPickerFilament(${f.id},'${(f.brand_name||'').replace(/'/g,"\\'")}','${(f.material_type||'').replace(/'/g,"\\'")}','${(f.name||'').replace(/'/g,"\\'")}',${f.purchase_price||0},${f.initial_weight||1000},${f.current_weight||0})">
-            <td>${f.brand_name||'-'}</td><td>${f.material_type||'-'}</td><td>${f.name||'-'}</td>
-            <td><span class="color-indicator" style="background:${f.color};"></span></td>
-            <td>${(f.current_weight||0).toFixed(1)}g</td>
-            <td><button class="btn btn-primary btn-sm">确定</button></td></tr>`;
+        tbody.innerHTML += '<tr style="cursor:pointer;" onclick="selectPickerFilament(' + f.id + ',\'' + (f.brand_name||'').replace(/'/g,"\\'") + '\',\'' + (f.material_type||'').replace(/'/g,"\\'") + '\',\'' + (f.name||'').replace(/'/g,"\\'") + '\',' + (f.purchase_price||0) + ',' + (f.initial_weight||1000) + ',' + (f.current_weight||0) + ')">' +
+            '<td>' + (f.brand_name||'-') + '</td><td>' + (f.material_type||'-') + '</td><td>' + (f.name||'-') + '</td>' +
+            '<td><span class="color-indicator" style="background:' + f.color + ';"></span></td>' +
+            '<td>' + ((f.current_weight||0).toFixed(1)) + 'g</td>' +
+            '<td><button class="btn btn-primary btn-sm">' + _i('confirm_btn', '确定') + '</button></td></tr>';
     });
 }
 
 function selectPickerFilament(id, brand, mat, name, price, initW, currentW) {
     if (!currentPickerRow) return;
     const row = currentPickerRow;
-    row.querySelector('.filament-pick-btn').textContent = `${brand} ${mat} — ${name}`;
+    row.querySelector('.filament-pick-btn').textContent = brand + ' ' + mat + ' - ' + name;
     row.querySelector('.filament-id').value = id;
     row.querySelector('.filament-price').value = price;
     row.querySelector('.filament-init').value = initW;
@@ -111,44 +110,43 @@ function selectPickerFilament(id, brand, mat, name, price, initW, currentW) {
 function addPrinterRow() {
     const c = document.getElementById('printersContainer');
     const row = document.createElement('div'); row.className = 'calc-row';
-    row.innerHTML = `<select class="form-control printer-select" onchange="onPrinterSelect(this)" style="width:30%"><option value="">选择设备</option></select>
-        <input type="number" class="form-control print-hours" placeholder="时" value="0" min="0" oninput="recalc()" style="width:8%">
-        <input type="number" class="form-control print-mins" placeholder="分" value="0" min="0" oninput="recalc()" style="width:8%">
-        <span class="printer-info" style="font-size:0.75rem;width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
-        <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();recalc();"><i class="fas fa-times"></i></button>`;
+    row.innerHTML = '<select class="form-control printer-select" onchange="onPrinterSelect(this)" style="width:30%"><option value="">' + _i('select_device_placeholder', '选择设备') + '</option></select>' +
+        '<input type="number" class="form-control print-hours" placeholder="' + _i('hours_placeholder', '时') + '" value="0" min="0" oninput="recalc()" style="width:8%">' +
+        '<input type="number" class="form-control print-mins" placeholder="' + _i('mins_placeholder', '分') + '" value="0" min="0" oninput="recalc()" style="width:8%">' +
+        '<span class="printer-info" style="font-size:0.75rem;width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>' +
+        '<button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();recalc();"><i class="fas fa-times"></i></button>';
     c.appendChild(row);
     const sel = row.querySelector('.printer-select');
     if (window._allPrinters) populatePrinterSelect(sel);
 }
 
 function populatePrinterSelect(sel) {
-    sel.innerHTML = '<option value="">选择设备</option>';
+    sel.innerHTML = '<option value="">' + _i('select_device_placeholder', '选择设备') + '</option>';
     (window._allPrinters || []).forEach(p => {
         const slots = p.slots || [];
         const loadedCount = slots.filter(s => s.filament).length;
-        sel.innerHTML += `<option value="${p.id}" data-power="${200}" data-value="${0}" data-life="${20000}" data-name="${p.name}">${p.name}${loadedCount>0?' ['+loadedCount+'槽占用]':''}</option>`;
+        sel.innerHTML += '<option value="' + p.id + '" data-power="' + (p.power_w||200) + '" data-value="' + (p.value_yuan||0) + '" data-life="' + (p.lifespan_h||20000) + '" data-name="' + p.name + '">' + p.name + (loadedCount>0?' [' + loadedCount + _i('slot_occupied_suffix', '{count}槽占用').replace('{count}', '') + ']':'') + '</option>';
     });
 }
 
 function onPrinterSelect(el) {
     const opt = el.selectedOptions[0];
     el.parentElement.querySelector('.printer-info').textContent = opt?.dataset.name
-        ? `${opt.dataset.power}W ¥${opt.dataset.value} ${opt.dataset.life}h` : '—';
+        ? opt.dataset.power + 'W ¥' + opt.dataset.value + ' ' + opt.dataset.life + 'h' : '—';
     recalc();
 }
 
 function addPostRow() {
     const c = document.getElementById('postContainer');
     const row = document.createElement('div'); row.className = 'calc-row';
-    row.innerHTML = `<input type="text" class="form-control" placeholder="工序名" style="width:20%">
-        <select class="form-control post-charge" onchange="recalc()" style="width:15%"><option value="hourly">按小时计费</option><option value="per_item">按件计费</option></select>
-        <input type="number" class="form-control post-rate" placeholder="单价" value="0" step="0.01" oninput="recalc()" style="width:10%">
-        <input type="number" class="form-control post-qty" placeholder="数量" value="1" step="0.1" oninput="recalc()" style="width:10%">
-        <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();recalc();"><i class="fas fa-times"></i></button>`;
+    row.innerHTML = '<input type="text" class="form-control" placeholder="' + _i('process_name_placeholder', '工序名') + '" style="width:20%">' +
+        '<select class="form-control post-charge" onchange="recalc()" style="width:15%"><option value="hourly">' + _i('charge_hourly', '按小时计费') + '</option><option value="per_item">' + _i('charge_per_item', '按件计费') + '</option></select>' +
+        '<input type="number" class="form-control post-rate" placeholder="' + _i('unit_price_short', '单价') + '" value="0" step="0.01" oninput="recalc()" style="width:10%">' +
+        '<input type="number" class="form-control post-qty" placeholder="' + _i('qty_placeholder', '数量') + '" value="1" step="0.1" oninput="recalc()" style="width:10%">' +
+        '<button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();recalc();"><i class="fas fa-times"></i></button>';
     c.appendChild(row);
 }
 
-// ─── Calculation ───
 function recalc() {
     let materialCost = 0, electricityCost = 0, depreciationCost = 0;
     const filamentItems = [];
@@ -229,7 +227,6 @@ function recalc() {
 
     updatePieChart(materialCost, electricityCost, depreciationCost, postCost, extraFees);
 
-    // Store for save
     window._calcData = { filaments: filamentItems, printers: printerItems, post_processing: postItems,
         total_cost: totalCost, suggested_price: suggestedPrice, pure_profit: pureProfit };
 }
@@ -237,7 +234,12 @@ function recalc() {
 function updatePieChart(mat, elec, depr, post, extra) {
     const ctx = document.getElementById('costPieChart'); if (!ctx) return;
     if (costPieChart) costPieChart.destroy();
-    const data = { 材料费: mat, 电费: elec, 折旧费: depr, 后处理: post, 附加费: extra };
+    const data = {};
+    data[_i('cost_breakdown_material', '材料费')] = mat;
+    data[_i('cost_breakdown_elec', '电费')] = elec;
+    data[_i('cost_breakdown_depr', '折旧费')] = depr;
+    data[_i('cost_breakdown_post', '后处理')] = post;
+    data[_i('cost_breakdown_extra', '附加费')] = extra;
     const labels = Object.keys(data).filter(k => data[k] > 0);
     const values = labels.map(k => data[k]);
     if (values.length === 0) return;
@@ -263,12 +265,11 @@ function updatePieChart(mat, elec, depr, post, extra) {
     });
 }
 
-// ─── Save ───
 function saveCalculation() {
     const data = window._calcData || {};
     const payload = {
         id: document.getElementById('currentRecordId').value || null,
-        project_name: document.getElementById('calcProjectName').value || '未命名项目',
+        project_name: document.getElementById('calcProjectName').value || _i('unnamed_project', '未命名项目'),
         filaments: data.filaments || [],
         printers: data.printers || [],
         post_processing: data.post_processing || [],
@@ -289,25 +290,24 @@ function saveCalculation() {
             if (d.status === 'success') {
                 document.getElementById('currentRecordId').value = d.id;
                 const btn = document.getElementById('saveCalcBtn');
-                btn.innerHTML = '<i class="fas fa-save"></i> ' + (d.action === 'updated' ? '已更新' : '已保存');
-                setTimeout(() => btn.innerHTML = '<i class="fas fa-save"></i> 保存计算', 2000);
+                btn.innerHTML = '<i class="fas fa-save"></i> ' + (d.action === 'updated' ? _i('updated_label', '已更新') : _i('saved_label', '已保存'));
+                setTimeout(() => btn.innerHTML = '<i class="fas fa-save"></i> ' + _i('btn_save_calc', '保存计算'), 2000);
                 loadHistory();
-            } else alert(d.error || '保存失败');
+            } else alert(d.error || _i('msg_save_failed', '保存失败'));
         });
 }
 
-// ─── History ───
 function loadHistory() {
     fetch('/api/tools/calculator/history').then(r => r.json()).then(data => {
         const c = document.getElementById('historyList');
-        if (!data.length) { c.innerHTML = '<div class="empty-state"><i class="fas fa-history"></i><p>暂无历史记录</p></div>'; return; }
+        if (!data.length) { c.innerHTML = '<div class="empty-state"><i class="fas fa-history"></i><p>' + _i('no_history_msg', '暂无历史记录') + '</p></div>'; return; }
         c.innerHTML = '';
         data.forEach(h => {
-            c.innerHTML += `<div class="history-item" style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem;border-bottom:1px solid rgba(0,0,0,0.05);">
-                <div><strong>${h.project_name}</strong><br><small>${h.created_at} | 成本¥${h.total_cost.toFixed(2)} | 报价¥${h.suggested_price.toFixed(2)} | 利润¥${(h.pure_profit||0).toFixed(2)}</small></div>
-                <div><button class="btn btn-outline btn-sm" onclick="loadHistoryDetail(${h.id})" title="载入编辑">📂</button>
-                <button class="btn btn-outline btn-sm" onclick="cloneHistory(${h.id})" title="复制克隆">👥</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteHistory(${h.id})"><i class="fas fa-trash"></i></button></div></div>`;
+            c.innerHTML += '<div class="history-item" style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem;border-bottom:1px solid rgba(0,0,0,0.05);">' +
+                '<div><strong>' + h.project_name + '</strong><br><small>' + h.created_at + ' | ' + _i('cost_label', '成本') + '¥' + h.total_cost.toFixed(2) + ' | ' + _i('price_label', '报价') + '¥' + h.suggested_price.toFixed(2) + ' | ' + _i('profit_label', '利润') + '¥' + (h.pure_profit||0).toFixed(2) + '</small></div>' +
+                '<div><button class="btn btn-outline btn-sm" onclick="loadHistoryDetail(' + h.id + ')" title="' + _i('load_edit_title', '载入编辑') + '">📂</button>' +
+                '<button class="btn btn-outline btn-sm" onclick="cloneHistory(' + h.id + ')" title="' + _i('clone_title', '复制克隆') + '">👥</button>' +
+                '<button class="btn btn-danger btn-sm" onclick="deleteHistory(' + h.id + ')"><i class="fas fa-trash"></i></button></div></div>';
         });
     });
 }
@@ -327,7 +327,7 @@ function loadHistoryDetail(id) {
         deserializePrinters(d.printers || []);
         deserializePost(d.post_processing || []);
         recalc();
-        document.getElementById('saveCalcBtn').innerHTML = '<i class="fas fa-save"></i> 更新当前记录';
+        document.getElementById('saveCalcBtn').innerHTML = '<i class="fas fa-save"></i> ' + _i('update_current_record', '更新当前记录');
     });
 }
 function cloneHistory(id) {
@@ -335,11 +335,11 @@ function cloneHistory(id) {
         document.getElementById('currentRecordId').value = '';
         loadHistoryDetail(id);
         document.getElementById('currentRecordId').value = '';
-        document.getElementById('saveCalcBtn').innerHTML = '<i class="fas fa-save"></i> 保存为新的计算';
+        document.getElementById('saveCalcBtn').innerHTML = '<i class="fas fa-save"></i> ' + _i('save_as_new_calc', '保存为新的计算');
     });
 }
 function deleteHistory(id) {
-    if (!confirm('确定要删除这条历史记录吗？')) return;
+    if (!confirm(_i('confirm_delete_history', '确定要删除这条历史记录吗？'))) return;
     fetch('/api/tools/calculator/history/' + id, { method: 'DELETE' }).then(r => r.json()).then(d => { if (d.status === 'success') loadHistory(); });
 }
 
@@ -348,12 +348,11 @@ function deserializeFilaments(items) {
     items.forEach(item => {
         addFilamentRow();
         const row = c.lastChild;
-        // Find the matching filament in cache
         const f = (window._allFilaments || []).find(fi => fi.id == item.filament_id);
         const brand = f?.brand_name || '';
         const mat = f?.material_type || '';
         const name = f?.name || item.material_name || '';
-        row.querySelector('.filament-pick-btn').textContent = `${brand} ${mat} — ${name}`;
+        row.querySelector('.filament-pick-btn').textContent = brand + ' ' + mat + ' - ' + name;
         row.querySelector('.filament-id').value = item.filament_id;
         row.querySelector('.filament-price').value = f?.purchase_price || 0;
         row.querySelector('.filament-init').value = f?.initial_weight || 1000;

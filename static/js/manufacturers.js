@@ -15,7 +15,7 @@ function loadManufacturers() {
         .then(data => {
             const tbody = document.getElementById('manufacturersTableBody');
             if (!Array.isArray(data) || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><i class="fas fa-tag"></i><p>暂无品牌，点击上方按钮添加</p></div></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><i class="fas fa-tag"></i><p>' + _i('no_brands_hint', '暂无品牌，点击上方按钮添加') + '</p></div></td></tr>';
                 return;
             }
             tbody.innerHTML = '';
@@ -29,12 +29,12 @@ function loadManufacturers() {
             document.querySelectorAll('.edit-mfr-btn').forEach(b => b.addEventListener('click', function () { openEditManufacturer(this.dataset.id, this.dataset.name, this.dataset.website); }));
             document.querySelectorAll('.del-mfr-btn').forEach(b => b.addEventListener('click', function () { deleteManufacturer(this.dataset.id, this.dataset.name); }));
         })
-        .catch(err => { showError('加载数据失败: ' + err.message); });
+        .catch(err => { showError(_i('msg_load_data_failed', '加载数据失败') + ': ' + err.message); });
 }
 
 function openAddManufacturer() {
     currentManufacturerId = null;
-    document.getElementById('manufacturerModalTitle').textContent = '添加品牌';
+    document.getElementById('manufacturerModalTitle').textContent = _i('add_brand_title', '添加品牌');
     document.getElementById('manufacturerName').value = '';
     document.getElementById('manufacturerWebsite').value = '';
     document.getElementById('manufacturerModal').style.display = 'flex';
@@ -42,7 +42,7 @@ function openAddManufacturer() {
 
 function openEditManufacturer(id, name, website) {
     currentManufacturerId = id;
-    document.getElementById('manufacturerModalTitle').textContent = '编辑品牌';
+    document.getElementById('manufacturerModalTitle').textContent = _i('edit_brand_title', '编辑品牌');
     document.getElementById('manufacturerName').value = name;
     document.getElementById('manufacturerWebsite').value = website;
     document.getElementById('manufacturerModal').style.display = 'flex';
@@ -55,7 +55,7 @@ function closeManufacturerModal() {
 
 function saveManufacturer() {
     const name = document.getElementById('manufacturerName').value.trim();
-    if (!name) { alert('请输入品牌名称'); return; }
+    if (!name) { alert(_i('msg_enter_brand_name', '请输入品牌名称')); return; }
     const website = document.getElementById('manufacturerWebsite').value.trim();
     const url = currentManufacturerId ? '/api/manufacturers/' + currentManufacturerId : '/api/manufacturers';
     const method = currentManufacturerId ? 'PUT' : 'POST';
@@ -63,20 +63,20 @@ function saveManufacturer() {
         .then(r => r.json())
         .then(d => {
             if (d.status === 'success') { closeManufacturerModal(); loadManufacturers(); }
-            else { showError(d.error || '保存失败'); }
+            else { showError(d.error || _i('msg_save_failed', '保存失败')); }
         })
-        .catch(err => { showError('保存失败: ' + err.message); });
+        .catch(err => { showError(_i('msg_save_failed', '保存失败') + ': ' + err.message); });
 }
 
 function deleteManufacturer(id, name) {
-    if (!confirm('确定要删除品牌 "' + name + '" 吗？')) return;
+    if (!confirm(_i('confirm_delete_brand', '确定要删除品牌 "{name}" 吗？').replace('{name}', name))) return;
     fetch('/api/manufacturers/' + id, { method: 'DELETE' })
         .then(r => r.json())
         .then(d => {
             if (d.status === 'success') { loadManufacturers(); }
-            else { showError(d.error || '删除失败'); }
+            else { showError(d.error || _i('msg_delete_failed', '删除失败')); }
         })
-        .catch(err => { showError('删除失败: ' + err.message); });
+        .catch(err => { showError(_i('msg_delete_failed', '删除失败') + ': ' + err.message); });
 }
 
 function showError(msg) {

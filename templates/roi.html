@@ -1,47 +1,44 @@
 {% extends "base.html" %}
-{% block title %}ROI效能账单 — 3DFilamentManagement{% endblock %}
+{% block title %}{{ i18n.nav_roi }} — 3DFilamentManagement{% endblock %}
 {% block extra_head %}<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>{% endblock %}
 {% block content %}
 <header class="content-header">
-    <h2 style="color:var(--text-primary);font-size:1.3rem;">ROI效能账单</h2>
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">{{ i18n.roi_page_title }}</h2>
 </header>
 <div class="content-body">
-    <!-- 定价参数 -->
+    <!-- {{ i18n.roi_params }} -->
     <div class="card" style="margin-bottom:1.5rem;">
-        <div class="card-header"><div class="card-title">定价参数</div></div>
+        <div class="card-header"><div class="card-title">{{ i18n.roi_params }}</div></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div class="form-group">
-                <label>代打市场均价 (元/克)</label>
+                <label>{{ i18n.roi_market_price }}</label>
                 <input type="number" class="form-control" id="marketPrice" value="0.15" step="0.01" onchange="calcROI()">
             </div>
             <div class="form-group">
-                <label>电费与设备折旧 (元/克)</label>
+                <label>{{ i18n.roi_elec_depreciation }}</label>
                 <input type="number" class="form-control" id="elecDepreciation" value="0.01" step="0.001" onchange="calcROI()">
             </div>
         </div>
     </div>
 
-    <!-- 区块一：全量生命周期总账单 -->
     <div class="roi-metrics-grid" id="roiMetrics">
-        <div class="card"><div class="card-title">历史代打等效价值</div><div class="stat-value mono" id="marketValue">¥0</div></div>
-        <div class="card"><div class="card-title">自身实际支出</div><div class="stat-value mono" id="actualCost">¥0</div></div>
-        <div class="card"><div class="card-title">累计净节约 (ROI)</div><div class="stat-value mono" id="netSaving" style="color:var(--success);">¥0</div><div class="stat-label" id="roiNote"></div></div>
-        <div class="card"><div class="card-title">总吞吐量</div><div class="stat-value mono" id="totalThroughput">0g</div></div>
+        <div class="card"><div class="card-title">{{ i18n.historical_market_value }}</div><div class="stat-value mono" id="marketValue">¥0</div></div>
+        <div class="card"><div class="card-title">{{ i18n.actual_cost_label }}</div><div class="stat-value mono" id="actualCost">¥0</div></div>
+        <div class="card"><div class="card-title">{{ i18n.cumulative_roi_saving }}</div><div class="stat-value mono" id="netSaving" style="color:var(--success);">¥0</div><div class="stat-label" id="roiNote"></div></div>
+        <div class="card"><div class="card-title">{{ i18n.total_throughput_label }}</div><div class="stat-value mono" id="totalThroughput">0g</div></div>
     </div>
 
-    <!-- 区块二：月度 ROI 趋势 -->
     <div class="card" style="margin-bottom:1.5rem;">
-        <div class="card-header"><div class="card-title">月度 ROI 回本趋势</div></div>
+        <div class="card-header"><div class="card-title">{{ i18n.monthly_roi_trend }}</div></div>
         <div class="chart-container" style="height:320px;"><canvas id="monthlyROIChart"></canvas></div>
     </div>
 
-    <!-- 区块三：材料战力榜 -->
     <div class="card">
-        <div class="card-header"><div class="card-title">高能材料战力榜</div></div>
+        <div class="card-header"><div class="card-title">{{ i18n.top_material_leaderboard }}</div></div>
         <div class="table-container" style="max-height:500px;">
             <table>
-                <thead><tr><th>耗材类型</th><th>消耗总克数</th><th>自制总成本</th><th>市场等效价</th><th>帮你省了 (¥)</th></tr></thead>
-                <tbody id="roiMaterialTable"><tr><td colspan="5">加载中...</td></tr></tbody>
+                <thead><tr><th>{{ i18n.overview_types }}</th><th>{{ i18n.total_grams_consumed }}</th><th>{{ i18n.diy_total_cost }}</th><th>{{ i18n.market_equiv_price }}</th><th>{{ i18n.saved_you_yuan }}</th></tr></thead>
+                <tbody id="roiMaterialTable"><tr><td colspan="5">{{ i18n.loading }}</td></tr></tbody>
             </table>
         </div>
     </div>

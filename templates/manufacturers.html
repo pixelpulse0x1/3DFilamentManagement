@@ -1,27 +1,27 @@
 {% extends "base.html" %}
-{% block title %}品牌管理 — 3DFilamentManagement{% endblock %}
+{% block title %}{{ i18n.brand_manage_page_title }} — 3DFilamentManagement{% endblock %}
 
 {% block content %}
 <header class="content-header">
-    <h2 style="color:var(--text-primary);font-size:1.3rem;">耗材品牌管理</h2>
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">{{ i18n.brand_manage_page_title }}</h2>
 </header>
 <div class="content-body">
     <div class="mgmt-header">
-        <span style="color:var(--text-secondary);">管理所有耗材生产品牌</span>
-        <button class="btn btn-primary" id="addManufacturerBtn"><i class="fas fa-plus"></i> 添加品牌</button>
+        <span style="color:var(--text-secondary);">{{ i18n.manufacturer_manage_subtitle }}</span>
+        <button class="btn btn-primary" id="addManufacturerBtn"><i class="fas fa-plus"></i> {{ i18n.add_brand_btn }}</button>
     </div>
     <div class="table-container">
         <table>
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>品牌名称</th>
-                    <th>网址</th>
-                    <th style="width:160px;">操作</th>
+                    <th>{{ i18n.brand_name }}</th>
+                    <th>{{ i18n.website_label }}</th>
+                    <th style="width:160px;">{{ i18n.th_actions }}</th>
                 </tr>
             </thead>
             <tbody id="manufacturersTableBody">
-                <tr><td colspan="4"><div class="empty-state"><i class="fas fa-tag"></i><p>加载中...</p></div></td></tr>
+                <tr><td colspan="4"><div class="empty-state"><i class="fas fa-tag"></i><p>{{ i18n.loading }}</p></div></td></tr>
             </tbody>
         </table>
     </div>
@@ -29,25 +29,25 @@
     <div id="manufacturerError" style="display:none;margin-top:1rem;" class="alert alert-warning"></div>
 </div>
 
-<!-- 添加/编辑品牌模态框 -->
+<!-- {{ i18n.add_brand_title }} / {{ i18n.edit_brand_title }}模态框 -->
 <div class="modal" id="manufacturerModal">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-title" id="manufacturerModalTitle">添加品牌</div>
+            <div class="modal-title" id="manufacturerModalTitle">{{ i18n.brand_add }}</div>
             <div class="close-modal" id="closeManufacturerModal">&times;</div>
         </div>
         <div class="modal-body">
             <div class="form-group">
-                <label>品牌名称 *</label>
-                <input type="text" class="form-control" id="manufacturerName" placeholder="例如: 拓竹" required>
+                <label>{{ i18n.brand_name }} *</label>
+                <input type="text" class="form-control" id="manufacturerName" placeholder="{{ i18n.placeholder_example }}: 拓竹" required>
             </div>
             <div class="form-group">
-                <label>网址</label>
-                <input type="text" class="form-control" id="manufacturerWebsite" placeholder="例如: https://www.bambulab.com">
+                <label>{{ i18n.website_label }}</label>
+                <input type="text" class="form-control" id="manufacturerWebsite" placeholder="{{ i18n.example_website }}">
             </div>
             <div style="display:flex;gap:1rem;margin-top:1.2rem;">
-                <button class="btn btn-primary" id="saveManufacturerBtn" style="flex:1;"><i class="fas fa-save"></i> 保存</button>
-                <button class="btn btn-cancel" id="cancelManufacturerBtn" style="flex:1;">取消</button>
+                <button class="btn btn-primary" id="saveManufacturerBtn" style="flex:1;"><i class="fas fa-save"></i> {{ i18n.btn_save }}</button>
+                <button class="btn btn-cancel" id="cancelManufacturerBtn" style="flex:1;">{{ i18n.btn_cancel }}</button>
             </div>
         </div>
     </div>

@@ -1,53 +1,53 @@
 {% extends "base.html" %}
-{% block title %}使用图表 — 3DFilamentManagement{% endblock %}
+{% block title %}{{ i18n.nav_charts }} — 3DFilamentManagement{% endblock %}
 
 {% block content %}
 <header class="content-header">
-    <h2 style="color:var(--text-primary);font-size:1.3rem;">使用图表</h2>
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">{{ i18n.nav_charts }}</h2>
 </header>
 
 <div class="content-body">
-    <!-- Layer 1 (置顶): 月度耗材使用量 — 宏观趋势 -->
+    <!-- Layer 1: {{ i18n.monthly_filament_usage }} — 宏观趋势 -->
     <div class="card" style="margin-bottom:1.5rem;">
-        <div class="card-header"><div class="card-title">月度耗材使用量</div></div>
+        <div class="card-header"><div class="card-title">{{ i18n.monthly_filament_usage }}</div></div>
         <div class="chart-container" style="height:280px;">
             <canvas id="monthlyUsageChart"></canvas>
         </div>
     </div>
 
-    <!-- Layer 2: 每日使用统计 — 日频波动 -->
+    <!-- Layer 2: {{ i18n.daily_usage_stats }} -->
     <div class="card" style="margin-bottom:1.5rem;">
-        <div class="card-header"><div class="card-title">每日使用统计</div></div>
+        <div class="card-header"><div class="card-title">{{ i18n.daily_usage_stats }}</div></div>
         <div class="chart-container" style="height:300px;">
             <canvas id="dailyUsageChart"></canvas>
         </div>
     </div>
 
-    <!-- Layer 3: 每日使用汇总 -->
+    <!-- Layer 3: {{ i18n.daily_usage_summary }} -->
     <div class="card" style="margin-bottom:1.5rem;">
-        <div class="card-header"><div class="card-title">每日使用汇总</div></div>
+        <div class="card-header"><div class="card-title">{{ i18n.daily_usage_summary }}</div></div>
         <div class="table-container" style="max-height:500px;">
             <table>
                 <thead>
-                    <tr><th>日期</th><th>使用重量(g)</th><th>使用金额(¥)</th></tr>
+                    <tr><th>{{ i18n.date_header }}</th><th>{{ i18n.usage_weight_g }}</th><th>{{ i18n.usage_amount_yuan }}</th></tr>
                 </thead>
                 <tbody id="dailySummaryTable">
-                    <tr><td colspan="3" style="text-align:center;">加载中...</td></tr>
+                    <tr><td colspan="3" style="text-align:center;">{{ i18n.loading }}</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- Layer 4: 累计统计 -->
+    <!-- Layer 4: {{ i18n.cumulative_stats }} -->
     <div class="card">
-        <div class="card-header"><div class="card-title">累计统计</div></div>
+        <div class="card-header"><div class="card-title">{{ i18n.cumulative_stats }}</div></div>
         <div class="table-container" style="max-height:400px;">
             <table>
                 <thead>
-                    <tr><th>材料类型</th><th>累计消耗重量(g)</th><th>累计消耗金额(¥)</th></tr>
+                    <tr><th>{{ i18n.filament_type }}</th><th>{{ i18n.cumulative_weight_g }}</th><th>{{ i18n.cumulative_amount_yuan }}</th></tr>
                 </thead>
                 <tbody id="cumulativeStatsTable">
-                    <tr><td colspan="3" style="text-align:center;">加载中...</td></tr>
+                    <tr><td colspan="3" style="text-align:center;">{{ i18n.loading }}</td></tr>
                 </tbody>
             </table>
         </div>

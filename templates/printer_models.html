@@ -1,38 +1,38 @@
 {% extends "base.html" %}
-{% block title %}型号管理 — 3DFilamentManagement{% endblock %}
+{% block title %}{{ i18n.nav_printer_models }} — 3DFilamentManagement{% endblock %}
 {% block content %}
 <header class="content-header">
-    <h2 style="color:var(--text-primary);font-size:1.3rem;">打印机型号管理</h2>
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">{{ i18n.model_manage }}</h2>
 </header>
 <div class="content-body">
     <div class="mgmt-header">
-        <span style="color:var(--text-secondary);">管理系统内置与自定义打印机型号</span>
-        <button class="btn btn-primary" id="addModelBtn"><i class="fas fa-plus"></i> 添加型号</button>
+        <span style="color:var(--text-secondary);">{{ i18n.model_manage_subtitle }}</span>
+        <button class="btn btn-primary" id="addModelBtn"><i class="fas fa-plus"></i> {{ i18n.model_add }}</button>
     </div>
-    <div class="brand-tree" id="modelTree"><div class="empty-state"><i class="fas fa-microchip"></i><p>加载中...</p></div></div>
+    <div class="brand-tree" id="modelTree"><div class="empty-state"><i class="fas fa-microchip"></i><p>{{ i18n.loading }}</p></div></div>
 </div>
 
 <div class="modal" id="modelModal">
     <div class="modal-content">
-        <div class="modal-header"><div class="modal-title" id="modelModalTitle">添加型号</div><div class="close-modal">&times;</div></div>
+        <div class="modal-header"><div class="modal-title" id="modelModalTitle">{{ i18n.model_add }}</div><div class="close-modal">&times;</div></div>
         <div class="modal-body">
             <div class="grid-2">
-                <div class="form-group"><label>品牌 *</label><input type="text" class="form-control" id="modelBrand"></div>
-                <div class="form-group"><label>型号名称 *</label><input type="text" class="form-control" id="modelName"></div>
+                <div class="form-group"><label>{{ i18n.model_brand }} *</label><input type="text" class="form-control" id="modelBrand"></div>
+                <div class="form-group"><label>{{ i18n.model_name }} *</label><input type="text" class="form-control" id="modelName"></div>
             </div>
             <div class="grid-2">
-                <div class="form-group"><label>成型技术</label><select class="form-control" id="modelTech"><option>FDM</option><option>SLA</option><option>DLP</option><option>Multi-jet+UV</option><option>SLS</option></select></div>
-                <div class="form-group"><label>成型尺寸</label><input type="text" class="form-control" id="modelBedSize" placeholder="例如: 256x256x256"></div>
+                <div class="form-group"><label>{{ i18n.model_tech }}</label><select class="form-control" id="modelTech"><option>FDM</option><option>SLA</option><option>DLP</option><option>Multi-jet+UV</option><option>SLS</option></select></div>
+                <div class="form-group"><label>{{ i18n.model_bed_size }}</label><input type="text" class="form-control" id="modelBedSize" placeholder="{{ i18n.placeholder_example }}: 256x256x256"></div>
             </div>
             <div class="grid-2">
-                <div class="form-group"><label>额定功率 (W)</label><input type="number" class="form-control" id="modelPower" value="200"></div>
-                <div class="form-group"><label>参考价值 (¥)</label><input type="number" class="form-control" id="modelValue" step="0.01" value="0"></div>
+                <div class="form-group"><label>{{ i18n.model_power }}</label><input type="number" class="form-control" id="modelPower" value="200"></div>
+                <div class="form-group"><label>{{ i18n.model_value }}</label><input type="number" class="form-control" id="modelValue" step="0.01" value="0"></div>
             </div>
-            <div class="form-group"><label>预计寿命 (h)</label><input type="number" class="form-control" id="modelLifespan" value="20000"></div>
-            <div class="form-group"><label>备注</label><input type="text" class="form-control" id="modelRemark"></div>
+            <div class="form-group"><label>{{ i18n.model_lifespan }}</label><input type="number" class="form-control" id="modelLifespan" value="20000"></div>
+            <div class="form-group"><label>{{ i18n.filament_remark }}</label><input type="text" class="form-control" id="modelRemark"></div>
             <div style="display:flex;gap:1rem;margin-top:1.2rem;">
-                <button class="btn btn-primary" id="saveModelBtn" style="flex:1;"><i class="fas fa-save"></i> 保存</button>
-                <button class="btn btn-cancel" id="cancelModelBtn" style="flex:1;">取消</button>
+                <button class="btn btn-primary" id="saveModelBtn" style="flex:1;"><i class="fas fa-save"></i> {{ i18n.btn_save }}</button>
+                <button class="btn btn-cancel" id="cancelModelBtn" style="flex:1;">{{ i18n.btn_cancel }}</button>
             </div>
         </div>
     </div>

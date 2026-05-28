@@ -1,54 +1,54 @@
 {% extends "base.html" %}
-{% block title %}高级设置 — 3DFilamentManagement{% endblock %}
+{% block title %}{{ i18n.settings_advanced }} — 3DFilamentManagement{% endblock %}
 
 {% block content %}
 <header class="content-header">
-    <h2 style="color:var(--text-primary);font-size:1.3rem;">高级设置</h2>
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">{{ i18n.settings_advanced }}</h2>
 </header>
 <div class="content-body">
-    <!-- 一键备份 -->
+    <!-- {{ i18n.backup_oneclick }} -->
     <div class="settings-card">
-        <h3><i class="fas fa-shield-halved"></i> 系统备份</h3>
-        <p style="color:var(--text-secondary);margin-bottom:1rem;">将数据库和上传的背景图片打包为 ZIP 文件下载，包含 `/data` 目录下的所有用户数据。</p>
-        <button class="btn btn-primary" id="backupBtn"><i class="fas fa-download"></i> 一键备份系统数据</button>
+        <h3><i class="fas fa-shield-halved"></i> {{ i18n.settings_backup }}</h3>
+        <p style="color:var(--text-secondary);margin-bottom:1rem;">{{ i18n.backup_desc_full }}</p>
+        <button class="btn btn-primary" id="backupBtn"><i class="fas fa-download"></i> {{ i18n.btn_backup }}</button>
         <div id="backupMsg" style="margin-top:0.8rem;display:none;"></div>
     </div>
 
-    <!-- 导入备份 -->
+    <!-- {{ i18n.btn_restore }} -->
     <div class="settings-card" style="border: 1px solid rgba(247, 37, 133, 0.3);">
-        <h3><i class="fas fa-upload"></i> 导入备份与热还原</h3>
+        <h3><i class="fas fa-upload"></i> {{ i18n.settings_restore }}</h3>
         <p style="color:var(--warning);margin-bottom:1rem;font-size:0.85rem;">
-            <i class="fas fa-triangle-exclamation"></i> 导入备份将会完全覆盖当前系统的数据库与所有上传的图片，此操作不可逆！系统将在导入完成后自动尝试数据库版本兼容与升级。是否确定继续？
+            <i class="fas fa-triangle-exclamation"></i> {{ i18n.msg_backup_warning }}
         </p>
         <div style="display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;">
             <input type="file" id="restoreBackupFile" accept=".zip" style="color:var(--text-primary);">
-            <button class="btn btn-danger" id="restoreBackupBtn"><i class="fas fa-upload"></i> 导入备份</button>
+            <button class="btn btn-danger" id="restoreBackupBtn"><i class="fas fa-upload"></i> {{ i18n.btn_restore }}</button>
         </div>
         <div id="restoreBackupMsg" style="margin-top:0.8rem;display:none;"></div>
     </div>
 
-    <!-- 表格导出 -->
+    <!-- {{ i18n.settings_export }} -->
     <div class="settings-card">
-        <h3><i class="fas fa-file-excel"></i> 表格导出</h3>
-        <p style="color:var(--text-secondary);margin-bottom:1rem;">将全部数据导出为 Excel (.xlsx) 文件，包含耗材库存列表、耗材类型管理、品牌厂商管理和耗材使用日志四个工作表。</p>
-        <button class="btn btn-primary" id="exportExcelBtn"><i class="fas fa-download"></i> 导出 Excel 表格</button>
+        <h3><i class="fas fa-file-excel"></i> {{ i18n.settings_export }}</h3>
+        <p style="color:var(--text-secondary);margin-bottom:1rem;">{{ i18n.export_desc_full }}</p>
+        <button class="btn btn-primary" id="exportExcelBtn"><i class="fas fa-download"></i> {{ i18n.btn_export_excel }}</button>
         <div id="exportExcelMsg" style="margin-top:0.8rem;display:none;"></div>
     </div>
 
-    <!-- 系统运行状态 -->
+    <!-- {{ i18n.settings_status }} -->
     <div class="settings-card">
-        <h3><i class="fas fa-heart-pulse"></i> 系统运行状态</h3>
+        <h3><i class="fas fa-heart-pulse"></i> {{ i18n.settings_status }}</h3>
         <div class="status-dashboard" id="systemStatus">
             <div class="status-item">
-                <div class="status-label">系统程序版本</div>
+                <div class="status-label">{{ i18n.status_program_version }}</div>
                 <div class="status-value" id="statusProgramVersion">—</div>
             </div>
             <div class="status-item">
-                <div class="status-label">核心数据版本</div>
+                <div class="status-label">{{ i18n.status_schema_version }}</div>
                 <div class="status-value" id="statusSchemaVersion">—</div>
             </div>
             <div class="status-item">
-                <div class="status-label">物理持久化状态</div>
+                <div class="status-label">{{ i18n.data_health_label }}</div>
                 <div class="status-value" id="statusDataHealth">—</div>
             </div>
         </div>

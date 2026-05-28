@@ -8,6 +8,18 @@ from modules.db import get_db
 
 logger = logging.getLogger(__name__)
 
+# DB stores Chinese status values; all API status I/O must use these constants
+VALID_STATUSES = {"全新", "闲置", "上机", "不足", "用尽"}
+
+def _validate_status(status, default="全新"):
+    """Validate and normalize a status value. Returns (status, error)."""
+    if status is None:
+        return default, None
+    status = str(status).strip()
+    if status not in VALID_STATUSES:
+        return None, f"Invalid status: '{status}'. Valid values: {VALID_STATUSES}"
+    return status, None
+
 
 def _data_dir():
     return current_app.config.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "data"))
@@ -68,6 +80,9 @@ def api_filaments():
             else:
                 data = request.get_json()
                 status = data.get("status", "全新")
+                status, err = _validate_status(status)
+                if err:
+                    return jsonify({"status": "error", "error": err}), 400
                 cursor = conn.execute(
                     """INSERT INTO filaments
                        (name, material_type, color, location,
@@ -111,6 +126,11 @@ def api_filament_single(filament_id):
                     "status", "image_id", "remark", "channel_id", "brand_id", "is_loaded",
                 ]
                 updates = {k: v for k, v in data.items() if k in allowed}
+                if "status" in updates:
+                    status, err = _validate_status(updates["status"])
+                    if err:
+                        return jsonify({"status": "error", "error": err}), 400
+                    updates["status"] = status
                 if "is_favorite" in updates:
                     updates["is_favorite"] = 1 if updates["is_favorite"] else 0
                 if updates:
@@ -126,11 +146,11 @@ def api_filament_single(filament_id):
                     "SELECT * FROM filaments WHERE id = ?", (filament_id,)
                 ).fetchone()
                 if not filament:
-                    return jsonify({"status": "error", "error": "耗材不存在"}), 404
+                    return jsonify({"status": "error", "error": "Filament not found"}), 404
                 if filament["status"] == "上机":
                     return jsonify({
                         "status": "error",
-                        "error": "该耗材正处于上机状态，请先下机后再执行删除",
+                        "error": "Filament is currently loaded. Please unload before deleting.",
                     }), 400
                 conn.execute("DELETE FROM usage_records WHERE filament_id = ?", (filament_id,))
                 conn.execute("DELETE FROM filaments WHERE id = ?", (filament_id,))
@@ -191,7 +211,7 @@ def api_filaments_delete_multiple():
             if active:
                 return jsonify({
                     "status": "error",
-                    "error": "选中的耗材中有处于上机状态的，请先下机后再执行删除",
+                    "error": "Some selected filaments are currently loaded. Please unload before deleting.",
                 }), 400
             conn.execute(
                 f"DELETE FROM usage_records WHERE filament_id IN ({placeholders})", ids
@@ -300,13 +320,13 @@ def api_usage_record_modify(record_id):
                 "SELECT * FROM usage_records WHERE id = ?", (record_id,)
             ).fetchone()
             if not record:
-                return jsonify({"status": "error", "error": "未找到对应的使用记录"}), 404
+                return jsonify({"status": "error", "error": "Usage record not found"}), 404
 
             if request.method == "PUT":
                 data = request.get_json() or {}
                 remark = data.get("remark")
                 if remark is None:
-                    return jsonify({"status": "error", "error": "缺少备注内容"}), 400
+                    return jsonify({"status": "error", "error": "Remark content is required"}), 400
                 conn.execute(
                     "UPDATE usage_records SET note = ? WHERE id = ?",
                     (str(remark) if remark else "", record_id),

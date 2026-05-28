@@ -1,74 +1,74 @@
 {% extends "base.html" %}
-{% block title %}品牌管理 — 3DFilamentManagement{% endblock %}
+{% block title %}{{ i18n.brand_manage_page_title }} — 3DFilamentManagement{% endblock %}
 {% block content %}
 <header class="content-header">
-    <h2 style="color:var(--text-primary);font-size:1.3rem;">品牌与盘重管理</h2>
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">{{ i18n.brand_manage }}</h2>
 </header>
 <div class="content-body">
     <div class="mgmt-header">
-        <span style="color:var(--text-secondary);">管理品牌、盘型及空盘重量（点击品牌展开盘型列表）</span>
-        <button class="btn btn-primary" id="addBrandBtn"><i class="fas fa-plus"></i> 添加品牌/盘型</button>
+        <span style="color:var(--text-secondary);">{{ i18n.brand_manage_subtitle }}</span>
+        <button class="btn btn-primary" id="addBrandBtn"><i class="fas fa-plus"></i> {{ i18n.brand_add }}</button>
     </div>
     <div class="brand-tree" id="brandTree">
-        <div class="empty-state"><i class="fas fa-weight-scale"></i><p>加载中...</p></div>
+        <div class="empty-state"><i class="fas fa-weight-scale"></i><p>{{ i18n.loading }}</p></div>
     </div>
 </div>
 
-<!-- 添加/编辑模态框 -->
+<!-- {{ i18n.brand_add_edit_modal_comment }} -->
 <div class="modal" id="brandModal">
     <div class="modal-content">
-        <div class="modal-header"><div class="modal-title" id="brandModalTitle">添加品牌/盘型</div><div class="close-modal">&times;</div></div>
+        <div class="modal-header"><div class="modal-title" id="brandModalTitle">{{ i18n.brand_add }}</div><div class="close-modal">&times;</div></div>
         <div class="modal-body">
-            <!-- 快速克隆已有盘型 -->
+            <!-- {{ i18n.brand_clone_hint }} -->
             <div class="form-group" style="padding-bottom:0.8rem;margin-bottom:0.8rem;border-bottom:1px solid rgba(0,0,0,0.08);">
-                <label style="color:var(--primary);"><i class="fa-solid fa-clone"></i> 快速复制已有盘型数据（可选）</label>
+                <label style="color:var(--primary);"><i class="fa-solid fa-clone"></i> {{ i18n.clone_section_optional }}</label>
                 <select class="form-control" id="copySpoolSourceSelect" onchange="onCloneSpool()">
-                    <option value="">-- 从已有品牌/盘型中选择并克隆 --</option>
+                    <option value="">{{ i18n.clone_from_existing_brand }}</option>
                 </select>
-                <small style="color:var(--ha-card-color);opacity:0.5;">选中后将自动填充下方的盘型名称与空盘重量，可在此基础上二次修改</small>
+                <small style="color:var(--ha-card-color);opacity:0.5;">{{ i18n.brand_clone_fill }}{{ i18n.brand_spool_type }}{{ i18n.clone_fill_spool_and_weight }}{{ i18n.brand_clone_edit }}</small>
             </div>
             <div class="form-group">
-                <label>品牌名称 *</label>
-                <input type="text" class="form-control" id="brandName" placeholder="例如: R3D" list="brandNameList">
+                <label>{{ i18n.brand_name }} *</label>
+                <input type="text" class="form-control" id="brandName" placeholder="{{ i18n.placeholder_example }}: R3D" list="brandNameList">
                 <datalist id="brandNameList"></datalist>
-                <small style="color:var(--ha-card-color);opacity:0.5;">输入已有品牌名可为其追加新盘型</small>
+                <small style="color:var(--ha-card-color);opacity:0.5;">{{ i18n.brand_add_spool_hint }}</small>
             </div>
             <div class="form-group">
-                <label>盘型名称</label>
-                <input type="text" class="form-control" id="brandSpoolType" value="标准盘">
+                <label>{{ i18n.brand_spool_type }}</label>
+                <input type="text" class="form-control" id="brandSpoolType" value="{{ i18n.spool_default }}">
             </div>
             <div class="form-group">
-                <label>空盘重量 (g) *</label>
+                <label>{{ i18n.brand_spool_weight }} *</label>
                 <input type="number" class="form-control" id="brandSpoolWeight" step="0.1" value="0">
             </div>
             <div class="form-group">
-                <label>备注</label>
+                <label>{{ i18n.filament_remark }}</label>
                 <input type="text" class="form-control" id="brandRemark">
             </div>
             <div style="display:flex;gap:1rem;margin-top:1.2rem;">
-                <button class="btn btn-primary" id="saveBrandBtn" style="flex:1;"><i class="fas fa-save"></i> 保存</button>
-                <button class="btn btn-cancel" id="cancelBrandBtn" style="flex:1;">取消</button>
+                <button class="btn btn-primary" id="saveBrandBtn" style="flex:1;"><i class="fas fa-save"></i> {{ i18n.btn_save }}</button>
+                <button class="btn btn-cancel" id="cancelBrandBtn" style="flex:1;">{{ i18n.btn_cancel }}</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 重命名品牌模态框 -->
+<!-- {{ i18n.brand_rename_modal }} -->
 <div class="modal" id="editBrandNameModal">
     <div class="modal-content">
-        <div class="modal-header"><div class="modal-title">修改品牌名称</div><div class="close-modal">&times;</div></div>
+        <div class="modal-header"><div class="modal-title">{{ i18n.brand_rename_title }}</div><div class="close-modal">&times;</div></div>
         <div class="modal-body">
             <div class="form-group">
-                <label>当前品牌: <strong id="oldBrandNameDisplay"></strong></label>
+                <label>{{ i18n.brand_current }}: <strong id="oldBrandNameDisplay"></strong></label>
             </div>
             <div class="form-group">
-                <label>新品牌名称 *</label>
-                <input type="text" class="form-control" id="newBrandName" placeholder="输入新的品牌名称">
+                <label>{{ i18n.brand_new_name }} *</label>
+                <input type="text" class="form-control" id="newBrandName" placeholder="{{ i18n.brand_new_name_placeholder }}">
             </div>
             <div id="renameBrandMsg" style="margin-top:0.5rem;display:none;"></div>
             <div style="display:flex;gap:1rem;margin-top:1.2rem;">
-                <button class="btn btn-primary" id="saveRenameBtn" style="flex:1;"><i class="fas fa-save"></i> 确认修改</button>
-                <button class="btn btn-cancel" id="cancelRenameBtn" style="flex:1;">取消</button>
+                <button class="btn btn-primary" id="saveRenameBtn" style="flex:1;"><i class="fas fa-save"></i> {{ i18n.btn_confirm_change }}</button>
+                <button class="btn btn-cancel" id="cancelRenameBtn" style="flex:1;">{{ i18n.btn_cancel }}</button>
             </div>
         </div>
     </div>

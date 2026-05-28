@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}耗材统计 — 3DFilamentManagement{% endblock %}
+{% block title %}{{ i18n.nav_filament_stats }} — 3DFilamentManagement{% endblock %}
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
@@ -7,28 +7,28 @@
 
 {% block content %}
 <header class="content-header">
-    <h2 style="color:var(--text-primary);font-size:1.3rem;">耗材统计</h2>
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">{{ i18n.nav_filament_stats }}</h2>
     <div class="status-radio-group" id="matrixFilterGroup">
-        <label class="status-radio active"><input type="radio" name="matrixFilter" value="all" checked> 全部</label>
-        <label class="status-radio"><input type="radio" name="matrixFilter" value="全新"> 全新</label>
-        <label class="status-radio"><input type="radio" name="matrixFilter" value="闲置"> 闲置</label>
-        <label class="status-radio"><input type="radio" name="matrixFilter" value="上机"> 上机</label>
-        <label class="status-radio"><input type="radio" name="matrixFilter" value="不足"> 不足</label>
-        <label class="status-radio"><input type="radio" name="matrixFilter" value="用尽"> 用尽</label>
+        <label class="status-radio active"><input type="radio" name="matrixFilter" value="all" checked> {{ i18n.all_status }}</label>
+        <label class="status-radio"><input type="radio" name="matrixFilter" value="{{ i18n.status_new }}"> {{ i18n.status_new }}</label>
+        <label class="status-radio"><input type="radio" name="matrixFilter" value="{{ i18n.status_idle }}"> {{ i18n.status_idle }}</label>
+        <label class="status-radio"><input type="radio" name="matrixFilter" value="{{ i18n.status_loaded }}"> {{ i18n.status_loaded }}</label>
+        <label class="status-radio"><input type="radio" name="matrixFilter" value="{{ i18n.status_insufficient }}"> {{ i18n.status_insufficient }}</label>
+        <label class="status-radio"><input type="radio" name="matrixFilter" value="{{ i18n.status_used_up }}"> {{ i18n.status_used_up }}</label>
     </div>
 </header>
 
 <div class="content-body">
-    <!-- 状态交叉统计表 -->
+    <!-- {{ i18n.status_cross_matrix }} -->
     <div class="card" style="margin-bottom:1.5rem;">
-        <div class="card-header"><div class="card-title">耗材类型 × 状态交叉矩阵</div></div>
+        <div class="card-header"><div class="card-title">{{ i18n.status_cross_matrix }}</div></div>
         <div class="table-container" style="max-height:500px;">
             <table>
                 <thead>
-                    <tr><th>材料类型</th><th>全新</th><th>闲置</th><th>上机</th><th>不足</th><th>用尽</th><th>合计</th></tr>
+                    <tr><th>{{ i18n.filament_type }}</th><th>{{ i18n.status_new }}</th><th>{{ i18n.status_idle }}</th><th>{{ i18n.status_loaded }}</th><th>{{ i18n.status_insufficient }}</th><th>{{ i18n.status_used_up }}</th><th>{{ i18n.total_label }}</th></tr>
                 </thead>
                 <tbody id="matrixTableBody">
-                    <tr><td colspan="7" style="text-align:center;">加载中...</td></tr>
+                    <tr><td colspan="7" style="text-align:center;">{{ i18n.loading }}</td></tr>
                 </tbody>
             </table>
         </div>
@@ -36,7 +36,7 @@
 
     <!-- 联动扇形图 -->
     <div class="card">
-        <div class="card-header"><div class="card-title" id="pieChartTitle">耗材类型分布</div></div>
+        <div class="card-header"><div class="card-title" id="pieChartTitle">{{ i18n.material_distribution_label }}</div></div>
         <div class="chart-container" style="height:380px;">
             <canvas id="matrixPieChart"></canvas>
         </div>

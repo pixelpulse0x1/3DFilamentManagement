@@ -1,56 +1,42 @@
 {% extends "base.html" %}
-{% block title %}耗材管理 — 3DFilamentManagement{% endblock %}
-
+{% block title %}{{ i18n.nav_filaments }} — 3DFilamentManagement{% endblock %}
 {% block content %}
 <header class="content-header">
-    <h2 style="color:var(--text-primary);font-size:1.3rem;">耗材管理</h2>
+    <h2 style="color:var(--text-primary);font-size:1.3rem;">{{ i18n.nav_filaments }}</h2>
 </header>
-
 <div class="content-body">
     <div class="action-bar">
         <div class="action-buttons">
-            <button class="btn btn-primary" id="addFilamentBtn"><i class="fas fa-plus"></i> 添加耗材</button>
-            <button class="btn btn-outline" id="batchAddBtn"><i class="fas fa-copy"></i> 批量添加</button>
+            <button class="btn btn-primary" id="addFilamentBtn"><i class="fas fa-plus"></i> {{ i18n.btn_add }} {{ i18n.nav_filaments }}</button>
+            <button class="btn btn-outline" id="batchAddBtn"><i class="fas fa-copy"></i> {{ i18n.btn_batch_add }}</button>
         </div>
-        <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="搜索耗材...">
-        </div>
+        <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="{{ i18n.search_placeholder }}"></div>
     </div>
     <div class="filter-checkboxes" id="statusFilterCheckboxes">
-        <label class="filter-checkbox"><input type="checkbox" value="全新"> 全新</label>
-        <label class="filter-checkbox"><input type="checkbox" value="闲置" checked> 闲置</label>
-        <label class="filter-checkbox"><input type="checkbox" value="上机"> 上机</label>
-        <label class="filter-checkbox"><input type="checkbox" value="不足"> 不足</label>
-        <label class="filter-checkbox"><input type="checkbox" value="用尽"> 用尽</label>
+        <label class="filter-checkbox"><input type="checkbox" value="{{ i18n.status_new }}"> {{ i18n.status_new }}</label>
+        <label class="filter-checkbox"><input type="checkbox" value="{{ i18n.status_idle }}" checked> {{ i18n.status_idle }}</label>
+        <label class="filter-checkbox"><input type="checkbox" value="{{ i18n.status_loaded }}"> {{ i18n.status_loaded }}</label>
+        <label class="filter-checkbox"><input type="checkbox" value="{{ i18n.status_insufficient }}"> {{ i18n.status_insufficient }}</label>
+        <label class="filter-checkbox"><input type="checkbox" value="{{ i18n.status_used_up }}"> {{ i18n.status_used_up }}</label>
     </div>
-
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th><input type="checkbox" id="selectAll" class="select-all"></th>
-                    <th class="hide-on-mobile sortable" data-sort="name">耗材名称</th>
-                    <th class="material-cell sortable" data-sort="material">类型</th>
-                    <th class="sortable" data-sort="color">颜色</th>
-                    <th>实物图</th>
-                    <th class="manufacturer-cell sortable" data-sort="manufacturer">厂商</th>
-                    <th class="sortable" data-sort="weight">重量</th>
-                    <th class="hide-on-mobile sortable" data-sort="location">位置</th>
-                    <th>备注</th>
-                    <th class="sortable" data-sort="status">状态</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody id="filamentTableBody"></tbody>
-        </table>
-    </div>
-
+    <div class="table-container"><table><thead><tr>
+        <th><input type="checkbox" id="selectAll" class="select-all"></th>
+        <th class="hide-on-mobile sortable" data-sort="name">{{ i18n.filament_name }}</th>
+        <th class="material-cell sortable" data-sort="material">{{ i18n.filament_type }}</th>
+        <th class="sortable" data-sort="color">{{ i18n.filament_color }}</th>
+        <th>{{ i18n.nav_images }}</th>
+        <th class="manufacturer-cell sortable" data-sort="manufacturer">{{ i18n.filament_brand }}</th>
+        <th class="sortable" data-sort="weight">{{ i18n.filament_weight }}</th>
+        <th class="hide-on-mobile sortable" data-sort="location">{{ i18n.filament_location }}</th>
+        <th>{{ i18n.filament_remark }}</th>
+        <th class="sortable" data-sort="status">{{ i18n.filament_status }}</th>
+        <th>{{ i18n.th_actions }}</th>
+    </tr></thead><tbody id="filamentTableBody"></tbody></table></div>
     <div class="batch-actions">
-        <button class="btn btn-outline" id="batchFavoriteBtn"><i class="fas fa-star"></i> 标记为常用</button>
-        <button class="btn btn-outline" id="batchMarkOpenedBtn"><i class="fas fa-box-open"></i> 设为闲置</button>
-        <button class="btn btn-outline" id="batchMarkUnopenedBtn"><i class="fas fa-box"></i> 设为全新</button>
-        <button class="btn btn-danger" id="batchDeleteBtn"><i class="fas fa-trash"></i> 批量删除</button>
+        <button class="btn btn-outline" id="batchFavoriteBtn"><i class="fas fa-star"></i> {{ i18n.filament_favorite }}</button>
+        <button class="btn btn-outline" id="batchMarkOpenedBtn"><i class="fas fa-box-open"></i> {{ i18n.btn_set }} {{ i18n.status_idle }}</button>
+        <button class="btn btn-outline" id="batchMarkUnopenedBtn"><i class="fas fa-box"></i> {{ i18n.btn_set }} {{ i18n.status_new }}</button>
+        <button class="btn btn-danger" id="batchDeleteBtn"><i class="fas fa-trash"></i> {{ i18n.btn_batch_delete }}</button>
     </div>
 </div>
 {% endblock %}

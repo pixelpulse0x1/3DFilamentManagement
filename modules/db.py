@@ -7,7 +7,7 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-LATEST_VERSION = 10
+LATEST_VERSION = 11
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
@@ -331,6 +331,8 @@ def _run_migration(from_ver, to_ver, data_dir, conn):
         _migrate_v8_to_v9(conn)
     elif from_ver == 9 and to_ver == 10:
         _migrate_v9_to_v10(conn)
+    elif from_ver == 10 and to_ver == 11:
+        _migrate_v10_to_v11(conn)
     else:
         logger.warning("Unknown migration step: %d → %d", from_ver, to_ver)
 
@@ -525,6 +527,12 @@ def _migrate_v7_to_v8(conn):
     conn.execute("INSERT OR IGNORE INTO system_configs (config_key, config_value) VALUES ('market_price_per_gram', '0.15')")
     conn.execute("INSERT OR IGNORE INTO system_configs (config_key, config_value) VALUES ('cost_per_gram', '0.01')")
     logger.info("  ✓ system_configs seeded with ROI defaults.")
+
+
+def _migrate_v10_to_v11(conn):
+    """v0.6.0.0: system_language setting."""
+    conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('system_language', 'zh')")
+    logger.info("  ✓ system_language seeded (zh).")
 
 
 def _migrate_v8_to_v9(conn):

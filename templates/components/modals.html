@@ -1,127 +1,127 @@
-<!-- 添加/编辑耗材模态框 -->
+<!-- {{ i18n.add_new_filament_title }} / {{ i18n.edit_filament_title }}模态框 -->
 <div class="modal" id="addModal">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-title" id="modalTitle">添加新耗材</div>
+            <div class="modal-title" id="modalTitle">{{ i18n.add_new_filament_title }}</div>
             <div class="close-modal">&times;</div>
         </div>
         <div class="modal-body">
-            
-            <!-- 快速克隆已有耗材 -->
+
+            <!-- {{ i18n.clone_filament_hint }} -->
             <div class="form-group" style="padding-bottom:0.8rem;margin-bottom:0.8rem;border-bottom:1px solid rgba(0,0,0,0.08);">
-                <label style="color:var(--primary);"><i class="fa-solid fa-clone"></i> 选择已有耗材作为模板复制（可选）</label>
+                <label style="color:var(--primary);"><i class="fa-solid fa-clone"></i> {{ i18n.clone_filament_template }}{{ i18n.optional_suffix }}</label>
                 <select class="form-control" id="cloneFilamentSelect" onchange="onCloneFilament('add')">
-                    <option value="">-- 选择已有耗材快速填充表单 --</option>
+                    <option value="">-- {{ i18n.clone_filament_select }} --</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>耗材名称 *</label>
-                <input type="text" class="form-control" id="filamentName" placeholder="例如: PLA高级白" required>
+                <label>{{ i18n.filament_name }} *</label>
+                <input type="text" class="form-control" id="filamentName" placeholder="{{ i18n.placeholder_example }}: PLA Basic White" required>
             </div>
             <div class="grid-2">
                 <div class="form-group">
-                    <label>材料类型 *</label>
+                    <label>{{ i18n.filament_type }} *</label>
                     <select class="form-control" id="materialType"></select>
                 </div>
                 <div class="form-group">
-                    <label>品牌与盘型</label>
+                    <label>{{ i18n.filament_brand }}</label>
                     <select class="form-control" id="brandSelect" onchange="onBrandChange('add')">
-                        <option value="">请选择品牌</option>
+                        <option value="">{{ i18n.select_brand_placeholder }}</option>
                     </select>
                     <select class="form-control" id="spoolSelect" onchange="onSpoolChange('add')" style="margin-top:0.5rem;">
-                        <option value="">请选择盘型</option>
+                        <option value="">{{ i18n.select_spool_placeholder }}</option>
                     </select>
                 </div>
             </div>
             <div class="form-group">
-                <label>颜色 *</label>
+                <label>{{ i18n.filament_color }} *</label>
                 <div class="color-grid" id="presetColors"></div>
                 <div class="custom-color-container">
-                    <span class="custom-color-label">自定义:</span>
+                    <span class="custom-color-label">{{ i18n.custom_color_label }}:</span>
                     <input type="color" class="form-control" id="colorPicker" value="#4361ee" style="flex:1;min-height:40px;">
                     <div class="color-preview" id="colorPreview" style="width:40px;height:40px;"></div>
                 </div>
             </div>
             <div class="grid-2">
                 <div class="form-group">
-                    <label>存储位置</label>
-                    <input type="text" class="form-control" id="location" placeholder="例如: A区-3层">
+                    <label>{{ i18n.filament_location }}</label>
+                    <input type="text" class="form-control" id="location" placeholder="{{ i18n.example_location }}">
                 </div>
                 <div class="form-group">
-                    <label>耗材状态</label>
+                    <label>{{ i18n.filament_status }}</label>
                     <select class="form-control" id="filamentStatus">
-                        <option value="全新" selected>全新</option>
-                        <option value="闲置">闲置</option>
-                                                <option value="用尽">用尽</option>
+                        <option value="全新" selected>{{ i18n.status_new }}</option>
+                        <option value="闲置">{{ i18n.status_idle }}</option>
+                                                <option value="用尽">{{ i18n.status_used_up }}</option>
                     </select>
                 </div>
                 <div class="form-group" style="margin-top:-0.6rem;">
                     <label style="cursor:pointer;display:flex;align-items:center;gap:0.4rem;">
                         <input type="checkbox" id="editIsLoaded" onchange="onIsLoadedToggle()">
-                        <strong>上机状态</strong>
+                        <strong>{{ i18n.status_loaded }}{{ i18n.filament_status }}</strong>
                     </label>
                 </div>
             </div>
-            <!-- Weight Calculator: Gross - Spool = Net -->
+            <!-- {{ i18n.weighing_enable }} -->
             <div class="weight-calc-row" id="addWeightCalcRow">
                 <div style="grid-column:1/-1;display:flex;align-items:center;gap:0.6rem;margin-bottom:0.3rem;">
                     <label style="margin:0;cursor:pointer;display:flex;align-items:center;gap:0.4rem;">
                         <input type="checkbox" id="enableWeighing" onchange="toggleWeighing('add')">
-                        <strong>启用称重</strong>
+                        <strong>{{ i18n.weighing_enable }}</strong>
                     </label>
-                    <small style="color:var(--ha-card-color);opacity:0.5;">勾选后启用秤测计算</small>
+                    <small style="color:var(--ha-card-color);opacity:0.5;">{{ i18n.weighing_hint }}</small>
                 </div>
                 <div class="form-group">
-                    <label>秤测总重量 (g)</label>
-                    <input type="number" class="form-control gross-weight" placeholder="放秤上的读数" step="0.1" oninput="calcNetWeight('add')" disabled>
+                    <label>{{ i18n.weighing_gross }}</label>
+                    <input type="number" class="form-control gross-weight" placeholder="{{ i18n.scale_reading }}" step="0.1" oninput="calcNetWeight('add')" disabled>
                 </div>
                 <div class="form-group">
-                    <label>盘重 (g)</label>
+                    <label>{{ i18n.weighing_spool }}</label>
                     <input type="number" class="form-control spool-weight-display" value="0.0" readonly style="background:rgba(0,0,0,0.06);">
                 </div>
                 <div class="form-group">
-                    <label>当前净重 (g) =</label>
+                    <label>{{ i18n.net_weight_calc_label }}</label>
                     <input type="number" class="form-control net-weight" readonly style="background:rgba(76,201,240,0.1);font-weight:bold;">
                 </div>
                 <div class="weighing-hint" id="addWeighingHint"></div>
             </div>
             <div class="grid-2">
                 <div class="form-group">
-                    <label>初始重量 (g) *</label>
+                    <label>{{ i18n.filament_weight }} *</label>
                     <div class="input-group">
                         <input type="number" class="form-control" id="initialWeight" min="1" step="1" readonly required>
-                        <button class="btn btn-outline-secondary" type="button" id="btnUnlockInitial" onclick="toggleInitialWeight()" title="点击解锁编辑">
+                        <button class="btn btn-outline-secondary" type="button" id="btnUnlockInitial" onclick="toggleInitialWeight()" title="{{ i18n.click_to_unlock_edit }}">
                             <i class="fa-solid fa-pencil"></i>
                         </button>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>当前重量 (g) *</label>
+                    <label>{{ i18n.filament_current_weight }} *</label>
                     <input type="number" class="form-control" id="currentWeight" min="0" step="1" required>
                 </div>
             </div>
             <div class="grid-2">
                 <div class="form-group">
-                    <label>购买日期</label>
+                    <label>{{ i18n.filament_purchase_date }}</label>
                     <input type="date" class="form-control" id="purchaseDate">
                 </div>
                 <div class="form-group">
-                    <label>购买价格 (¥)</label>
+                    <label>{{ i18n.filament_purchase_price }}</label>
                     <input type="number" class="form-control" id="purchasePrice" min="0" step="0.01">
                 </div>
             </div>
             <div class="form-group">
-                <label>购买渠道</label>
+                <label>{{ i18n.filament_purchase_channel }}</label>
                 <select class="form-control" id="purchaseChannel">
-                    <option value="">请选择</option>
+                    <option value="">{{ i18n.please_select }}</option>
                 </select>
             </div>
             <div class="form-group" id="openedAtGroup" style="display:none;">
-                <label>开封日期</label>
+                <label>{{ i18n.opened_date }}</label>
                 <input type="date" class="form-control" id="openedAt">
             </div>
             <div class="form-group">
-                <label>实物图</label>
+                <label>{{ i18n.nav_images }}</label>
                 <div class="image-selector" id="imageSelector">
                     <div class="selected-image-preview" id="selectedImagePreview" style="display:none;">
                         <img id="selectedFilamentImage" src="" alt="" style="width:48px;height:48px;border-radius:6px;object-fit:cover;">
@@ -130,124 +130,124 @@
                         </button>
                     </div>
                     <button type="button" class="btn btn-outline" id="pickImageBtn" onclick="openImagePicker()">
-                        <i class="fas fa-images"></i> 选择实物图
+                        <i class="fas fa-images"></i> {{ i18n.select_image_btn }}
                     </button>
                 </div>
             </div>
             <div class="form-group">
-                <label>备注</label>
-                <input type="text" class="form-control" id="filamentRemark" placeholder="输入自定义备注信息">
+                <label>{{ i18n.filament_remark }}</label>
+                <input type="text" class="form-control" id="filamentRemark" placeholder="{{ i18n.input_custom_remark_info }}">
             </div>
             <div class="form-group">
-                <label><input type="checkbox" id="isFavorite"> 标记为常用耗材</label>
+                <label><input type="checkbox" id="isFavorite"> {{ i18n.mark_as_favorite_label }}</label>
             </div>
             <div style="display:flex;gap:1rem;margin-top:1.2rem;">
-                <button class="btn btn-primary" id="saveFilamentBtn" style="flex:1;"><i class="fas fa-save"></i> 保存耗材</button>
+                <button class="btn btn-primary" id="saveFilamentBtn" style="flex:1;"><i class="fas fa-save"></i> {{ i18n.save_filament_btn }}</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 批量添加模态框 -->
+<!-- {{ i18n.batch_add_filament }}模态框 -->
 <div class="modal" id="batchAddModal">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-title">批量添加耗材</div>
+            <div class="modal-title">{{ i18n.batch_add_filament }}</div>
             <div class="close-modal">&times;</div>
         </div>
         <div class="modal-body">
-            
-            <!-- 快速克隆已有耗材 -->
+
+            <!-- {{ i18n.batch_clone_template_label }} -->
             <div class="form-group" style="padding-bottom:0.8rem;margin-bottom:0.8rem;border-bottom:1px solid rgba(0,0,0,0.08);">
-                <label style="color:var(--primary);"><i class="fa-solid fa-clone"></i> 选择已有耗材作为模板复制（可选）</label>
+                <label style="color:var(--primary);"><i class="fa-solid fa-clone"></i> {{ i18n.batch_clone_template_label }}</label>
                 <select class="form-control" id="batchcloneFilamentSelect" onchange="onCloneFilament('batch')">
-                    <option value="">-- 选择已有耗材快速填充表单 --</option>
+                    <option value="">-- {{ i18n.batch_clone_placeholder }} --</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>材料类型 *</label>
+                <label>{{ i18n.filament_type }} *</label>
                 <select class="form-control" id="batchMaterialType"></select>
             </div>
             <div class="form-group">
-                <label>颜色 *</label>
+                <label>{{ i18n.filament_color }} *</label>
                 <div class="color-grid" id="batchPresetColors"></div>
                 <div class="custom-color-container">
-                    <span class="custom-color-label">自定义:</span>
+                    <span class="custom-color-label">{{ i18n.custom_color_label }}:</span>
                     <input type="color" class="form-control" id="batchColorPicker" value="#4361ee" style="flex:1;min-height:40px;">
                     <div class="color-preview" id="batchColorPreview" style="width:40px;height:40px;"></div>
                 </div>
             </div>
             <div class="grid-2">
                 <div class="form-group">
-                    <label>品牌与盘型</label>
+                    <label>{{ i18n.filament_brand }}</label>
                     <select class="form-control" id="batchBrandSelect" onchange="onBrandChange('batch')">
-                        <option value="">请选择品牌</option>
+                        <option value="">{{ i18n.select_brand_placeholder }}</option>
                     </select>
                     <select class="form-control" id="batchSpoolSelect" onchange="onSpoolChange('batch')" style="margin-top:0.5rem;">
-                        <option value="">请选择盘型</option>
+                        <option value="">{{ i18n.select_spool_placeholder }}</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>存储位置</label>
-                    <input type="text" class="form-control" id="batchLocation" placeholder="例如: A区-3层">
+                    <label>{{ i18n.filament_location }}</label>
+                    <input type="text" class="form-control" id="batchLocation" placeholder="{{ i18n.example_location }}">
                 </div>
             </div>
-            <!-- Weight Calculator -->
+            <!-- {{ i18n.weighing_enable }} -->
             <div class="weight-calc-row" id="batchWeightCalcRow">
                 <div style="grid-column:1/-1;display:flex;align-items:center;gap:0.6rem;margin-bottom:0.3rem;">
                     <label style="margin:0;cursor:pointer;display:flex;align-items:center;gap:0.4rem;">
                         <input type="checkbox" id="batchenableWeighing" onchange="toggleWeighing('batch')">
-                        <strong>启用称重</strong>
+                        <strong>{{ i18n.weighing_enable }}</strong>
                     </label>
-                    <small style="color:var(--ha-card-color);opacity:0.5;">勾选后启用秤测计算</small>
+                    <small style="color:var(--ha-card-color);opacity:0.5;">{{ i18n.weighing_hint_text }}</small>
                 </div>
                 <div class="form-group">
-                    <label>秤测总重量 (g)</label>
-                    <input type="number" class="form-control batch-gross-weight" placeholder="放秤上的读数" step="0.1" oninput="calcNetWeight('batch')" disabled>
+                    <label>{{ i18n.weighing_gross }}</label>
+                    <input type="number" class="form-control batch-gross-weight" placeholder="{{ i18n.scale_reading }}" step="0.1" oninput="calcNetWeight('batch')" disabled>
                 </div>
                 <div class="form-group">
-                    <label>盘重 (g)</label>
+                    <label>{{ i18n.weighing_spool }}</label>
                     <input type="number" class="form-control batch-spool-weight-display" value="0.0" readonly style="background:rgba(0,0,0,0.06);">
                 </div>
                 <div class="form-group">
-                    <label>当前净重 (g) =</label>
+                    <label>{{ i18n.net_weight_calc_label }}</label>
                     <input type="number" class="form-control batch-net-weight" readonly style="background:rgba(76,201,240,0.1);font-weight:bold;">
                 </div>
                 <div class="weighing-hint" id="batchWeighingHint"></div>
             </div>
             <div class="grid-2">
                 <div class="form-group">
-                    <label>初始重量 (g) *</label>
+                    <label>{{ i18n.filament_weight }} *</label>
                     <input type="number" class="form-control" id="batchInitialWeight" min="1" step="1" required>
                 </div>
                 <div class="form-group">
-                    <label>数量 *</label>
+                    <label>{{ i18n.qty_label }} *</label>
                     <input type="number" class="form-control" id="batchQuantity" value="1" min="1" step="1" required>
                 </div>
             </div>
             <div class="form-group">
-                <label>名称前缀 *</label>
-                <input type="text" class="form-control" id="batchNamePrefix" placeholder="例如: PLA高级白" required>
-                <small>名称将自动添加序号，如: PLA高级白 #1</small>
+                <label>{{ i18n.name_prefix }} *</label>
+                <input type="text" class="form-control" id="batchNamePrefix" placeholder="{{ i18n.example_name_prefix }}" required>
+                <small>{{ i18n.name_auto_number }}，{{ i18n.example_name_note }}</small>
             </div>
             <div class="grid-2">
                 <div class="form-group">
-                    <label>购买日期</label>
+                    <label>{{ i18n.filament_purchase_date }}</label>
                     <input type="date" class="form-control" id="batchPurchaseDate">
                 </div>
                 <div class="form-group">
-                    <label>购买价格 (¥)</label>
+                    <label>{{ i18n.filament_purchase_price }}</label>
                     <input type="number" class="form-control" id="batchPurchasePrice" min="0" step="0.01">
                 </div>
             </div>
             <div class="form-group">
-                <label>购买渠道</label>
+                <label>{{ i18n.filament_purchase_channel }}</label>
                 <select class="form-control" id="batchPurchaseChannel">
-                    <option value="">请选择</option>
+                    <option value="">{{ i18n.please_select }}</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>实物图</label>
+                <label>{{ i18n.image_label }}</label>
                 <div class="image-selector">
                     <div class="selected-image-preview" id="batchSelectedImagePreview" style="display:none;">
                         <img id="batchSelectedFilamentImage" src="" alt="" style="width:48px;height:48px;border-radius:6px;object-fit:cover;">
@@ -256,91 +256,91 @@
                         </button>
                     </div>
                     <button type="button" class="btn btn-outline" id="batchPickImageBtn" onclick="openBatchImagePicker()">
-                        <i class="fas fa-images"></i> 选择实物图
+                        <i class="fas fa-images"></i> {{ i18n.select_filament_image }}
                     </button>
                 </div>
             </div>
             <div class="form-group">
-                <label>备注</label>
-                <input type="text" class="form-control" id="batchRemark" placeholder="输入统一备注信息">
+                <label>{{ i18n.filament_remark }}</label>
+                <input type="text" class="form-control" id="batchRemark" placeholder="{{ i18n.batch_remark_placeholder }}">
             </div>
             <div style="display:flex;gap:1rem;margin-top:1.2rem;">
-                <button class="btn btn-primary" id="saveBatchBtn" style="flex:1;"><i class="fas fa-save"></i> 批量添加</button>
+                <button class="btn btn-primary" id="saveBatchBtn" style="flex:1;"><i class="fas fa-save"></i> {{ i18n.batch_add_btn }}</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 使用耗材模态框 -->
+<!-- {{ i18n.device_use }}模态框 -->
 <div class="modal" id="useModal">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-title">使用耗材</div>
+            <div class="modal-title">{{ i18n.device_use }}</div>
             <div class="close-modal">&times;</div>
         </div>
         <div class="modal-body">
             <div class="form-group">
-                <label id="useFilamentName">PLA高级白</label>
-                <input type="number" class="form-control" id="usedWeight" placeholder="输入使用重量 (克)" min="1" step="1" required>
-                <small>当前剩余重量: <span id="currentWeightDisplay">850</span>g</small>
+                <label id="useFilamentName">PLA Basic White</label>
+                <input type="number" class="form-control" id="usedWeight" placeholder="{{ i18n.input_use_weight_grams }}" min="1" step="1" required>
+                <small>{{ i18n.current_remaining_weight_label }}: <span id="currentWeightDisplay">850</span>g</small>
             </div>
             <div class="form-group">
-                <label>备注信息</label>
-                <input type="text" class="form-control" id="useNote" placeholder="输入备注（例如：打印了什么模型）">
+                <label>{{ i18n.remark_info }}</label>
+                <input type="text" class="form-control" id="useNote" placeholder="{{ i18n.enter_remark }}（{{ i18n.example_what_printed }}）">
             </div>
             <div style="display:flex;gap:1rem;margin-top:1.2rem;">
-                <button class="btn btn-primary" id="confirmUseBtn" style="flex:1;"><i class="fas fa-check"></i> 确认使用</button>
+                <button class="btn btn-primary" id="confirmUseBtn" style="flex:1;"><i class="fas fa-check"></i> {{ i18n.confirm_use }}</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 耗材详情模态框 -->
+<!-- {{ i18n.filament_detail_title }}模态框 -->
 <div class="modal" id="detailModal">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-title">耗材详情</div>
+            <div class="modal-title">{{ i18n.filament_detail_title }}</div>
             <div class="close-modal">&times;</div>
         </div>
         <div class="modal-body">
             <div class="detail-grid">
-                <div class="detail-item"><div class="detail-label">耗材名称</div><div class="detail-value" id="detailName">-</div></div>
-                <div class="detail-item"><div class="detail-label">材料类型</div><div class="detail-value" id="detailMaterial">-</div></div>
-                <div class="detail-item"><div class="detail-label">颜色</div><div class="detail-value detail-color"><div class="detail-color-preview" id="detailColorPreview" style="background-color:#f0f0f0;"></div><span id="detailColor">-</span></div></div>
-                <div class="detail-item"><div class="detail-label">厂商</div><div class="detail-value" id="detailManufacturer">-</div></div>
-                <div class="detail-item"><div class="detail-label">当前重量</div><div class="detail-value" id="detailCurrentWeight">-</div></div>
-                <div class="detail-item"><div class="detail-label">初始重量</div><div class="detail-value" id="detailInitialWeight">-</div></div>
-                <div class="detail-item"><div class="detail-label">购买日期</div><div class="detail-value" id="detailPurchaseDate">-</div></div>
-                <div class="detail-item"><div class="detail-label">购买价格</div><div class="detail-value" id="detailPurchasePrice">-</div></div>
-                <div class="detail-item"><div class="detail-label">购买渠道</div><div class="detail-value" id="detailPurchaseChannel">-</div></div>
-                <div class="detail-item"><div class="detail-label">开封状态</div><div class="detail-value" id="detailOpenedStatus">-</div></div>
-                <div class="detail-item"><div class="detail-label">开封日期</div><div class="detail-value" id="detailOpenedDate">-</div></div>
-                <div class="detail-item"><div class="detail-label">存储位置</div><div class="detail-value" id="detailLocation">-</div></div>
-                <div class="detail-item"><div class="detail-label">使用进度</div><div class="detail-value"><div id="detailProgressText">-</div><div class="detail-progress"><div class="detail-progress-fill" id="detailProgressBar" style="width:0%"></div></div></div></div>
-                <div class="detail-item"><div class="detail-label">状态</div><div class="detail-value"><span class="detail-status status-in-use" id="detailStatus">-</span></div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.filament_name }}</div><div class="detail-value" id="detailName">-</div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.filament_type }}</div><div class="detail-value" id="detailMaterial">-</div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.color_label }}</div><div class="detail-value detail-color"><div class="detail-color-preview" id="detailColorPreview" style="background-color:#f0f0f0;"></div><span id="detailColor">-</span></div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.manufacturer_label }}</div><div class="detail-value" id="detailManufacturer">-</div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.filament_current_weight }}</div><div class="detail-value" id="detailCurrentWeight">-</div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.filament_weight }}</div><div class="detail-value" id="detailInitialWeight">-</div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.filament_purchase_date }}</div><div class="detail-value" id="detailPurchaseDate">-</div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.filament_purchase_price }}</div><div class="detail-value" id="detailPurchasePrice">-</div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.filament_purchase_channel }}</div><div class="detail-value" id="detailPurchaseChannel">-</div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.opened_status_label }}</div><div class="detail-value" id="detailOpenedStatus">-</div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.opened_date_label }}</div><div class="detail-value" id="detailOpenedDate">-</div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.filament_location }}</div><div class="detail-value" id="detailLocation">-</div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.usage_progress }}</div><div class="detail-value"><div id="detailProgressText">-</div><div class="detail-progress"><div class="detail-progress-fill" id="detailProgressBar" style="width:0%"></div></div></div></div>
+                <div class="detail-item"><div class="detail-label">{{ i18n.filament_status }}</div><div class="detail-value"><span class="detail-status status-in-use" id="detailStatus">-</span></div></div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Lightbox 图片放大 -->
+<!-- Lightbox -->
 <div class="lightbox-overlay" id="lightboxOverlay" onclick="closeLightbox()">
     <span class="lightbox-close">&times;</span>
-    <img id="lightboxImage" src="" alt="实物图预览" />
+    <img id="lightboxImage" src="" alt="{{ i18n.image_preview_label }}" />
 </div>
 
-<!-- 实物图选择器模态框 -->
+<!-- {{ i18n.select_image_title }}模态框 -->
 <div class="modal" id="imagePickerModal">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-title">选择实物图</div>
+            <div class="modal-title">{{ i18n.select_image_title }}</div>
             <div class="close-modal">&times;</div>
         </div>
         <div class="modal-body">
             <div class="image-picker-grid" id="imagePickerGrid">
                 <div class="image-picker-item" data-image-id="" onclick="selectFilamentImage(null)">
                     <div class="picker-no-image"><i class="fas fa-times"></i></div>
-                    <small>无实物图</small>
+                    <small>{{ i18n.no_image }}</small>
                 </div>
             </div>
         </div>

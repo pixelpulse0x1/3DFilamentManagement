@@ -1,120 +1,117 @@
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <img src="/static/favicon-96x96.png" alt="logo" style="width:32px;height:32px;">
-        <h2>3DFilamentManagement</h2>
+        <h2>{{ i18n.brand }}</h2>
     </div>
     <ul class="sidebar-nav">
-        <!-- 耗材面板 - Accordion -->
+        <!-- {{ i18n.filament_label }}面板 -->
         <li class="nav-group" data-group="dashboard">
             <a class="nav-parent {{ 'active' if active_nav == 'dashboard' }}" data-target="dashboard">
-                <i class="fa-solid fa-cube"></i> 耗材面板
+                <i class="fa-solid fa-cube"></i> {{ i18n.nav_dashboard }}
                 <i class="fa-solid fa-chevron-down accordion-arrow"></i>
             </a>
             <ul class="nav-children {{ 'open' if active_nav == 'dashboard' }}" id="dashboardChildren">
                 <li><a href="/dashboard/overview" class="{{ 'active' if active_sub == 'overview' }}">
-                    <i class="fa-solid fa-chart-pie"></i> 库存总览
+                    <i class="fa-solid fa-chart-pie"></i> {{ i18n.nav_overview }}
                 </a></li>
                 <li><a href="/dashboard/filaments" class="{{ 'active' if active_sub == 'filaments' }}">
-                    <i class="fa-solid fa-boxes-stacked"></i> 耗材管理
+                    <i class="fa-solid fa-boxes-stacked"></i> {{ i18n.nav_filaments }}
                 </a></li>
-                <!-- 记录报表（三级菜单） -->
                 <li class="nav-subgroup" data-subgroup="logs">
                     <a class="nav-subparent {{ 'active' if active_sub in ('logs', 'daily', 'filament_stats') }}" data-target="logs">
-                        <i class="fa-solid fa-clipboard-list"></i> 记录报表
+                        <i class="fa-solid fa-clipboard-list"></i> {{ i18n.nav_reports }}
                         <i class="fa-solid fa-chevron-down accordion-arrow"></i>
                     </a>
                     <ul class="nav-grandchildren {{ 'open' if active_sub in ('logs', 'daily', 'filament_stats') }}" id="logsGrandchildren">
                         <li><a href="/dashboard/logs" class="{{ 'active' if active_sub == 'logs' }}">
-                            <i class="fa-solid fa-list-ul"></i> 使用记录
+                            <i class="fa-solid fa-list-ul"></i> {{ i18n.nav_logs }}
                         </a></li>
                         <li><a href="/dashboard/daily" class="{{ 'active' if active_sub == 'daily' }}">
-                            <i class="fa-solid fa-chart-bar"></i> 使用图表
+                            <i class="fa-solid fa-chart-bar"></i> {{ i18n.nav_charts }}
                         </a></li>
                         <li><a href="/dashboard/filament-stats" class="{{ 'active' if active_sub == 'filament_stats' }}">
-                            <i class="fa-solid fa-table-cells"></i> 耗材统计
+                            <i class="fa-solid fa-table-cells"></i> {{ i18n.nav_filament_stats }}
                         </a></li>
                     </ul>
                 </li>
-                
             </ul>
         </li>
 
-        <!-- 设备管理 - Accordion -->
+        <!-- {{ i18n.nav_devices }} -->
         <li class="nav-group" data-group="devices">
             <a class="nav-parent {{ 'active' if active_nav == 'devices' }}" data-target="devices">
-                <i class="fa-solid fa-print"></i> 设备管理
+                <i class="fa-solid fa-print"></i> {{ i18n.nav_devices }}
                 <i class="fa-solid fa-chevron-down accordion-arrow"></i>
             </a>
             <ul class="nav-children {{ 'open' if active_nav == 'devices' }}" id="devicesChildren">
                 <li><a href="/devices" class="{{ 'active' if active_sub == 'devices' }}">
-                    <i class="fa-solid fa-server"></i> 设备列表
+                    <i class="fa-solid fa-server"></i> {{ i18n.nav_device_list }}
                 </a></li>
                 <li><a href="/dashboard/printer-models" class="{{ 'active' if active_sub == 'printer_models' }}">
-                    <i class="fa-solid fa-microchip"></i> 型号管理
+                    <i class="fa-solid fa-microchip"></i> {{ i18n.nav_printer_models }}
                 </a></li>
             </ul>
         </li>
 
-        <!-- 管理 - Accordion -->
+        <!-- {{ i18n.nav_manage }} -->
         <li class="nav-group" data-group="manage">
             <a class="nav-parent {{ 'active' if active_nav == 'manage' or active_sub == 'brands' }}" data-target="manage">
-                <i class="fa-solid fa-folder-tree"></i> 管理
+                <i class="fa-solid fa-folder-tree"></i> {{ i18n.nav_manage }}
                 <i class="fa-solid fa-chevron-down accordion-arrow"></i>
             </a>
             <ul class="nav-children {{ 'open' if active_nav == 'manage' or active_sub == 'brands' }}" id="manageChildren">
                 <li><a href="/materials" class="{{ 'active' if active_sub == 'materials' }}">
-                    <i class="fa-solid fa-layer-group"></i> 耗材类型
+                    <i class="fa-solid fa-layer-group"></i> {{ i18n.nav_materials }}
                 </a></li>
                 <li><a href="/dashboard/brands" class="{{ 'active' if active_sub == 'brands' }}">
-                    <i class="fa-solid fa-tag"></i> 耗材品牌
+                    <i class="fa-solid fa-tag"></i> {{ i18n.nav_brands }}
                 </a></li>
                 <li><a href="/channels" class="{{ 'active' if active_sub == 'channels' }}">
-                    <i class="fa-solid fa-store"></i> 购入渠道
+                    <i class="fa-solid fa-store"></i> {{ i18n.nav_channels }}
                 </a></li>
                 <li><a href="/images" class="{{ 'active' if active_sub == 'images' }}">
-                    <i class="fa-solid fa-images"></i> 实物图
+                    <i class="fa-solid fa-images"></i> {{ i18n.nav_images }}
                 </a></li>
             </ul>
         </li>
 
-        
-        <!-- 工具 - Accordion -->
+        <!-- {{ i18n.nav_tools }} -->
         <li class="nav-group" data-group="tools">
             <a class="nav-parent {{ 'active' if active_nav == 'tools' }}" data-target="tools">
-                <i class="fa-solid fa-screwdriver-wrench"></i> 工具
+                <i class="fa-solid fa-screwdriver-wrench"></i> {{ i18n.nav_tools }}
                 <i class="fa-solid fa-chevron-down accordion-arrow"></i>
             </a>
             <ul class="nav-children {{ 'open' if active_nav == 'tools' }}" id="toolsChildren">
                 <li><a href="/tools/cost_calculator" class="{{ 'active' if active_sub == 'calculator' }}">
-                    <i class="fa-solid fa-calculator"></i> 成本计算器
+                    <i class="fa-solid fa-calculator"></i> {{ i18n.nav_calculator }}
                 </a></li>
                 <li><a href="/roi" class="{{ 'active' if active_sub == 'roi' }}">
-                    <i class="fa-solid fa-chart-line"></i> ROI效能账单
+                    <i class="fa-solid fa-chart-line"></i> {{ i18n.nav_roi }}
                 </a></li>
             </ul>
         </li>
 
-        <!-- 系统设置 - Accordion -->
+        <!-- {{ i18n.nav_settings }} -->
         <li class="nav-group" data-group="settings">
             <a class="nav-parent {{ 'active' if active_nav == 'settings' }}" data-target="settings">
-                <i class="fa-solid fa-cog"></i> 系统设置
+                <i class="fa-solid fa-cog"></i> {{ i18n.nav_settings }}
                 <i class="fa-solid fa-chevron-down accordion-arrow"></i>
             </a>
             <ul class="nav-children {{ 'open' if active_nav == 'settings' }}" id="settingsChildren">
                 <li><a href="/settings/general" class="{{ 'active' if active_sub == 'general' }}">
-                    <i class="fa-solid fa-sliders"></i> 常规
+                    <i class="fa-solid fa-sliders"></i> {{ i18n.nav_general }}
                 </a></li>
                 <li><a href="/settings/appearance" class="{{ 'active' if active_sub == 'appearance' }}">
-                    <i class="fa-solid fa-palette"></i> 外观
+                    <i class="fa-solid fa-palette"></i> {{ i18n.nav_appearance }}
                 </a></li>
                 <li><a href="/settings/advanced" class="{{ 'active' if active_sub == 'advanced' }}">
-                    <i class="fa-solid fa-microchip"></i> 高级
+                    <i class="fa-solid fa-microchip"></i> {{ i18n.nav_advanced }}
                 </a></li>
             </ul>
         </li>
     </ul>
     <div class="sidebar-footer">
-        <span>v0.5.2.2</span>
+        <span>v0.6.1.2</span>
         <a href="https://github.com/pixelpulse0x1" target="_blank" rel="noopener noreferrer" class="github-link" title="GitHub">
             <i class="fab fa-github"></i>
         </a>
@@ -146,7 +143,6 @@
         });
     });
 
-    // Restore accordion state from localStorage
     function restoreState(key, childrenId, parentSelector) {
         const stored = localStorage.getItem(key);
         if (stored !== null) {

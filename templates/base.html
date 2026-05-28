@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/responsive.css">
     {% block extra_head %}{% endblock %}
+<script>window.I18N = {{ i18n | tojson }}; window.CURRENT_LANG = "{{ current_lang }}"; function _i(k,d){return (window.I18N&&window.I18N[k])||d||k;}</script>
 </head>
 <body class="{{ 'has-background' if active_background }}" style="{{ 'background-image: url(/uploads/backgrounds/' + active_background + ')' if active_background }}">
     <div class="app-layout">

@@ -90,7 +90,7 @@ def api_printers():
                 data = request.get_json() or {}
                 name = data.get("name", "").strip()
                 if not name:
-                    return jsonify({"status": "error", "error": "打印机名称不能为空"}), 400
+                    return jsonify({"status": "error", "error": "Printer name is required"}), 400
                 model = data.get("model", "").strip()
                 model_id = data.get("model_id")
                 cursor = conn.execute(
@@ -113,7 +113,7 @@ def api_printer_delete(printer_id):
                 "SELECT * FROM printers WHERE id = ?", (printer_id,)
             ).fetchone()
             if not printer:
-                return jsonify({"status": "error", "error": "打印机不存在"}), 404
+                return jsonify({"status": "error", "error": "Printer not found"}), 404
 
             # Release all bound filaments before cascade delete
             slots = conn.execute(
@@ -142,12 +142,12 @@ def api_slot_create(printer_id):
                 "SELECT * FROM printers WHERE id = ?", (printer_id,)
             ).fetchone()
             if not printer:
-                return jsonify({"status": "error", "error": "打印机不存在"}), 404
+                return jsonify({"status": "error", "error": "Printer not found"}), 404
 
             data = request.get_json() or {}
             slot_name = data.get("slot_name", "").strip()
             if not slot_name:
-                return jsonify({"status": "error", "error": "槽位名称不能为空"}), 400
+                return jsonify({"status": "error", "error": "Slot name is required"}), 400
 
             cursor = conn.execute(
                 "INSERT INTO printer_slots (printer_id, slot_name) VALUES (?, ?)",
@@ -169,7 +169,7 @@ def api_slot_delete(slot_id):
                 "SELECT * FROM printer_slots WHERE id = ?", (slot_id,)
             ).fetchone()
             if not slot:
-                return jsonify({"status": "error", "error": "槽位不存在"}), 404
+                return jsonify({"status": "error", "error": "Slot not found"}), 404
 
             if slot["current_filament_id"]:
                 _release_filament(conn, slot["current_filament_id"])
@@ -193,30 +193,30 @@ def api_slot_bind(slot_id):
                 "SELECT * FROM printer_slots WHERE id = ?", (slot_id,)
             ).fetchone()
             if not slot:
-                return jsonify({"status": "error", "error": "槽位不存在"}), 404
+                return jsonify({"status": "error", "error": "Slot not found"}), 404
 
             if slot["current_filament_id"] is not None:
-                return jsonify({"status": "error", "error": "该槽位已被占用，请先下机解绑"}), 400
+                return jsonify({"status": "error", "error": "Slot is already occupied. Please unbind first."}), 400
 
             data = request.get_json() or {}
             filament_id = data.get("filament_id")
             if not filament_id:
-                return jsonify({"status": "error", "error": "请选择要绑定的耗材"}), 400
+                return jsonify({"status": "error", "error": "Please select a filament to bind"}), 400
 
             filament = conn.execute(
                 "SELECT * FROM filaments WHERE id = ?", (filament_id,)
             ).fetchone()
             if not filament:
-                return jsonify({"status": "error", "error": "耗材不存在"}), 404
+                return jsonify({"status": "error", "error": "Filament not found"}), 404
 
             if filament["status"] not in ("全新", "闲置"):
                 return jsonify({
                     "status": "error",
-                    "error": f"该耗材当前状态为「{filament['status']}」，仅「全新」或「闲置」的耗材可以上机",
+                    "error": f"Filament status is '{filament['status']}'. Only '全新' or '闲置' filaments can be loaded.",
                 }), 400
 
             if filament["is_loaded"] if "is_loaded" in filament.keys() else False:
-                return jsonify({"status": "error", "error": "该耗材已上机"}), 400
+                return jsonify({"status": "error", "error": "Filament is already loaded"}), 400
 
             try:
                 conn.execute(
@@ -231,7 +231,7 @@ def api_slot_bind(slot_id):
                 conn.rollback()
                 return jsonify({
                     "status": "error",
-                    "error": "该卷耗材已被其他机位绑定，请刷新页面",
+                    "error": "This filament is already bound to another slot. Please refresh.",
                 }), 400
 
             return jsonify({"status": "success"})
@@ -249,10 +249,10 @@ def api_slot_unbind(slot_id):
                 "SELECT * FROM printer_slots WHERE id = ?", (slot_id,)
             ).fetchone()
             if not slot:
-                return jsonify({"status": "error", "error": "槽位不存在"}), 404
+                return jsonify({"status": "error", "error": "Slot not found"}), 404
 
             if slot["current_filament_id"] is None:
-                return jsonify({"status": "error", "error": "该槽位没有绑定的耗材"}), 400
+                return jsonify({"status": "error", "error": "No filament bound to this slot"}), 400
 
             fid = slot["current_filament_id"]
             conn.execute(
@@ -277,14 +277,14 @@ def api_printer_from_model():
         data = request.get_json() or {}
         model_id = data.get("model_id")
         if not model_id:
-            return jsonify({"status": "error", "error": "缺少型号ID"}), 400
+            return jsonify({"status": "error", "error": "Model ID is required"}), 400
 
         with get_db(data_dir) as conn:
             model = conn.execute(
                 "SELECT * FROM printer_models WHERE id = ?", (model_id,)
             ).fetchone()
             if not model:
-                return jsonify({"status": "error", "error": "型号不存在"}), 404
+                return jsonify({"status": "error", "error": "Model not found"}), 404
 
             # Auto-name: count existing printers with same model_name prefix
             cnt = conn.execute(
@@ -328,7 +328,7 @@ def api_printer_models():
                 name = (data.get("model_name") or "").strip()
                 brand = (data.get("brand") or "").strip()
                 if not name or not brand:
-                    return jsonify({"status": "error", "error": "品牌和型号不能为空"}), 400
+                    return jsonify({"status": "error", "error": "Brand and model are required"}), 400
                 cursor = conn.execute(
                     """INSERT INTO printer_models (brand, model_name, technology, bed_size, remark)
                        VALUES (?, ?, ?, ?, ?)""",
@@ -340,7 +340,7 @@ def api_printer_models():
                 data = request.get_json() or {}
                 mid = data.get("id")
                 if not mid:
-                    return jsonify({"status": "error", "error": "缺少型号ID"}), 400
+                    return jsonify({"status": "error", "error": "Model ID is required"}), 400
                 conn.execute(
                     """UPDATE printer_models SET brand=?, model_name=?, technology=?, bed_size=?,
                        power_w=?, value_yuan=?, lifespan_h=?, remark=? WHERE id=?""",
@@ -364,14 +364,14 @@ def api_printer_model_delete(model_id):
                 "SELECT * FROM printer_models WHERE id = ?", (model_id,)
             ).fetchone()
             if not m:
-                return jsonify({"status": "error", "error": "型号不存在"}), 404
+                return jsonify({"status": "error", "error": "Model not found"}), 404
             refs = conn.execute(
                 "SELECT COUNT(*) AS n FROM printers WHERE model_id = ?", (model_id,)
             ).fetchone()
             if refs and refs["n"] > 0:
                 return jsonify({
                     "status": "error",
-                    "error": "该型号下已有正在绑定的打印机设备，无法删除！",
+                    "error": "Cannot delete: printers are currently bound to this model.",
                 }), 400
             conn.execute("DELETE FROM printer_models WHERE id = ?", (model_id,))
             conn.commit()
