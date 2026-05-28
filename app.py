@@ -74,6 +74,10 @@ def create_app():
 
     init_db(app.config["DATA_DIR"])
 
+    # Seed default background into data/ (needed on first run of Windows portable)
+    from modules.base.bg_utils import seed_default_background
+    seed_default_background(app.config["DATA_DIR"], STATIC_FOLDER)
+
     app.register_blueprint(base_bp)
     app.register_blueprint(filaments_bp)
     app.register_blueprint(materials_bp, url_prefix="/api/materials")

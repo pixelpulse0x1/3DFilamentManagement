@@ -91,3 +91,33 @@ def set_active_background(data_dir, filename):
     except sqlite3.Error as e:
         logger.error("Failed to set active background: %s", e)
         return False
+
+
+def seed_default_background(data_dir, static_folder=None):
+    """Copy default Background.png from static/ to data/ on first run.
+
+    In Windows portable mode, data/ is auto-created at startup but contains no
+    default background.  This seeds data/uploads/backgrounds/Background.png
+    from the static folder so the system background works out of the box.
+    """
+    import shutil
+
+    bg_dir = get_background_dir(data_dir)
+    default_bg = os.path.join(bg_dir, "Background.png")
+
+    if os.path.isfile(default_bg):
+        return  # already seeded
+
+    # Resolve source: prefer static folder, then fall back to the same repo layout
+    if static_folder:
+        source = os.path.join(static_folder, "uploads", "backgrounds", "Background.png")
+    else:
+        source = os.path.join(os.path.dirname(__file__), "..", "..", "static", "uploads", "backgrounds", "Background.png")
+
+    if not os.path.isfile(source):
+        logger.warning("Default background not found at %s — skipping seed.", source)
+        return
+
+    os.makedirs(bg_dir, exist_ok=True)
+    shutil.copy2(source, default_bg)
+    logger.info("Seeded default background to %s.", default_bg)
