@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="#-快速开始"><img src="https://img.shields.io/badge/版本-v0.6.2.0-blue" alt="version" /></a>
+  <a href="#-快速开始"><img src="https://img.shields.io/badge/版本-v0.6.2.2-blue" alt="version" /></a>
   <a href="#license"><img src="https://img.shields.io/badge/许可证-MIT-green" alt="license" /></a>
   <img src="https://img.shields.io/badge/平台-Linux%20%7C%20Windows%20%7C%20Docker-orange" alt="platform" />
   <img src="https://img.shields.io/badge/i18n-中英双语-ff69b4" alt="i18n" />
@@ -110,7 +110,7 @@ docker compose up -d
 
 #### Windows 绿色便携版
 
-1. 下载 `v0.6.2.0-portable.zip` 并解压到任意目录
+1. 下载 `v0.6.2.2-portable.zip` 并解压到任意目录
 2. 双击 `运行系统.bat` 启动
 3. 浏览器自动打开 `http://127.0.0.1:9055`
 4. 关闭 CMD 窗口即退出系统
@@ -161,6 +161,7 @@ python app.py
 
 | 版本 | 日期 | 主要变更 |
 |------|------|---------|
+| v0.6.2.2 | 2026-05 | DEBUG_MODE 调试开关、werkzeug 日志静音 |
 | v0.6.2.0 | 2026-05 | Windows 绿色便携版、多环境自适应路径底座 |
 | v0.6.1.2 | 2026-05 | i18n 完备性审计、状态枚举通信防灾 |
 | v0.6.1.1 | 2026-05 | 地毯式 i18n 全面补完 (533→612 键) |
@@ -265,7 +266,7 @@ docker compose up -d
 
 #### Windows Portable
 
-1. Download `v0.6.2.0-portable.zip` and extract anywhere
+1. Download `v0.6.2.2-portable.zip` and extract anywhere
 2. Double-click `运行系统.bat` to launch
 3. Browser auto-opens `http://127.0.0.1:9055`
 4. Close the CMD window to exit
@@ -289,6 +290,7 @@ python app.py
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| v0.6.2.2 | May 2026 | DEBUG_MODE switch, werkzeug log suppression |
 | v0.6.2.0 | May 2026 | Windows portable edition, multi-environment adaptive paths |
 | v0.6.1.2 | May 2026 | i18n completeness audit, status enum disaster prevention |
 | v0.6.1.1 | May 2026 | Full i18n sweep (533→612 keys) |

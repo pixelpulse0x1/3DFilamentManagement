@@ -1,6 +1,7 @@
 """3DFilamentManagement — Application entry point with multi-environment adaptive paths."""
 import os
 import sys
+import logging
 
 from flask import Flask, jsonify, g
 
@@ -53,6 +54,13 @@ else:
     _default_data_dir = os.path.join(BASE_DIR, "data")
 
 os.makedirs(_default_data_dir, exist_ok=True)
+
+# ─── Debug Mode Logging ───
+# When DEBUG_MODE is false (default), suppress werkzeug INFO logs
+# to keep the console quiet during normal operation.
+_is_debug_env = os.environ.get('DEBUG_MODE', 'false').lower() == 'true'
+if not _is_debug_env:
+    logging.getLogger('werkzeug').setLevel(logging.WARNING)
 
 
 def create_app():
