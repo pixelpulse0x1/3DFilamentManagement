@@ -315,23 +315,23 @@ MIT License. 详见 [LICENSE](https://github.com/pixelpulse0x1/3DFilamentManagem
 <p align="center">
   <em>All donations go toward server/domain costs, or just a cup of tea for late-night coding.</em>
 </p>
-
 <p align="center">
   <table align="center">
     <tr>
       <td align="center" width="280">
-        <img src="https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/static/img/donation/WeChatQR.jpg" alt="WeChat QR" width="200" /><br/>
+        <img src="https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/static/img/donation/WeChatQR.jpg" alt="WeChat QR" width="200" /><br/>
         <sub>微信赞赏 · 金额随心</sub><br/>
         <sub>WeChat · Amount at Will</sub>
       </td>
       <td align="center" width="280">
-        <img src="https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/static/img/donation/AlipayQR.jpg" alt="Alipay QR" width="200" /><br/>
+        <img src="https://github.com/pixelpulse0x1/3DFilamentManagement/raw/main/static/img/donation/AlipayQR.jpg" alt="Alipay QR" width="200" /><br/>
         <sub>支付宝红包 · 扫码支持</sub><br/>
         <sub>Alipay · Scan to Support</sub>
       </td>
     </tr>
   </table>
 </p>
+
 
 <p align="center">
   <sub>⚠️ 此赞助完全自愿，不构成任何服务合同，Issue 仍按正常优先级处理。</sub>
