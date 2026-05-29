@@ -1,10 +1,10 @@
 @echo off
 set DEBUG_MODE=false
 chcp 65001 >nul
-title 3D 打印资产管理系统 v0.6.2.2 便携版运维看板
+title 3D 打印资产管理系统 v0.6.2.3 便携版运维看板
 
 echo ==================================================
-echo         3D 打印资产管理系统 v0.6.2.2 (Windows 便携版)
+echo         3D 打印资产管理系统 v0.6.2.3 (Windows 便携版)
 echo         启动时间: %date% %time%
 echo         调试模式: %DEBUG_MODE%
 echo ==================================================

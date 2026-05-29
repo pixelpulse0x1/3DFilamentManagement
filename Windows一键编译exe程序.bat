@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 chcp 65001 >nul
 title 3D 打印资产管理系统 — 一键编译打包工具
 
-set VERSION=v0.6.2.2
+set VERSION=v0.6.2.3
 set OUTPUT_NAME=3D_Inventory_Management_%VERSION%
 
 echo ============================================================
