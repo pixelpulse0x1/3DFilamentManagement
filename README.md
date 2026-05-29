@@ -15,6 +15,12 @@
   <img src="https://img.shields.io/badge/i18n-中英双语-ff69b4" alt="i18n" />
 </p>
 
+<p align="center">
+  <a href="https://deepwiki.com/pixelpulse0x1/3DFilamentManagement">
+    <img src="https://img.shields.io/badge/📖_AI_知识库-DeepWiki-4B32C3?style=for-the-badge" alt="DeepWiki">
+  </a>
+</p>
+
 ---
 
 ## 📖 中文

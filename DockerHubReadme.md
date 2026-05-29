@@ -9,6 +9,12 @@
   <img src="https://img.shields.io/badge/i18n-中文%20%7C%20English-ff69b4" alt="i18n" />
 </p>
 
+<p align="center">
+  <a href="https://deepwiki.com/pixelpulse0x1/3DFilamentManagement">
+    <img src="https://img.shields.io/badge/📖_AI_知识库-DeepWiki-4B32C3?style=for-the-badge" alt="DeepWiki">
+  </a>
+</p>
+
 ---
 
 # 3D Filament Inventory Management System / 3D 打印耗材库存管理系统
