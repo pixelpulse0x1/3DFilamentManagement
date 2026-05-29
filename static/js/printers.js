@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('addPrinterBtn').addEventListener('click', openAddPrinter);
     document.getElementById('savePrinterBtn').addEventListener('click', savePrinter);
     document.getElementById('saveSlotBtn').addEventListener('click', saveSlot);
+    document.getElementById('saveEditPrinterBtn').addEventListener('click', saveEditPrinter);
 
     const searchInput = document.getElementById('bindSearchInput');
     if (searchInput) searchInput.addEventListener('input', filterBindList);
@@ -102,10 +103,13 @@ function renderPrinterCard(grid, printer) {
         '<div>',
         '<div class="printer-name">' + printer.name + '</div>',
         '<div class="printer-model">' + (printer.model || '-') + '</div>',
+        (printer.notes ? '<div class="printer-notes" style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.2rem;">' + printer.notes + '</div>' : ''),
         '</div></div>',
         '<div class="printer-actions">',
         '<button class="btn btn-outline add-slot-btn" data-printer-id="' + printer.id + '" data-printer-name="' + printer.name + '">',
         '<i class="fas fa-plus"></i> ' + _i('slot_button_label', '槽位') + '</button>',
+        '<button class="btn btn-outline edit-printer-btn" data-printer-id="' + printer.id + '" data-printer-name="' + printer.name + '" data-printer-model-id="' + (printer.model_id || '') + '" data-printer-notes="' + (printer.notes || '').replace(/"/g, '&quot;') + '">',
+        '<i class="fas fa-edit"></i></button>',
         '<button class="btn btn-danger del-printer-btn" data-printer-id="' + printer.id + '" data-printer-name="' + printer.name + '">',
         '<i class="fas fa-trash"></i></button>',
         '</div></div>',
@@ -116,6 +120,9 @@ function renderPrinterCard(grid, printer) {
 
     card.querySelector('.add-slot-btn').addEventListener('click', function () {
         openAddSlot(this.dataset.printerId, this.dataset.printerName);
+    });
+    card.querySelector('.edit-printer-btn').addEventListener('click', function () {
+        openEditPrinter(this.dataset.printerId, this.dataset.printerName, this.dataset.printerModelId, this.dataset.printerNotes);
     });
     card.querySelector('.del-printer-btn').addEventListener('click', function () {
         deletePrinter(this.dataset.printerId, this.dataset.printerName);
@@ -277,8 +284,53 @@ function openUseFromSlot(filamentId) {
 }
 
 function closeDeviceModals() {
-    ['addPrinterModal', 'addSlotModal', 'bindFilamentModal'].forEach(id => {
+    ['addPrinterModal', 'addSlotModal', 'bindFilamentModal', 'editPrinterModal'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
+}
+
+// ─── Edit Printer ───
+
+function openEditPrinter(printerId, printerName, modelId, notes) {
+    document.getElementById('editPrinterId').value = printerId;
+    document.getElementById('editPrinterName').value = printerName;
+    document.getElementById('editPrinterNotes').value = notes || '';
+    // Populate model dropdown same as add modal
+    fetch('/api/printer_models')
+        .then(r => r.json())
+        .then(data => {
+            const sel = document.getElementById('editPrinterModel');
+            sel.innerHTML = '<option value="">' + _i('select_model_placeholder', '请选择机型') + '</option>';
+            const brands = {};
+            data.forEach(m => { if (!brands[m.brand]) brands[m.brand] = []; brands[m.brand].push(m); });
+            Object.keys(brands).sort().forEach(brand => {
+                const og = document.createElement('optgroup');
+                og.label = brand;
+                brands[brand].forEach(m => {
+                    og.innerHTML += '<option value="' + m.id + '"' + (m.id == modelId ? ' selected' : '') + '>' + m.model_name + ' (' + m.bed_size + ')</option>';
+                });
+                sel.appendChild(og);
+            });
+        });
+    document.getElementById('editPrinterModal').style.display = 'flex';
+}
+
+function saveEditPrinter() {
+    const id = document.getElementById('editPrinterId').value;
+    const name = document.getElementById('editPrinterName').value.trim();
+    if (!name) { alert(_i('msg_enter_printer_name', '请输入打印机名称')); return; }
+    const modelId = parseInt(document.getElementById('editPrinterModel').value) || null;
+    const notes = document.getElementById('editPrinterNotes').value.trim();
+    fetch('/api/printers/' + id + '/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, model_id: modelId, notes: notes })
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') { closeDeviceModals(); loadPrinters(); }
+            else alert(d.error || _i('msg_save_failed', '保存失败'));
+        })
+        .catch(err => alert(_i('msg_save_failed', '保存失败') + ': ' + err.message));
 }

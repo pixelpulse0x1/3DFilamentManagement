@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.6.2.2-blue" alt="version" />
+  <img src="https://img.shields.io/badge/version-v0.6.2.3-blue" alt="version" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="license" />
   <img src="https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20Docker-orange" alt="platform" />
   <img src="https://img.shields.io/badge/i18n-中文%20%7C%20English-ff69b4" alt="i18n" />
@@ -119,7 +119,7 @@ docker compose up -d
 
 ### 🖥️ Windows Portable Edition
 
-A zero-dependency Windows portable version is also available. Download `3D_Inventory_Management_v0.6.2.2.zip` from the [GitHub Releases](https://github.com/pixelpulse0x1/3DFilamentManagement), extract anywhere, and double-click `运行系统.bat` — no Python installation required.
+A zero-dependency Windows portable version is also available. Download `3D_Inventory_Management_v0.6.2.3.zip` from the [GitHub Releases](https://github.com/pixelpulse0x1/3DFilamentManagement), extract anywhere, and double-click `运行系统.bat` — no Python installation required.
 
 ### 🛠️ Tech Stack
 
@@ -139,6 +139,7 @@ A zero-dependency Windows portable version is also available. Download `3D_Inven
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| v0.6.2.3 | May 2026 | i18n audit fix, device data linkage fix, device edit feature, donation modal, chart visual optimization |
 | v0.6.2.2 | May 2026 | DEBUG_MODE log suppression, one-click build script, background seeding fix |
 | v0.6.2.0 | May 2026 | Windows portable edition, multi-environment adaptive paths |
 | v0.6.1.2 | May 2026 | i18n audit, status enum disaster prevention |
@@ -272,7 +273,7 @@ docker compose up -d
 
 ### 🖥️ Windows 绿色便携版
 
-同时提供零依赖的 Windows 绿色便携版。从 [GitHub Releases](https://github.com/pixelpulse0x1/3DFilamentManagement) 下载 `3D_Inventory_Management_v0.6.2.2.zip`，解压到任意目录，双击 `运行系统.bat` 即可启动——无需安装 Python 或任何运行环境。
+同时提供零依赖的 Windows 绿色便携版。从 [GitHub Releases](https://github.com/pixelpulse0x1/3DFilamentManagement) 下载 `3D_Inventory_Management_v0.6.2.3.zip`，解压到任意目录，双击 `运行系统.bat` 即可启动——无需安装 Python 或任何运行环境。
 
 ### 🛠️ 技术栈
 
@@ -292,6 +293,7 @@ docker compose up -d
 
 | 版本 | 日期 | 主要变更 |
 |------|------|---------|
+| v0.6.2.3 | 2026-05 | 国际化翻译修复、设备数据联动修复、设备编辑功能、赞赏模态框、图表视觉优化 |
 | v0.6.2.2 | 2026-05 | DEBUG_MODE 日志静音、一键编译脚本、背景图种子化修复 |
 | v0.6.2.0 | 2026-05 | Windows 绿色便携版、多环境自适应路径底座 |
 | v0.6.1.2 | 2026-05 | i18n 完备性审计、状态枚举通信防灾 |
@@ -304,6 +306,39 @@ docker compose up -d
 MIT License. 详见 [LICENSE](https://github.com/pixelpulse0x1/3DFilamentManagement/blob/main/workspace/LICENSE)。
 
 ---
+
+## ☕ 支持项目 / Support the Project
+
+<p align="center">
+  <strong>❤️ 所有打赏将用于服务器/域名开销，或只是让我在深夜写代码时多杯热茶。</strong>
+</p>
+<p align="center">
+  <em>All donations go toward server/domain costs, or just a cup of tea for late-night coding.</em>
+</p>
+
+<p align="center">
+  <table align="center">
+    <tr>
+      <td align="center" width="280">
+        <img src="https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/static/img/donation/WeChatQR.jpg" alt="WeChat QR" width="200" /><br/>
+        <sub>微信赞赏 · 金额随心</sub><br/>
+        <sub>WeChat · Amount at Will</sub>
+      </td>
+      <td align="center" width="280">
+        <img src="https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/static/img/donation/AlipayQR.jpg" alt="Alipay QR" width="200" /><br/>
+        <sub>支付宝红包 · 扫码支持</sub><br/>
+        <sub>Alipay · Scan to Support</sub>
+      </td>
+    </tr>
+  </table>
+</p>
+
+<p align="center">
+  <sub>⚠️ 此赞助完全自愿，不构成任何服务合同，Issue 仍按正常优先级处理。</sub>
+</p>
+<p align="center">
+  <sub>⚠️ This sponsorship is completely voluntary and does not constitute any service contract. Issues will still be processed with standard priority.</sub>
+</p>
 
 <p align="center">
   <sub>Built with ❤️ by <a href="https://github.com/pixelpulse0x1">pixelpulse0x1</a></sub>

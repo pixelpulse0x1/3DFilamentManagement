@@ -7,7 +7,7 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-LATEST_VERSION = 11
+LATEST_VERSION = 12
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
@@ -333,6 +333,8 @@ def _run_migration(from_ver, to_ver, data_dir, conn):
         _migrate_v9_to_v10(conn)
     elif from_ver == 10 and to_ver == 11:
         _migrate_v10_to_v11(conn)
+    elif from_ver == 11 and to_ver == 12:
+        _migrate_v11_to_v12(conn)
     else:
         logger.warning("Unknown migration step: %d → %d", from_ver, to_ver)
 
@@ -533,6 +535,14 @@ def _migrate_v10_to_v11(conn):
     """v0.6.0.0: system_language setting."""
     conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('system_language', 'zh')")
     logger.info("  ✓ system_language seeded (zh).")
+
+
+def _migrate_v11_to_v12(conn):
+    """v0.6.2.3: devices.notes column for device remarks."""
+    p_cols = [c[1] for c in conn.execute("PRAGMA table_info(printers)").fetchall()]
+    if "notes" not in p_cols:
+        conn.execute("ALTER TABLE printers ADD COLUMN notes TEXT")
+        logger.info("  ✓ printers.notes column added.")
 
 
 def _migrate_v8_to_v9(conn):

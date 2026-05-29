@@ -52,6 +52,36 @@
                 <div class="status-value" id="statusDataHealth">—</div>
             </div>
         </div>
+        <div style="margin-top:1.5rem;text-align:center;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.1);">
+            <span style="color:var(--text-secondary);font-size:0.9rem;">{{ i18n.donation_entry_text }}</span>
+            <a href="#" onclick="openDonationModal();return false;" style="color:var(--primary);cursor:pointer;margin-left:0.5rem;font-size:0.9rem;">{{ i18n.donation_button }}</a>
+        </div>
+    </div>
+</div>
+
+<!-- 赞赏模态框 -->
+<div class="modal" id="donationModal">
+    <div class="modal-content" style="max-width:520px;">
+        <div class="modal-header">
+            <div class="modal-title">{{ i18n.donation_title }}</div>
+            <div class="close-modal" onclick="closeDonationModal()">&times;</div>
+        </div>
+        <div class="modal-body" style="text-align:center;">
+            <p style="color:var(--text-secondary);margin-bottom:0.5rem;font-size:0.85rem;">{{ i18n.donation_subtitle }}</p>
+            <p style="color:var(--text-primary);margin-bottom:1.2rem;font-style:italic;line-height:1.5;">"{{ i18n.donation_poem }}"</p>
+            <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+                <div style="flex:1;min-width:180px;text-align:center;">
+                    <img src="/static/img/donation/WeChatQR.jpg" alt="WeChat QR" style="width:180px;height:180px;border-radius:8px;border:2px solid rgba(255,255,255,0.1);">
+                    <p style="color:var(--text-secondary);font-size:0.8rem;margin-top:0.5rem;">{{ i18n.donation_wechat_label }}</p>
+                </div>
+                <div style="flex:1;min-width:180px;text-align:center;">
+                    <img src="/static/img/donation/AlipayQR.jpg" alt="Alipay QR" style="width:180px;height:180px;border-radius:8px;border:2px solid rgba(255,255,255,0.1);">
+                    <p style="color:var(--text-secondary);font-size:0.8rem;margin-top:0.5rem;">{{ i18n.donation_alipay_label }}</p>
+                </div>
+            </div>
+            <p style="color:var(--warning);font-size:0.75rem;margin-top:1.2rem;line-height:1.4;">{{ i18n.donation_disclaimer }}</p>
+            <button class="btn btn-primary" onclick="closeDonationModal()" style="margin-top:1rem;">{{ i18n.donation_close }}</button>
+        </div>
     </div>
 </div>
 {% endblock %}

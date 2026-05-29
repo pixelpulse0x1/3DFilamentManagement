@@ -15,11 +15,16 @@ def _data_dir():
 
 def _printer_to_dict(row):
     return {
-        "id": row["id"], "name": row["name"], "model": row["model"],
+        "id": row["id"], "name": row["name"],
+        "model": row["pm_name"] if "pm_name" in row.keys() and row["pm_name"] else row["model"],
         "model_id": row["model_id"] if "model_id" in row.keys() else None,
         "pm_name": row["pm_name"] if "pm_name" in row.keys() else None,
         "pm_brand": row["pm_brand"] if "pm_brand" in row.keys() else None,
         "bed_size": row["bed_size"] if "bed_size" in row.keys() else None,
+        "power_w": row["power_w"] if "power_w" in row.keys() else 200,
+        "value_yuan": row["value_yuan"] if "value_yuan" in row.keys() else 0.0,
+        "lifespan_h": row["lifespan_h"] if "lifespan_h" in row.keys() else 20000,
+        "notes": row["notes"] if "notes" in row.keys() else None,
     }
 
 
@@ -41,7 +46,8 @@ def api_printers():
         with get_db(data_dir) as conn:
             if request.method == "GET":
                 printers = conn.execute("""
-                    SELECT p.*, pm.model_name AS pm_name, pm.brand AS pm_brand, pm.bed_size
+                    SELECT p.*, pm.model_name AS pm_name, pm.brand AS pm_brand, pm.bed_size,
+                           pm.power_w, pm.value_yuan, pm.lifespan_h
                     FROM printers p
                     LEFT JOIN printer_models pm ON p.model_id = pm.id
                     ORDER BY p.id
@@ -101,6 +107,36 @@ def api_printers():
                 return jsonify({"status": "success", "id": cursor.lastrowid})
     except Exception as e:
         logger.error("Printers error: %s", e)
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@printers_bp.route("/api/printers/<int:printer_id>/edit", methods=["POST"])
+def api_printer_edit(printer_id):
+    """Edit a printer: rename, rebind model, and update notes."""
+    data_dir = _data_dir()
+    try:
+        with get_db(data_dir) as conn:
+            printer = conn.execute(
+                "SELECT * FROM printers WHERE id = ?", (printer_id,)
+            ).fetchone()
+            if not printer:
+                return jsonify({"status": "error", "error": "Printer not found"}), 404
+
+            data = request.get_json() or {}
+            name = data.get("name", "").strip()
+            if not name:
+                return jsonify({"status": "error", "error": "Printer name is required"}), 400
+            model_id = data.get("model_id")
+            notes = data.get("notes", "")
+
+            conn.execute(
+                "UPDATE printers SET name = ?, model_id = ?, notes = ? WHERE id = ?",
+                (name, model_id, notes, printer_id),
+            )
+            conn.commit()
+            return jsonify({"status": "success"})
+    except Exception as e:
+        logger.error("Printer edit error: %s", e)
         return jsonify({"status": "error", "error": str(e)}), 500
 
 

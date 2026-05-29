@@ -1,6 +1,6 @@
 # 3DFilamentManagement — 技术参考文档
 
-## 版本: v0.6.2.2
+## 版本: v0.6.2.3
 
 ---
 
@@ -88,7 +88,7 @@
 │   └── TECHNICAL_REFERENCE.md           # 本技术参考文档
 ├── archive/                             # 代码存档 (空)
 ├── tests/                               # 测试资源 (空)
-├── research/                            # 版本需求文档 (v0.6.1.1 ~ v0.6.2.2)
+├── research/                            # 版本需求文档 (v0.6.1.1 ~ v0.6.2.3)
 └── docs_private/                        # 原始软件本体 + 网页代码提取存档
 ```
 
@@ -98,7 +98,7 @@
 
 | 轨道 | DATA_DIR 路径 | 示例 |
 |------|-------------|------|
-| A: PyInstaller | `{EXE_DIR}/../data/` | `C:\...\3D_Inventory_Management_v0.6.2.2\data\` |
+| A: PyInstaller | `{EXE_DIR}/../data/` | `C:\...\3D_Inventory_Management_v0.6.2.3\data\` |
 | B: Docker | `os.environ.get("DATA_DIR")` → `/data/` | `/data/` (数据卷挂载点) |
 | C: Dev | `app.py` 同级 `data/` | `workspace/data/` |
 
@@ -703,7 +703,7 @@ pyinstaller --onedir --name server --clean --hidden-import=openpyxl --distpath .
 
 由于 PyInstaller 默认的规则会将可执行文件深埋在 `backend/server/server.exe` 路径下，为了匹配 `运行系统.bat` 的根路径感知逻辑，必须进行以下**物理拼装**：
 
-1. 在任意位置创建一个新文件夹，命名为最终交付名称（如 `3D_Inventory_Management_v0.6.2.2`）。
+1. 在任意位置创建一个新文件夹，命名为最终交付名称（如 `3D_Inventory_Management_v0.6.2.3`）。
 2. 进入编译生成的 `backend/` 目录，展现出内部的 `server/` 文件夹。
 3. **核心提炼**：进入该 `server/` 文件夹，**全选并剪切**内部所有文件（含 `server.exe` 和 `_internal/`），后退一级直接粘贴到 `backend/` 目录下，随后将空了的 `server/` 文件夹彻底删除。
 4. 将此处理好的 `backend/` 整个文件夹复制到你新建的交付文件夹中。
@@ -716,16 +716,16 @@ pyinstaller --onedir --name server --clean --hidden-import=openpyxl --distpath .
 1. 鼠标双击总根目录下的 `运行系统.bat`。
 2. 弹出黑色的运维看板 CMD 窗口，自动执行防灾强杀逻辑。
 3. 等待 2 秒后，Windows 默认浏览器会自动弹出一个新标签页，地址指向 `http://127.0.0.1:9055`。
-4. 检查前端界面，确认版本号已完美刷新为 `v0.6.2.2`。
+4. 检查前端界面，确认版本号已完美刷新为 `v0.6.2.3`。
 5. 尝试在前端上传一张耗材图片或添加一条记录，确认总根目录下自愈式创建出 `data/instance/data.db`。
 6. 测试完毕后，在黑色 CMD 窗口中按下 `Ctrl + C`（或直接点右上角 `X` 关闭），系统将安全释放 `9055` 端口。
 
-测试无误后，将 `3D_Inventory_Management_v0.6.2.2` 文件夹整体右键“压缩为 ZIP 文件”，即完成 **Windows 绿色便携版固件** 的发布。
+测试无误后，将 `3D_Inventory_Management_v0.6.2.3` 文件夹整体右键“压缩为 ZIP 文件”，即完成 **Windows 绿色便携版固件** 的发布。
 
 #### 打包后标准目录结构
 
 ```Plaintext
-3D_Inventory_Management_v0.6.2.2/    # 最终发布包总根目录
+3D_Inventory_Management_v0.6.2.3/    # 最终发布包总根目录
 ├── 运行系统.bat                       # 一键全自动入口脚本
 ├── static/                           # 前端静态资源（原样复制）
 ├── templates/                        # Jinja2 HTML 模板（原样复制）
@@ -755,7 +755,7 @@ pyinstaller --onedir --name server --clean --hidden-import=openpyxl --distpath .
 services:
   3dfilamentmanagement:
     build: .
-    image: pixelpulse01/3dfilamentmanagement:v0.6.2.2
+    image: pixelpulse01/3dfilamentmanagement:v0.6.2.3
     container_name: 3dfilamentmanagement
     restart: unless-stopped
     environment:
@@ -807,7 +807,7 @@ docker exec -it 3dfilamentmanagement bash
 
 | 标签 | 说明 |
 |------|------|
-| `pixelpulse01/3dfilamentmanagement:v0.6.2.2` | 当前版本 |
+| `pixelpulse01/3dfilamentmanagement:v0.6.2.3` | 当前版本 |
 | `pixelpulse01/3dfilamentmanagement:latest` | 最新稳定版 |
 
 ---
@@ -882,6 +882,15 @@ sudo docker compose down && sudo docker compose build --no-cache && sudo docker 
 
 
 ## 12. 更新日志
+
+### v0.6.2.3
+- 修复国际化（i18n）翻译审计缺陷：成本计算器中 `In Stock`、`Weight(g)`、`Purge(g)`、`Support`、`Device`、`Params`、`Process`、`Mode`、`Qty` 等字段翻译补齐
+- 修复设备管理与成本计算器数据联动缺陷：设备列表"绑定机型"列正常显示型号名称，成本计算器正确读取机器价格
+- 新功能：设备列表增加"编辑"功能，支持重命名设备名称、重选绑定机型、添加备注
+- 数据库迁移 V11→V12：`printers` 表新增 `notes` 字段
+- Chart.js 图表视觉调优：月度使用量/每日统计图表字体颜色改为纯白，新增数据点数值渲染插件
+- 新功能：中英双语赞赏模态框，微信赞赏码/支付宝红包码静态资源打包至 `static/img/donation/`
+- 全局版本号 v0.6.2.2 → v0.6.2.3
 
 ### v0.6.2.2
 - `运行系统.bat` 新增 `DEBUG_MODE` 调试开关（默认 false），环境变量透传至 `server.exe`

@@ -10,11 +10,11 @@
 <!-- Filaments -->
 <div class="card" style="margin-bottom:0.8rem;"><div class="card-header"><div class="card-title">{{ i18n.calc_filaments }}</div><button class="btn btn-outline btn-sm" onclick="addFilamentRow()">+ {{ i18n.calc_add_material }}</button></div>
     <div class="calc-table-header">
-        <span style="width:35%">In Stock</span>
-        <span style="width:10%">Weight(g)</span>
-        <span style="width:10%">Purge(g)</span>
+        <span style="width:35%">{{ i18n.in_stock_label }}</span>
+        <span style="width:10%">{{ i18n.weight_g_label }}</span>
+        <span style="width:10%">{{ i18n.purge_g_label }}</span>
         <span style="width:10%">{{ i18n.unit_price_label }}</span>
-        <span style="width:10%">Support</span>
+        <span style="width:10%">{{ i18n.support_full_label }}</span>
         <span style="width:5%"></span>
     </div>
     <div id="filamentsContainer"></div>
@@ -22,10 +22,10 @@
 <!-- Printers -->
 <div class="card" style="margin-bottom:0.8rem;"><div class="card-header"><div class="card-title">{{ i18n.calc_printers }}</div><button class="btn btn-outline btn-sm" onclick="addPrinterRow()">+ {{ i18n.calc_add_printer }}</button></div>
     <div class="calc-table-header">
-        <span style="width:30%">Device</span>
+        <span style="width:30%">{{ i18n.device_label }}</span>
         <span style="width:8%">{{ i18n.hours_short }}</span>
         <span style="width:8%">{{ i18n.minutes_short }}</span>
-        <span style="width:30%">Params</span>
+        <span style="width:30%">{{ i18n.params_label }}</span>
         <span style="width:5%"></span>
     </div>
     <div id="printersContainer"></div>
@@ -33,10 +33,10 @@
 <!-- Post-processing -->
 <div class="card" style="margin-bottom:0.8rem;"><div class="card-header"><div class="card-title">{{ i18n.calc_post }}</div><button class="btn btn-outline btn-sm" onclick="addPostRow()">+ {{ i18n.calc_add_post }}</button></div>
     <div class="calc-table-header">
-        <span style="width:20%">Process</span>
-        <span style="width:15%">Mode</span>
+        <span style="width:20%">{{ i18n.process_label }}</span>
+        <span style="width:15%">{{ i18n.mode_label }}</span>
         <span style="width:10%">{{ i18n.unit_price_short }}</span>
-        <span style="width:10%">Qty</span>
+        <span style="width:10%">{{ i18n.qty_short_label }}</span>
         <span style="width:5%"></span>
     </div>
     <div id="postContainer"></div>
@@ -72,7 +72,7 @@
 </div>
 <div class="card">
     <div class="card-header"><div class="card-title">{{ i18n.calc_history }}</div></div>
-    <div id="historyList"><div class="empty-state"><i class="fas fa-history"></i><p>No history records</p></div></div>
+    <div id="historyList"><div class="empty-state"><i class="fas fa-history"></i><p>{{ i18n.no_history_msg }}</p></div></div>
 </div>
 </div>
 <input type="hidden" id="currentRecordId" value="">

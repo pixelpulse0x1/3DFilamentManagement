@@ -349,6 +349,18 @@ function setActiveBackground(filename) {
 
 // ─── Utilities ───
 
+// ─── Donation Modal ───
+
+function openDonationModal() {
+    document.getElementById('donationModal').style.display = 'flex';
+}
+
+function closeDonationModal() {
+    document.getElementById('donationModal').style.display = 'none';
+}
+
+// ─── Utilities ───
+
 function showMsg(elId, msg, type) {
     const el = document.getElementById(elId);
     if (!el) return;

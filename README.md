@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="#-快速开始"><img src="https://img.shields.io/badge/版本-v0.6.2.2-blue" alt="version" /></a>
+  <a href="#-快速开始"><img src="https://img.shields.io/badge/版本-v0.6.2.3-blue" alt="version" /></a>
   <a href="#license"><img src="https://img.shields.io/badge/许可证-MIT-green" alt="license" /></a>
   <img src="https://img.shields.io/badge/平台-Linux%20%7C%20Windows%20%7C%20Docker-orange" alt="platform" />
   <img src="https://img.shields.io/badge/i18n-中英双语-ff69b4" alt="i18n" />
@@ -184,14 +184,14 @@ docker compose up -d
 
 ##### 下载与解压
 
-1. 下载 `3D_Inventory_Management_v0.6.2.2.zip`（约 30MB）
+1. 下载 `3D_Inventory_Management_v0.6.2.3.zip`（约 30MB）
 2. 解压到任意目录（如 `D:\3DInventory\` 或桌面）
 3. **不需要安装 Python 或任何依赖**，解压即用
 
 ##### 解压后的目录结构
 
 ```
-3D_Inventory_Management_v0.6.2.2/
+3D_Inventory_Management_v0.6.2.3/
 ├── 运行系统.bat                  # ← 双击这个启动
 ├── static/                       # 前端静态资源 (CSS/JS/背景图)
 ├── templates/                    # 页面模板
@@ -435,14 +435,14 @@ docker compose up -d
 
 ##### Download & Extract
 
-1. Download `3D_Inventory_Management_v0.6.2.2.zip` (~30 MB)
+1. Download `3D_Inventory_Management_v0.6.2.3.zip` (~30 MB)
 2. Extract to any folder (e.g. `D:\3DInventory\` or Desktop)
 3. **No Python or dependencies required** — ready to run
 
 ##### Extracted Structure
 
 ```
-3D_Inventory_Management_v0.6.2.2/
+3D_Inventory_Management_v0.6.2.3/
 ├── 运行系统.bat                  # ← Double-click to launch
 ├── static/                       # Frontend assets (CSS/JS/backgrounds)
 ├── templates/                    # Page templates
@@ -536,6 +536,39 @@ workspace/
 MIT License. See [LICENSE](LICENSE) file.
 
 ---
+
+## ☕ 支持项目 / Support the Project
+
+<p align="center">
+  <strong>❤️ 所有打赏将用于服务器/域名开销，或只是让我在深夜写代码时多杯热茶。</strong>
+</p>
+<p align="center">
+  <em>All donations go toward server/domain costs, or just a cup of tea for late-night coding.</em>
+</p>
+
+<p align="center">
+  <table align="center">
+    <tr>
+      <td align="center" width="280">
+        <img src="https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/static/img/donation/WeChatQR.jpg" alt="微信赞赏码" width="200" /><br/>
+        <sub>微信赞赏 · 金额随心</sub><br/>
+        <sub>WeChat · Amount at Will</sub>
+      </td>
+      <td align="center" width="280">
+        <img src="https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/static/img/donation/AlipayQR.jpg" alt="支付宝红包码" width="200" /><br/>
+        <sub>支付宝红包 · 扫码支持</sub><br/>
+        <sub>Alipay · Scan to Support</sub>
+      </td>
+    </tr>
+  </table>
+</p>
+
+<p align="center">
+  <sub>⚠️ 此赞助完全自愿，不构成任何服务合同，Issue 仍按正常优先级处理。</sub>
+</p>
+<p align="center">
+  <sub>⚠️ This sponsorship is completely voluntary and does not constitute any service contract. Issues will still be processed with standard priority.</sub>
+</p>
 
 <p align="center">
   <sub>Built with ❤️ by <a href="https://github.com/pixelpulse0x1">pixelpulse0x1</a></sub>

@@ -723,7 +723,33 @@ function updateMonthlyUsageChart(records) {
                 tension: 0.3, fill: true,
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#ffffff' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                x: { ticks: { color: '#ffffff' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+            },
+            plugins: {
+                legend: { labels: { color: '#ffffff' } },
+                tooltip: { titleColor: '#ffffff', bodyColor: '#ffffff' }
+            }
+        },
+        plugins: [{
+            id: 'inlineLabels',
+            afterDatasetsDraw(chart) {
+                const ctx2 = chart.ctx;
+                chart.data.datasets.forEach((dataset, dsIdx) => {
+                    const meta = chart.getDatasetMeta(dsIdx);
+                    meta.data.forEach((point, i) => {
+                        const val = dataset.data[i];
+                        ctx2.fillStyle = '#ffffff';
+                        ctx2.font = 'bold 11px sans-serif';
+                        ctx2.textAlign = 'center';
+                        ctx2.fillText(val, point.x, point.y - 8);
+                    });
+                });
+            }
+        }]
     });
 }
 
@@ -765,10 +791,33 @@ function updateDailyUsageChart(dailySummary) {
         options: {
             responsive: true, maintainAspectRatio: false,
             scales: {
-                y: { type: 'linear', display: true, position: 'left', title: { display: true, text: _i('chart_weight_axis', '重量 (g)') } },
-                y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: _i('chart_amount_axis', '金额 (¥)') }, grid: { drawOnChartArea: false } }
+                y: { type: 'linear', display: true, position: 'left', title: { display: true, text: _i('chart_weight_axis', '重量 (g)'), color: '#ffffff' }, ticks: { color: '#ffffff' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: _i('chart_amount_axis', '金额 (¥)'), color: '#ffffff' }, ticks: { color: '#ffffff' }, grid: { drawOnChartArea: false } },
+                x: { ticks: { color: '#ffffff' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+            },
+            plugins: {
+                legend: { labels: { color: '#ffffff' } },
+                tooltip: { titleColor: '#ffffff', bodyColor: '#ffffff' }
             }
-        }
+        },
+        plugins: [{
+            id: 'inlineLabels',
+            afterDatasetsDraw(chart) {
+                const ctx2 = chart.ctx;
+                chart.data.datasets.forEach((dataset, dsIdx) => {
+                    const meta = chart.getDatasetMeta(dsIdx);
+                    meta.data.forEach((point, i) => {
+                        const val = dataset.data[i];
+                        if (val === 0) return;
+                        ctx2.fillStyle = '#ffffff';
+                        ctx2.font = 'bold 10px sans-serif';
+                        ctx2.textAlign = 'center';
+                        const yOffset = dsIdx === 0 ? -6 : -14;
+                        ctx2.fillText(dataset.type === 'line' ? '¥' + parseFloat(val).toFixed(1) : parseFloat(val).toFixed(1) + 'g', point.x, point.y + yOffset);
+                    });
+                });
+            }
+        }]
     });
 }
 
