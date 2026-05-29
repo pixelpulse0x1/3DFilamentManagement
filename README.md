@@ -550,12 +550,12 @@ MIT License. See [LICENSE](LICENSE) file.
   <table align="center">
     <tr>
       <td align="center" width="280">
-        <img src="https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/static/img/donation/WeChatQR.jpg" alt="微信赞赏码" width="200" /><br/>
+        <img src="static/img/donation/WeChatQR.jpg" alt="微信赞赏码" width="200" /><br/>
         <sub>微信赞赏 · 金额随心</sub><br/>
         <sub>WeChat · Amount at Will</sub>
       </td>
       <td align="center" width="280">
-        <img src="https://raw.githubusercontent.com/pixelpulse0x1/3DFilamentManagement/main/workspace/static/img/donation/AlipayQR.jpg" alt="支付宝红包码" width="200" /><br/>
+        <img src="static/img/donation/AlipayQR.jpg" alt="支付宝红包码" width="200" /><br/>
         <sub>支付宝红包 · 扫码支持</sub><br/>
         <sub>Alipay · Scan to Support</sub>
       </td>
