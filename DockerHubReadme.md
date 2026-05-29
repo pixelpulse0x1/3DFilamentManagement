@@ -25,6 +25,8 @@ A full-featured consumable asset management tool for 3D printing enthusiasts, sm
 
 **GitHub:** [pixelpulse0x1/3DFilamentManagement](https://github.com/pixelpulse0x1/3DFilamentManagement)
 
+Memory: 30.21MB
+
 ---
 
 ## 📖 English

@@ -20,6 +20,8 @@
     <img src="https://img.shields.io/badge/📖_AI_知识库-DeepWiki-4B32C3?style=for-the-badge" alt="DeepWiki">
   </a>
 </p>
+Memory: 30.21MB
+
 
 ---
 
