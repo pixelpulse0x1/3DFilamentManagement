@@ -1,6 +1,6 @@
 ---
 name: ❓ 问题咨询
-about: 询问关于DaysMatter的使用问题
+about: 询问关于3DFilamentManagement的使用问题
 title: '[问题] '
 labels: ['question', 'help wanted']
 assignees: ''
@@ -19,7 +19,7 @@ assignees: ''
 
 ## 💻 环境信息
 **部署方式：** Docker / 直接运行
-**版本：** v0.4.6.1
+**版本：** v？
 
 ## 📎 附加信息
 任何其他有助于理解问题的信息。

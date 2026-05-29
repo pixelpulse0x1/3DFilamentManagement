@@ -1,6 +1,6 @@
 ---
 name: 🐛 Bug报告
-about: 报告DaysMatter的bug或问题
+about: 报告3DFilamentManagement的bug或问题
 title: '[BUG] '
 labels: ['bug', 'needs-triage']
 assignees: ''
@@ -36,13 +36,13 @@ assignees: ''
 - [ ] Linux (发行版：___)
 - [ ] 其他：___
 
-**DaysMatter版本：** v0.4.6.1（可在设置页面查看）
+**3DFilamentManagement版本：** 可在设置页面查看
 
 ## 📝 期望行为
 清晰简洁地描述你期望发生的事情。
 
 ## 📋 日志信息
-如果可能，请提供相关日志（位于`/opt/docker-stacks/daysmatter/log/app.log`）：
+如果可能，请提供相关日志
 
 ## 🔧 尝试过的解决方案
 描述你已经尝试过的解决方法。

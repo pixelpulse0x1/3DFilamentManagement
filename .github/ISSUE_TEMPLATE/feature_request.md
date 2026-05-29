@@ -1,6 +1,6 @@
 ---
 name: ✨ 功能请求
-about: 为DaysMatter提出新功能建议
+about: 为3DFilamentManagement提出新功能建议
 title: '[功能] '
 labels: ['enhancement', 'needs-triage']
 assignees: ''
